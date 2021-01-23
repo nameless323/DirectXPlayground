@@ -11,4 +11,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, in
     WindowsApp::Init(hInstance, nCmdShow, L"DXR playground");
     WindowsApp::Run();
     return 0;
+} 
+
+namespace DXRplayground
+{
+void Run()
+{
+    int i = 0;
+}
 }

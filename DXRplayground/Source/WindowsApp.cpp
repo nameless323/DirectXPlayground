@@ -1,5 +1,10 @@
 #include "WindowsApp.h"
 
+namespace DXRplayground
+{
+void Run();
+}
+
 namespace DXRplayground::WindowsApp
 {
 namespace
@@ -65,8 +70,7 @@ long int Run()
         }
         else
         {
-            Sleep(1);
-            //KiotoCore::Update(); // [a_vorontcov] TODO: If app minimized go to sleep.
+            DXRplayground::Run();
         }
     }
     Shutdown();
