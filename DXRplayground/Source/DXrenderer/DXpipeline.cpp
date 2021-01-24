@@ -63,6 +63,7 @@ void DXpipeline::Init(HWND hwnd, int width, int height)
     m_sharedState.SamplerDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
     Flush();
+    Resize(width, height);
 }
 
 void DXpipeline::Flush()
@@ -85,6 +86,9 @@ void DXpipeline::Flush()
 
 void DXpipeline::Resize(int width, int height)
 {
+    if (width == m_sharedState.Width && height == m_sharedState.Height)
+        return;
+
     m_sharedState.Width = width;
     m_sharedState.Height = height;
 

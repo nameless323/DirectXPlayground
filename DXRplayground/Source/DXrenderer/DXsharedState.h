@@ -12,7 +12,7 @@ struct DXsharedState
     UINT DsvDescriptorSize = -1;
     UINT SamplerDescriptorSize = -1;
 
-    int Width = 1920;
-    int Height = 1080;
+    int Width = 0;
+    int Height = 0;
 };
 }

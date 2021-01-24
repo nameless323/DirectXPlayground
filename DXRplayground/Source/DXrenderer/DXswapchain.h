@@ -56,7 +56,7 @@ inline D3D12_CPU_DESCRIPTOR_HANDLE DXswapchain::GetCurrentBackBufferCPUhandle(co
 
 inline UINT DXswapchain::GetCurrentBackBufferIndex() const
 {
-    m_swapChain->GetCurrentBackBufferIndex();
+    return m_swapChain->GetCurrentBackBufferIndex();
 }
 
 inline ID3D12Resource* DXswapchain::GetCurrentBackBuffer() const
