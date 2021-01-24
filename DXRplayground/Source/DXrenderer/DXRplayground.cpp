@@ -17,6 +17,5 @@ namespace DXRplayground
 {
 void Run()
 {
-    int i = 0;
 }
 }
