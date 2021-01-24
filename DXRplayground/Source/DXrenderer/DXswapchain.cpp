@@ -6,13 +6,13 @@ namespace DXRplayground
 {
 using Microsoft::WRL::ComPtr;
 
-void DXswapchain::Init(int width, int height, bool isTearingSupported, HWND hwnd, const DXsharedState& state,
+void DXswapchain::Init(bool isTearingSupported, HWND hwnd, const DXsharedState& state,
     IDXGIFactory7* factory, ID3D12Device* device, ID3D12CommandQueue* commandQueue)
 {
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
     swapChainDesc.BufferCount = DXsharedState::FramesCount;
-    swapChainDesc.Width = width;
-    swapChainDesc.Height = height;
+    swapChainDesc.Width = state.Width;
+    swapChainDesc.Height = state.Height;
     swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -43,7 +43,7 @@ void DXswapchain::Init(int width, int height, bool isTearingSupported, HWND hwnd
 }
 
 
-void DXswapchain::Resize(int width, int height, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DXsharedState& state)
+void DXswapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DXsharedState& state)
 {
     m_currentFrameIndex = 0;
 
@@ -54,7 +54,7 @@ void DXswapchain::Resize(int width, int height, ID3D12Device* device, ID3D12Grap
     UINT flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     if (m_isTearingSupported)
         flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-    ThrowIfFailed(m_swapChain->ResizeBuffers(DXsharedState::FramesCount, width, height, m_backBufferFormat, flags));
+    ThrowIfFailed(m_swapChain->ResizeBuffers(DXsharedState::FramesCount, state.Width, state.Height, m_backBufferFormat, flags));
 
     BOOL fullscreenState;
     ThrowIfFailed(m_swapChain->GetFullscreenState(&fullscreenState, nullptr));

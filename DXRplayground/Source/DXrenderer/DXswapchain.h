@@ -17,16 +17,16 @@ public:
 
     DXswapchain& operator= (const DXswapchain&) = delete;
 
-    void Init(int width, int height, bool isTearingSupported, HWND hwnd, const DXsharedState& state,
+    void Init(bool isTearingSupported, HWND hwnd, const DXsharedState& state,
         IDXGIFactory7* factory, ID3D12Device* device, ID3D12CommandQueue* commandQueue);
-    void Resize(int width, int height, ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DXsharedState& state);
+    void Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DXsharedState& state);
 
     void Present();
     void ProceedToNextFrame();
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferCPUhandle(const DXsharedState& state) const;
     UINT GetCurrentBackBufferIndex() const;
-
+    ID3D12Resource* GetCurrentBackBuffer() const;
 
 private:
     const DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -57,5 +57,10 @@ inline D3D12_CPU_DESCRIPTOR_HANDLE DXswapchain::GetCurrentBackBufferCPUhandle(co
 inline UINT DXswapchain::GetCurrentBackBufferIndex() const
 {
     m_swapChain->GetCurrentBackBufferIndex();
+}
+
+inline ID3D12Resource* DXswapchain::GetCurrentBackBuffer() const
+{
+    return m_backBufferResources[GetCurrentBackBufferIndex()].Get();
 }
 }

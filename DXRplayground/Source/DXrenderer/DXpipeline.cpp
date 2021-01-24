@@ -20,28 +20,124 @@ void DXpipeline::Init(HWND hwnd, int width, int height)
         }
     }
 #endif
-    ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&Factory)));
+    ThrowIfFailed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_factory)));
 
     BOOL allowTearing = FALSE;
     ComPtr<IDXGIFactory7> factory7;
-    ThrowIfFailed(Factory.As(&factory7));
+    ThrowIfFailed(m_factory.As(&factory7));
     HRESULT hr = factory7->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
     m_isTearingSupported = SUCCEEDED(hr) && allowTearing;
 
     ComPtr<IDXGIAdapter1> hardwareAdapter;
-    GetHardwareAdapter(Factory.Get(), &hardwareAdapter);
+    GetHardwareAdapter(m_factory.Get(), &hardwareAdapter);
 
-    ThrowIfFailed(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&Device)));
+    ThrowIfFailed(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&m_device)));
 
-    D3D12_FEATURE_DATA_D3D12_OPTIONS options;
-    Device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS));
+    D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
+    m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS));
 
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
-    ThrowIfFailed(Device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&CommandQueue)));
-    NAME_D3D12_OBJECT(CommandQueue);
+    ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
+    NAME_D3D12_OBJECT(m_commandQueue);
+
+    m_swapChain.Init(m_isTearingSupported, hwnd, m_sharedState, m_factory.Get(), m_device.Get(), m_commandQueue.Get());
+
+    for (int i = 0; i < DXsharedState::FramesCount; ++i)
+    {
+        ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
+        NAME_D3D12_OBJECT(m_commandAllocators[i]);
+    }
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&m_commandList))); // [a_vorontcov] Maybe not 0 as mask?
+    NAME_D3D12_OBJECT(m_commandList);
+    m_commandList->Close();
+
+    ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
+    NAME_D3D12_OBJECT(m_fence);
+
+    m_sharedState.CbvSrvUavDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_sharedState.RtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_sharedState.DsvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    m_sharedState.SamplerDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+    Flush();
+}
+
+void DXpipeline::Flush()
+{
+    ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_fenceValues[m_swapChain.GetCurrentBackBufferIndex()]));
+
+    if (m_fence->GetCompletedValue() < m_fenceValues[m_swapChain.GetCurrentBackBufferIndex()])
+    {
+        HANDLE fenceEventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (fenceEventHandle == nullptr)
+        {
+            ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+        }
+        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_swapChain.GetCurrentBackBufferIndex()], fenceEventHandle));
+
+        WaitForSingleObjectEx(fenceEventHandle, INFINITE, false);
+        CloseHandle(fenceEventHandle);
+    }
+}
+
+void DXpipeline::Resize(int width, int height)
+{
+    m_sharedState.Width = width;
+    m_sharedState.Height = height;
+
+    for (auto fenceVals : m_fenceValues)
+        fenceVals = m_currentFence;
+
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr));
+
+    m_swapChain.Resize(m_device.Get(), m_commandList.Get(), m_sharedState);
+
+    ThrowIfFailed(m_commandList->Close());
+    ID3D12CommandList* cmdLists[] = { m_commandList.Get() };
+    m_commandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+
+    Flush();
+}
+
+void DXpipeline::Draw()
+{
+    // To BeginFrame. Direct approach won't work here.
+    m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()]->Reset();
+    m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr);
+
+    auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    m_commandList->ResourceBarrier(1, &toRt);
+
+    //---render here---//
+
+    auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    m_commandList->ResourceBarrier(1, &toPresent);
+
+    m_commandList->Close();
+    ID3D12CommandList* cmdLists[] = { m_commandList.Get() };
+    m_commandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+    m_swapChain.Present();
+
+    m_fenceValues[m_swapChain.GetCurrentBackBufferIndex()] = ++m_currentFence;
+    m_commandQueue->Signal(m_fence.Get(), m_currentFence);
+
+    m_swapChain.ProceedToNextFrame();
+
+    if (m_fenceValues[m_swapChain.GetCurrentBackBufferIndex()] != 0 && m_fence->GetCompletedValue() < m_fenceValues[m_swapChain.GetCurrentBackBufferIndex()])
+    {
+        HANDLE fenceEventHandle = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        if (fenceEventHandle == nullptr)
+        {
+            ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+        }
+        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fenceValues[m_swapChain.GetCurrentBackBufferIndex()], fenceEventHandle));
+
+        WaitForSingleObjectEx(fenceEventHandle, INFINITE, false);
+        CloseHandle(fenceEventHandle);
+    }
 }
 
 void DXpipeline::GetHardwareAdapter(IDXGIFactory7* factory, IDXGIAdapter1** adapter)
