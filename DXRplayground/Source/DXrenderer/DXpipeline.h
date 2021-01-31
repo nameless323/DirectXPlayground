@@ -31,12 +31,12 @@ private:
     DXswapchain m_swapChain;
 
     Microsoft::WRL::ComPtr<IDXGIFactory7> m_factory;
-    Microsoft::WRL::ComPtr<ID3D12Device> m_device;
+    Microsoft::WRL::ComPtr<ID3D12Device5> m_device;
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
 
     Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
     std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, DXsharedState::FramesCount> m_commandAllocators;
-    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> m_commandList;
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList4> m_commandList;
     UINT64 m_fenceValues[DXsharedState::FramesCount]{};
     UINT64 m_currentFence = 0;
 };

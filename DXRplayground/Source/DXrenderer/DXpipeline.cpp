@@ -115,7 +115,10 @@ void DXpipeline::Draw()
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     m_commandList->ResourceBarrier(1, &toRt);
 
-    //---render here---//
+    auto rtCpuHandle = m_swapChain.GetCurrentBackBufferCPUhandle(m_sharedState);
+    m_commandList->OMSetRenderTargets(1, &rtCpuHandle, false, nullptr);
+    const float clearColor[] = { 0.0f, 0.9f, 0.4f, 1.0f };
+    m_commandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     m_commandList->ResourceBarrier(1, &toPresent);

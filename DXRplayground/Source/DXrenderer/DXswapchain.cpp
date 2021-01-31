@@ -9,6 +9,7 @@ using Microsoft::WRL::ComPtr;
 void DXswapchain::Init(bool isTearingSupported, HWND hwnd, const DXsharedState& state,
     IDXGIFactory7* factory, ID3D12Device* device, ID3D12CommandQueue* commandQueue)
 {
+    m_isTearingSupported = isTearingSupported;
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
     swapChainDesc.BufferCount = DXsharedState::FramesCount;
     swapChainDesc.Width = state.Width;
@@ -18,12 +19,12 @@ void DXswapchain::Init(bool isTearingSupported, HWND hwnd, const DXsharedState& 
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.SampleDesc.Count = 1;
 
-    swapChainDesc.Flags = isTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+    swapChainDesc.Flags = m_isTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
     ComPtr<IDXGISwapChain1> swapChain;
     factory->CreateSwapChainForHwnd(commandQueue, hwnd, &swapChainDesc, nullptr, nullptr, &swapChain);
 
-    if (isTearingSupported)
+    if (m_isTearingSupported)
         factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
     ThrowIfFailed(swapChain.As(&m_swapChain));
 
