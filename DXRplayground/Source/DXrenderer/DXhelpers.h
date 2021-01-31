@@ -5,7 +5,7 @@
 #include <d3dx12.h>
 #include <string>
 
-namespace DXRplayground
+namespace DirectxPlayground
 {
 
 class ComException : public std::exception // [a_vorontcov] https://github.com/Microsoft/DirectXTK/wiki/ThrowIfFailed

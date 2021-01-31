@@ -1,19 +1,19 @@
-#include "DXswapchain.h"
+#include "Swapchain.h"
 
 #include "DXrenderer/DXhelpers.h"
 
-namespace DXRplayground
+namespace DirectxPlayground
 {
 using Microsoft::WRL::ComPtr;
 
-void DXswapchain::Init(bool isTearingSupported, HWND hwnd, const DXsharedState& state,
+void Swapchain::Init(bool isTearingSupported, HWND hwnd, const RenderContext& ctx,
     IDXGIFactory7* factory, ID3D12Device* device, ID3D12CommandQueue* commandQueue)
 {
     m_isTearingSupported = isTearingSupported;
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-    swapChainDesc.BufferCount = DXsharedState::FramesCount;
-    swapChainDesc.Width = state.Width;
-    swapChainDesc.Height = state.Height;
+    swapChainDesc.BufferCount = RenderContext::FramesCount;
+    swapChainDesc.Width = ctx.Width;
+    swapChainDesc.Height = ctx.Height;
     swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -29,7 +29,7 @@ void DXswapchain::Init(bool isTearingSupported, HWND hwnd, const DXsharedState& 
     ThrowIfFailed(swapChain.As(&m_swapChain));
 
     D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-    rtvHeapDesc.NumDescriptors = DXsharedState::FramesCount;
+    rtvHeapDesc.NumDescriptors = RenderContext::FramesCount;
     rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
@@ -44,7 +44,7 @@ void DXswapchain::Init(bool isTearingSupported, HWND hwnd, const DXsharedState& 
 }
 
 
-void DXswapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DXsharedState& state)
+void Swapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const RenderContext& ctx)
 {
     m_currentFrameIndex = 0;
 
@@ -55,25 +55,25 @@ void DXswapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* comman
     UINT flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     if (m_isTearingSupported)
         flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-    ThrowIfFailed(m_swapChain->ResizeBuffers(DXsharedState::FramesCount, state.Width, state.Height, m_backBufferFormat, flags));
+    ThrowIfFailed(m_swapChain->ResizeBuffers(RenderContext::FramesCount, ctx.Width, ctx.Height, m_backBufferFormat, flags));
 
     BOOL fullscreenState;
     ThrowIfFailed(m_swapChain->GetFullscreenState(&fullscreenState, nullptr));
     m_isSwapChainChainInFullScreen = fullscreenState;
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
-    for (UINT i = 0; i < DXsharedState::FramesCount; ++i)
+    for (UINT i = 0; i < RenderContext::FramesCount; ++i)
     {
         ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBufferResources[i])));
         device->CreateRenderTargetView(m_backBufferResources[i].Get(), nullptr, rtvHandle);
-        rtvHandle.Offset(state.RtvDescriptorSize);
+        rtvHandle.Offset(ctx.RtvDescriptorSize);
     }
 
     D3D12_RESOURCE_DESC depthStencilDesc = {};
     depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     depthStencilDesc.Alignment = 0;
-    depthStencilDesc.Width = state.Width;
-    depthStencilDesc.Height = state.Height;
+    depthStencilDesc.Width = ctx.Width;
+    depthStencilDesc.Height = ctx.Height;
     depthStencilDesc.DepthOrArraySize = 1;
     depthStencilDesc.MipLevels = 1;
     depthStencilDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
@@ -106,15 +106,15 @@ void DXswapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* comman
     commandList->ResourceBarrier(1, &transition);
 }
 
-void DXswapchain::Present()
+void Swapchain::Present()
 {
     UINT presentFlags = (m_isTearingSupported && !m_isSwapChainChainInFullScreen) ? DXGI_PRESENT_ALLOW_TEARING : 0;
     ThrowIfFailed(m_swapChain->Present(0, presentFlags));
 }
 
-void DXswapchain::ProceedToNextFrame()
+void Swapchain::ProceedToNextFrame()
 {
-    m_currentFrameIndex = (m_currentFrameIndex + 1) % DXsharedState::FramesCount;
+    m_currentFrameIndex = (m_currentFrameIndex + 1) % RenderContext::FramesCount;
 }
 
 }

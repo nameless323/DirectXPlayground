@@ -143,17 +143,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Source\DXrenderer\DXpipeline.cpp" />
+    <ClCompile Include="Source\DXrenderer\RenderPipeline.cpp" />
     <ClCompile Include="Source\DXrenderer\DXRplayground.cpp" />
-    <ClCompile Include="Source\DXrenderer\DXswapchain.cpp" />
+    <ClCompile Include="Source\DXrenderer\Swapchain.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\d3dx12.h" />
     <ClInclude Include="Source\DXrenderer\DXhelpers.h" />
-    <ClInclude Include="Source\DXrenderer\DXpipeline.h" />
-    <ClInclude Include="Source\DXrenderer\DXsharedState.h" />
-    <ClInclude Include="Source\DXrenderer\DXswapchain.h" />
+    <ClInclude Include="Source\DXrenderer\RenderPipeline.h" />
+    <ClInclude Include="Source\DXrenderer\RenderContext.h" />
+    <ClInclude Include="Source\DXrenderer\Swapchain.h" />
     <ClInclude Include="Source\WindowsApp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

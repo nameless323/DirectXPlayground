@@ -4,27 +4,27 @@
 #include <wrl.h>
 #include <dxgi1_6.h>
 
-#include "DXrenderer/DXsharedState.h"
+#include "DXrenderer/RenderContext.h"
 
-namespace DXRplayground
+namespace DirectxPlayground
 {
-class DXswapchain
+class Swapchain
 {
 public:
-    DXswapchain() = default;
-    DXswapchain(const DXswapchain&) = delete;
-    ~DXswapchain() = default;
+    Swapchain() = default;
+    Swapchain(const Swapchain&) = delete;
+    ~Swapchain() = default;
 
-    DXswapchain& operator= (const DXswapchain&) = delete;
+    Swapchain& operator= (const Swapchain&) = delete;
 
-    void Init(bool isTearingSupported, HWND hwnd, const DXsharedState& state,
+    void Init(bool isTearingSupported, HWND hwnd, const RenderContext& state,
         IDXGIFactory7* factory, ID3D12Device* device, ID3D12CommandQueue* commandQueue);
-    void Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const DXsharedState& state);
+    void Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const RenderContext& ctx);
 
     void Present();
     void ProceedToNextFrame();
 
-    D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferCPUhandle(const DXsharedState& state) const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferCPUhandle(const RenderContext& ctx) const;
     UINT GetCurrentBackBufferIndex() const;
     ID3D12Resource* GetCurrentBackBuffer() const;
 
@@ -44,22 +44,22 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 
     Microsoft::WRL::ComPtr<ID3D12Resource> m_dsResource;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_backBufferResources[DXsharedState::FramesCount];
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_backBufferResources[RenderContext::FramesCount];
 };
 
-inline D3D12_CPU_DESCRIPTOR_HANDLE DXswapchain::GetCurrentBackBufferCPUhandle(const DXsharedState& state) const
+inline D3D12_CPU_DESCRIPTOR_HANDLE Swapchain::GetCurrentBackBufferCPUhandle(const RenderContext& state) const
 {
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
     handle.Offset(GetCurrentBackBufferIndex() * state.RtvDescriptorSize);
     return handle;
 }
 
-inline UINT DXswapchain::GetCurrentBackBufferIndex() const
+inline UINT Swapchain::GetCurrentBackBufferIndex() const
 {
     return m_swapChain->GetCurrentBackBufferIndex();
 }
 
-inline ID3D12Resource* DXswapchain::GetCurrentBackBuffer() const
+inline ID3D12Resource* Swapchain::GetCurrentBackBuffer() const
 {
     return m_backBufferResources[GetCurrentBackBufferIndex()].Get();
 }

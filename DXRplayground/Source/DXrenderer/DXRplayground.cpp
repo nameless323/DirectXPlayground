@@ -2,28 +2,28 @@
 
 #include <windows.h>
 
-#include "DXrenderer/DXpipeline.h"
+#include "DXrenderer/RenderPipeline.h"
 #include "WindowsApp.h"
 
-using namespace DXRplayground;
+using namespace DirectxPlayground;
 
 namespace
 {
-DXpipeline RenderPipeline;
+RenderPipeline DirectXPipeline;
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int nCmdShow)
 {
-    WindowsApp::Init(hInstance, nCmdShow, L"DXR playground");
-    RenderPipeline.Init(WindowsApp::GetHWND(), 1920, 1080);
+    WindowsApp::Init(hInstance, nCmdShow, L"DirectX Playground");
+    DirectXPipeline.Init(WindowsApp::GetHWND(), 1920, 1080);
     WindowsApp::Run();
     return 0;
 } 
 
-namespace DXRplayground
+namespace DirectxPlayground
 {
 void Run()
 {
-    RenderPipeline.Draw();
+    DirectXPipeline.Render();
 }
 }

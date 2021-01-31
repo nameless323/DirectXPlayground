@@ -1,13 +1,13 @@
-#include "DXpipeline.h"
+#include "RenderPipeline.h"
 
 #include "d3dx12.h"
 #include "DXrenderer/DXhelpers.h"
 
-namespace DXRplayground
+namespace DirectxPlayground
 {
 using Microsoft::WRL::ComPtr;
 
-void DXpipeline::Init(HWND hwnd, int width, int height)
+void RenderPipeline::Init(HWND hwnd, int width, int height)
 {
     UINT dxgiFactoryFlags = 0;
 #ifdef _DEBUG
@@ -43,30 +43,30 @@ void DXpipeline::Init(HWND hwnd, int width, int height)
     ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
     NAME_D3D12_OBJECT(m_commandQueue);
 
-    m_swapChain.Init(m_isTearingSupported, hwnd, m_sharedState, m_factory.Get(), m_device.Get(), m_commandQueue.Get());
+    m_swapChain.Init(m_isTearingSupported, hwnd, m_context, m_factory.Get(), m_device.Get(), m_commandQueue.Get());
 
-    for (int i = 0; i < DXsharedState::FramesCount; ++i)
+    for (int i = 0; i < RenderContext::FramesCount; ++i)
     {
         ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
         NAME_D3D12_OBJECT(m_commandAllocators[i]);
     }
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&m_commandList))); // [a_vorontcov] Maybe not 0 as mask?
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
     NAME_D3D12_OBJECT(m_commandList);
     m_commandList->Close();
 
     ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
     NAME_D3D12_OBJECT(m_fence);
 
-    m_sharedState.CbvSrvUavDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    m_sharedState.RtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-    m_sharedState.DsvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-    m_sharedState.SamplerDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+    m_context.CbvSrvUavDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    m_context.RtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_context.DsvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    m_context.SamplerDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
     Flush();
     Resize(width, height);
 }
 
-void DXpipeline::Flush()
+void RenderPipeline::Flush()
 {
     ThrowIfFailed(m_commandQueue->Signal(m_fence.Get(), m_fenceValues[m_swapChain.GetCurrentBackBufferIndex()]));
 
@@ -84,20 +84,20 @@ void DXpipeline::Flush()
     }
 }
 
-void DXpipeline::Resize(int width, int height)
+void RenderPipeline::Resize(int width, int height)
 {
-    if (width == m_sharedState.Width && height == m_sharedState.Height)
+    if (width == m_context.Width && height == m_context.Height)
         return;
 
-    m_sharedState.Width = width;
-    m_sharedState.Height = height;
+    m_context.Width = width;
+    m_context.Height = height;
 
     for (auto fenceVals : m_fenceValues)
         fenceVals = m_currentFence;
 
     ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr));
 
-    m_swapChain.Resize(m_device.Get(), m_commandList.Get(), m_sharedState);
+    m_swapChain.Resize(m_device.Get(), m_commandList.Get(), m_context);
 
     ThrowIfFailed(m_commandList->Close());
     ID3D12CommandList* cmdLists[] = { m_commandList.Get() };
@@ -106,7 +106,7 @@ void DXpipeline::Resize(int width, int height)
     Flush();
 }
 
-void DXpipeline::Draw()
+void RenderPipeline::Render()
 {
     // To BeginFrame. Direct approach won't work here.
     m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()]->Reset();
@@ -115,7 +115,7 @@ void DXpipeline::Draw()
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     m_commandList->ResourceBarrier(1, &toRt);
 
-    auto rtCpuHandle = m_swapChain.GetCurrentBackBufferCPUhandle(m_sharedState);
+    auto rtCpuHandle = m_swapChain.GetCurrentBackBufferCPUhandle(m_context);
     m_commandList->OMSetRenderTargets(1, &rtCpuHandle, false, nullptr);
     const float clearColor[] = { 0.0f, 0.9f, 0.4f, 1.0f };
     m_commandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
@@ -147,7 +147,7 @@ void DXpipeline::Draw()
     }
 }
 
-void DXpipeline::GetHardwareAdapter(IDXGIFactory7* factory, IDXGIAdapter1** adapter)
+void RenderPipeline::GetHardwareAdapter(IDXGIFactory7* factory, IDXGIAdapter1** adapter)
 {
     *adapter = nullptr;
     ComPtr<IDXGIAdapter1> currAdapter;

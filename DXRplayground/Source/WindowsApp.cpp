@@ -1,11 +1,11 @@
 #include "WindowsApp.h"
 
-namespace DXRplayground
+namespace DirectxPlayground
 {
 void Run();
 }
 
-namespace DXRplayground::WindowsApp
+namespace DirectxPlayground::WindowsApp
 {
 namespace
 {
@@ -70,7 +70,7 @@ long int Run()
         }
         else
         {
-            DXRplayground::Run();
+            DirectxPlayground::Run();
         }
     }
     Shutdown();

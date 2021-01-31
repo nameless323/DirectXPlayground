@@ -2,9 +2,9 @@
 
 #include <windows.h>
 
-namespace DXRplayground
+namespace DirectxPlayground
 {
-struct DXsharedState
+struct RenderContext
 {
     static constexpr UINT FramesCount = 3;
     UINT CbvSrvUavDescriptorSize = -1;
