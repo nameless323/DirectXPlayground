@@ -1,8 +1,8 @@
 #pragma once
 
-#include <d3dx12.h>
 #include <wrl.h>
 #include <dxgi1_6.h>
+#include "External/Dx12Helpers/d3dx12.h"
 
 #include "DXrenderer/RenderContext.h"
 

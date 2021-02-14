@@ -1,8 +1,14 @@
 #include "WindowsApp.h"
 
+#include "External/IMGUI/imgui_impl_win32.h"
+
 namespace DirectxPlayground
 {
 void Run();
+}
+namespace ImGui
+{
+IMGUI_IMPL_API LRESULT ImplWinWndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 }
 
 namespace DirectxPlayground::WindowsApp
@@ -128,7 +134,7 @@ void ChangeFullscreenMode(bool fullScreen)
 
 LRESULT WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    // ImGui::ImplWinWndProcHandler(hwnd, message, wParam, lParam);
+    ImGui::ImplWinWndProcHandler(hwnd, message, wParam, lParam);
 
     switch (message)
     {

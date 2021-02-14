@@ -13,14 +13,16 @@
 
 namespace DirectxPlayground
 {
+class Scene;
+
 class RenderPipeline
 {
 public:
-    void Init(HWND hwnd, int width, int height);
+    void Init(HWND hwnd, int width, int height, Scene* scene);
     void Flush();
     void Resize(int width, int height);
 
-    void Render();
+    void Render(Scene* scene);
 
 private:
     void GetHardwareAdapter(IDXGIFactory7* factory, IDXGIAdapter1** adapter);

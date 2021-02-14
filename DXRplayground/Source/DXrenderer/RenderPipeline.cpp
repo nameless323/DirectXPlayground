@@ -1,13 +1,15 @@
 #include "RenderPipeline.h"
 
-#include "d3dx12.h"
+#include "External/Dx12Helpers/d3dx12.h"
 #include "DXrenderer/DXhelpers.h"
+
+#include "Scene/Scene.h"
 
 namespace DirectxPlayground
 {
 using Microsoft::WRL::ComPtr;
 
-void RenderPipeline::Init(HWND hwnd, int width, int height)
+void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 {
     UINT dxgiFactoryFlags = 0;
 #ifdef _DEBUG
@@ -32,6 +34,7 @@ void RenderPipeline::Init(HWND hwnd, int width, int height)
     GetHardwareAdapter(m_factory.Get(), &hardwareAdapter);
 
     ThrowIfFailed(D3D12CreateDevice(hardwareAdapter.Get(), D3D_FEATURE_LEVEL_12_1, IID_PPV_ARGS(&m_device)));
+    m_context.Device = m_device.Get();
 
     D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
     m_device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS));
@@ -44,6 +47,7 @@ void RenderPipeline::Init(HWND hwnd, int width, int height)
     NAME_D3D12_OBJECT(m_commandQueue);
 
     m_swapChain.Init(m_isTearingSupported, hwnd, m_context, m_factory.Get(), m_device.Get(), m_commandQueue.Get());
+    m_context.SwapChain = &m_swapChain;
 
     for (int i = 0; i < RenderContext::FramesCount; ++i)
     {
@@ -64,6 +68,8 @@ void RenderPipeline::Init(HWND hwnd, int width, int height)
 
     Flush();
     Resize(width, height);
+    scene->InitResources(m_context);
+    Flush(); // 3 flushes in a row...
 }
 
 void RenderPipeline::Flush()
@@ -106,22 +112,15 @@ void RenderPipeline::Resize(int width, int height)
     Flush();
 }
 
-void RenderPipeline::Render()
+void RenderPipeline::Render(Scene* scene)
 {
     // To BeginFrame. Direct approach won't work here.
     m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()]->Reset();
     m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr);
 
-    auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-    m_commandList->ResourceBarrier(1, &toRt);
+    m_context.CommandList = m_commandList.Get();
 
-    auto rtCpuHandle = m_swapChain.GetCurrentBackBufferCPUhandle(m_context);
-    m_commandList->OMSetRenderTargets(1, &rtCpuHandle, false, nullptr);
-    const float clearColor[] = { 0.0f, 0.9f, 0.4f, 1.0f };
-    m_commandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
-
-    auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-    m_commandList->ResourceBarrier(1, &toPresent);
+    scene->Render(m_context);
 
     m_commandList->Close();
     ID3D12CommandList* cmdLists[] = { m_commandList.Get() };

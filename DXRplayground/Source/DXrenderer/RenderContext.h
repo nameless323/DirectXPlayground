@@ -4,6 +4,8 @@
 
 namespace DirectxPlayground
 {
+class Swapchain;
+
 struct RenderContext
 {
     static constexpr UINT FramesCount = 3;
@@ -14,5 +16,9 @@ struct RenderContext
 
     int Width = 0;
     int Height = 0;
+
+    ID3D12GraphicsCommandList* CommandList = nullptr;
+    ID3D12Device* Device = nullptr;
+    Swapchain* SwapChain = nullptr;
 };
 }

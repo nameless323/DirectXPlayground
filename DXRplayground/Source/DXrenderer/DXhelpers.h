@@ -2,8 +2,8 @@
 
 #include <exception>
 #include <windows.h>
-#include <d3dx12.h>
 #include <string>
+#include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
 {

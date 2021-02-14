@@ -5,7 +5,7 @@
 #include <string>
 #include <wrl.h>
 
-#include "d3dx12.h"
+#include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
 {
