@@ -12,7 +12,6 @@ Shader Shader::CompileFromFile(const std::string& path, const std::string& entry
     static constexpr UINT shaderFlags = 0;
 #endif
     CompileFromFile(res, std::wstring{ path.begin(), path.end() }.c_str(), entry.c_str(), shaderModel.c_str(), shaderFlags);
-
     return res;
 }
 

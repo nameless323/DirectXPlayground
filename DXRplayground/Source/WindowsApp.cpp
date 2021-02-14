@@ -5,6 +5,7 @@
 namespace DirectxPlayground
 {
 void Run();
+void Shutdown();
 }
 namespace ImGui
 {
@@ -86,7 +87,7 @@ long int Run()
 
 void Shutdown()
 {
-
+    DirectxPlayground::Shutdown();
 }
 
 void ChangeFullscreenMode(bool fullScreen)

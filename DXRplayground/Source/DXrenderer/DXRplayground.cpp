@@ -30,4 +30,9 @@ void Run()
 {
     DirectXPipeline.Render(&scene);
 }
+
+void Shutdown()
+{
+    DirectXPipeline.Shutdown();
+}
 }

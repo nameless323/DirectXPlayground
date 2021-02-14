@@ -24,13 +24,22 @@ public:
 
     void Render(Scene* scene);
 
+    void Shutdown();
+
 private:
     void GetHardwareAdapter(IDXGIFactory7* factory, IDXGIAdapter1** adapter);
+
+    void InitImGui();
+    void RenderImGui();
+    void ShutdownImGui();
+
     bool m_isTearingSupported = false;
 
     RenderContext m_context;
 
     Swapchain m_swapChain;
+
+    ID3D12DescriptorHeap* m_imguiDescriptorHeap = nullptr;
 
     Microsoft::WRL::ComPtr<IDXGIFactory7> m_factory;
     Microsoft::WRL::ComPtr<ID3D12Device5> m_device;

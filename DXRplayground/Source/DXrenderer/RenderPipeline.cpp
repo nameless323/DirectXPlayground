@@ -1,6 +1,12 @@
 #include "RenderPipeline.h"
 
 #include "External/Dx12Helpers/d3dx12.h"
+#include "External/IMGUI/imgui.h"
+#include "External/IMGUI/imgui_impl_dx12.h"
+#include "External/IMGUI/imgui_impl_win32.h"
+
+#include "WindowsApp.h"
+
 #include "DXrenderer/DXhelpers.h"
 
 #include "Scene/Scene.h"
@@ -68,6 +74,9 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 
     Flush();
     Resize(width, height);
+
+    InitImGui();
+
     scene->InitResources(m_context);
     Flush(); // 3 flushes in a row...
 }
@@ -95,6 +104,8 @@ void RenderPipeline::Resize(int width, int height)
     if (width == m_context.Width && height == m_context.Height)
         return;
 
+    ImGui::ImplDX12InvalidateDeviceObjects();
+
     m_context.Width = width;
     m_context.Height = height;
 
@@ -109,11 +120,21 @@ void RenderPipeline::Resize(int width, int height)
     ID3D12CommandList* cmdLists[] = { m_commandList.Get() };
     m_commandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
 
+    ImGui::ImplDX12CreateDeviceObjects();
+
     Flush();
 }
 
 void RenderPipeline::Render(Scene* scene)
 {
+    ImGui::ImplDX12NewFrame();
+    ImGui::ImplWinNewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Stats", NULL, ImGuiWindowFlags_NoFocusOnAppearing);
+    ImGui::Text("Avg %.3f ms/F (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+
     // To BeginFrame. Direct approach won't work here.
     m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()]->Reset();
     m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr);
@@ -121,6 +142,15 @@ void RenderPipeline::Render(Scene* scene)
     m_context.CommandList = m_commandList.Get();
 
     scene->Render(m_context);
+
+    // Redundant but for this playground - ok
+    auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    m_commandList->ResourceBarrier(1, &toRt);
+
+    RenderImGui();
+
+    auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    m_commandList->ResourceBarrier(1, &toPresent);
 
     m_commandList->Close();
     ID3D12CommandList* cmdLists[] = { m_commandList.Get() };
@@ -144,6 +174,14 @@ void RenderPipeline::Render(Scene* scene)
         WaitForSingleObjectEx(fenceEventHandle, INFINITE, false);
         CloseHandle(fenceEventHandle);
     }
+}
+
+void RenderPipeline::Shutdown()
+{
+    if (m_context.Device != nullptr)
+        Flush();
+
+    ShutdownImGui();
 }
 
 void RenderPipeline::GetHardwareAdapter(IDXGIFactory7* factory, IDXGIAdapter1** adapter)
@@ -184,4 +222,38 @@ void RenderPipeline::GetHardwareAdapter(IDXGIFactory7* factory, IDXGIAdapter1** 
     if (deviceIndex != -1)
         factory->EnumAdapters1(deviceIndex, adapter);
 }
+
+void RenderPipeline::InitImGui()
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui::ImplWinInit(WindowsApp::GetHWND());
+    {
+        D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        desc.NumDescriptors = 1;
+        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        m_context.Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiDescriptorHeap));
+    }
+
+    ImGui::ImplDX12Init(m_context.Device, RenderContext::FramesCount, m_swapChain.GetBackBufferFormat(), m_imguiDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
+        m_imguiDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+}
+
+void RenderPipeline::RenderImGui()
+{
+    m_context.CommandList->OMSetRenderTargets(1, &m_swapChain.GetCurrentBackBufferCPUhandle(m_context), false, &m_swapChain.GetDSCPUhandle());
+    m_context.CommandList->SetDescriptorHeaps(1, &m_imguiDescriptorHeap);
+    ImGui::Render();
+    ImGui::ImplDX12RenderDrawData(ImGui::GetDrawData(), m_context.CommandList);
+}
+
+void RenderPipeline::ShutdownImGui()
+{
+    ImGui::ImplDX12Shutdown();
+    ImGui::ImplWinShutdown();
+    ImGui::DestroyContext();
+}
+
 }

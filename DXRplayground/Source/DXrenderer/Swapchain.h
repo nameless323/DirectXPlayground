@@ -25,8 +25,11 @@ public:
     void ProceedToNextFrame();
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetCurrentBackBufferCPUhandle(const RenderContext& ctx) const;
+    D3D12_CPU_DESCRIPTOR_HANDLE GetDSCPUhandle() const;
     UINT GetCurrentBackBufferIndex() const;
     ID3D12Resource* GetCurrentBackBuffer() const;
+
+    DXGI_FORMAT GetBackBufferFormat() const;
 
 private:
     const DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -54,6 +57,11 @@ inline D3D12_CPU_DESCRIPTOR_HANDLE Swapchain::GetCurrentBackBufferCPUhandle(cons
     return handle;
 }
 
+inline D3D12_CPU_DESCRIPTOR_HANDLE Swapchain::GetDSCPUhandle() const
+{
+    return m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
 inline UINT Swapchain::GetCurrentBackBufferIndex() const
 {
     return m_swapChain->GetCurrentBackBufferIndex();
@@ -63,4 +71,10 @@ inline ID3D12Resource* Swapchain::GetCurrentBackBuffer() const
 {
     return m_backBufferResources[GetCurrentBackBufferIndex()].Get();
 }
+
+inline DXGI_FORMAT Swapchain::GetBackBufferFormat() const
+{
+    return m_backBufferFormat;
+}
+
 }
