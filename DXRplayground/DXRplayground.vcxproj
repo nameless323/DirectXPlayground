@@ -143,16 +143,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\DXrenderer\Buffers\UploadBuffer.cpp" />
     <ClCompile Include="Source\DXrenderer\RenderPipeline.cpp" />
     <ClCompile Include="Source\DXrenderer\DXRplayground.cpp" />
+    <ClCompile Include="Source\DXrenderer\Shader.cpp" />
     <ClCompile Include="Source\DXrenderer\Swapchain.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\d3dx12.h" />
+    <ClInclude Include="Source\DXrenderer\Buffers\HeapBuffer.h" />
+    <ClInclude Include="Source\DXrenderer\Buffers\UploadBuffer.h" />
     <ClInclude Include="Source\DXrenderer\DXhelpers.h" />
     <ClInclude Include="Source\DXrenderer\RenderPipeline.h" />
     <ClInclude Include="Source\DXrenderer\RenderContext.h" />
+    <ClInclude Include="Source\DXrenderer\Shader.h" />
     <ClInclude Include="Source\DXrenderer\Swapchain.h" />
     <ClInclude Include="Source\WindowsApp.h" />
   </ItemGroup>
