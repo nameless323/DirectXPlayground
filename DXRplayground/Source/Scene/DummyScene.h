@@ -2,11 +2,12 @@
 
 #include <d3d12.h>
 #include "Scene/Scene.h"
+#include "DXrenderer/Shader.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
 {
-class Shader;
+class Mesh;
 
 class DummyScene : public Scene
 {

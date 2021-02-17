@@ -3,7 +3,7 @@
 #include <d3d12.h>
 #include <wrl.h>
 
-#include "d3dx12.h"
+#include "External/Dx12Helpers/d3dx12.h"
 #include "DXrenderer/DXhelpers.h"
 
 namespace DirectxPlayground
@@ -149,7 +149,7 @@ inline VertexBuffer::VertexBuffer(const byte* vertexData, UINT vertexDataSize, U
     m_vertexBufferView.SizeInBytes = vertexDataSize;
 }
 
-VertexBuffer::~VertexBuffer()
+inline VertexBuffer::~VertexBuffer()
 {
     delete m_buffer;
 }

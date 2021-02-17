@@ -5,7 +5,6 @@
 #include "DXrenderer/Mesh.h"
 #include "DXrenderer/Shader.h"
 
-
 namespace DirectxPlayground
 {
 
@@ -32,9 +31,9 @@ void DummyScene::InitResources(RenderContext& context)
     m_mesh = new Mesh(context, verts, ind);
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
-    inputLayout.emplace_back("POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0);
-    inputLayout.emplace_back("NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0);
-    inputLayout.emplace_back("TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0);
+    inputLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
+    inputLayout.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
+    inputLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
 
     D3D12_FEATURE_DATA_ROOT_SIGNATURE signatureData = {};
     signatureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -62,7 +61,7 @@ void DummyScene::InitResources(RenderContext& context)
     desc.pRootSignature = m_triangleRootSig.Get();
     desc.VS = m_vs.GetBytecode();
     desc.PS = m_ps.GetBytecode();
-    desc.InputLayout = { inputLayout.data(), inputLayout.size() };
+    desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
     desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 

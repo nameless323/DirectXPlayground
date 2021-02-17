@@ -61,12 +61,12 @@ inline UINT Mesh::GetIndexCount() const
     return m_indexCount;
 }
 
-const D3D12_VERTEX_BUFFER_VIEW& Mesh::GetVertexBufferView() const
+inline const D3D12_VERTEX_BUFFER_VIEW& Mesh::GetVertexBufferView() const
 {
     return m_vertexBuffer->GetVertexBufferView();
 }
 
-const D3D12_INDEX_BUFFER_VIEW& Mesh::GetIndexBufferView() const
+inline const D3D12_INDEX_BUFFER_VIEW& Mesh::GetIndexBufferView() const
 {
     return m_indexBuffer->GetIndexBufferView();
 }
