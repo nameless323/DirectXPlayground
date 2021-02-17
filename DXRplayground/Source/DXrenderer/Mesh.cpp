@@ -1,5 +1,7 @@
 #include "DXrenderer/Mesh.h"
 
+#include "DXrenderer/RenderContext.h"
+
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -18,7 +20,7 @@ T GetElementFromBuffer(const byte* bufferStart, UINT byteStride, size_t elemInde
 }
 }
 
-Mesh::Mesh(const std::string& path)
+Mesh::Mesh(RenderContext& ctx, const std::string& path)
 {
     tinygltf::Model model;
     LoadModel(path, model);
@@ -26,6 +28,25 @@ Mesh::Mesh(const std::string& path)
     const tinygltf::Scene& scene = model.scenes[model.defaultScene];
     for (int node : scene.nodes)
         ParseModelNodes(model, model.nodes[node]);
+    m_indexCount = m_indices.size();
+
+    m_vertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(m_vertices.data()), sizeof(Vertex) * m_vertices.size(), sizeof(Vertex), ctx.CommandList, ctx.Device);
+    m_indexBuffer = new IndexBuffer(reinterpret_cast<byte*>(m_indices.data()), sizeof(UINT) * m_indices.size(), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+}
+
+Mesh::Mesh(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices)
+{
+    m_vertices.swap(vertices);
+    m_indices.swap(indices);
+
+    m_vertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(m_vertices.data()), sizeof(Vertex) * m_vertices.size(), sizeof(Vertex), ctx.CommandList, ctx.Device);
+    m_indexBuffer = new IndexBuffer(reinterpret_cast<byte*>(m_indices.data()), sizeof(UINT) * m_indices.size(), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+}
+
+Mesh::~Mesh()
+{
+    delete m_indexBuffer;
+    delete m_vertexBuffer;
 }
 
 void Mesh::LoadModel(const std::string& path, tinygltf::Model& model)

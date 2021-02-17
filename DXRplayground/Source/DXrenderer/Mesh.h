@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "Buffers/HeapBuffer.h"
+
 namespace tinygltf
 {
 class Model;
@@ -17,6 +19,8 @@ namespace DirectxPlayground
 {
 using namespace DirectX;
 
+struct RenderContext;
+
 struct Vertex
 {
     XMFLOAT3 Pos;
@@ -27,7 +31,14 @@ struct Vertex
 class Mesh
 {
 public:
-    Mesh(const std::string& path);
+    Mesh(RenderContext& ctx, const std::string& path);
+    Mesh(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices);
+    ~Mesh();
+
+    UINT GetIndexCount() const;
+
+    const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const;
+    const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const;
 
 private:
     void LoadModel(const std::string& path, tinygltf::Model& model);
@@ -36,7 +47,28 @@ private:
     void ParseVertices(const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
     void ParseIndices(const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
 
+    UINT m_indexCount = 0;
+
     std::vector<Vertex> m_vertices;
     std::vector<UINT> m_indices;
+
+    VertexBuffer* m_vertexBuffer = nullptr;
+    IndexBuffer* m_indexBuffer = nullptr;
 };
+
+inline UINT Mesh::GetIndexCount() const
+{
+    return m_indexCount;
+}
+
+const D3D12_VERTEX_BUFFER_VIEW& Mesh::GetVertexBufferView() const
+{
+    return m_vertexBuffer->GetVertexBufferView();
+}
+
+const D3D12_INDEX_BUFFER_VIEW& Mesh::GetIndexBufferView() const
+{
+    return m_indexBuffer->GetIndexBufferView();
+}
+
 }
