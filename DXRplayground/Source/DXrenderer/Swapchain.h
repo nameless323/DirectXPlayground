@@ -30,6 +30,7 @@ public:
     ID3D12Resource* GetCurrentBackBuffer() const;
 
     DXGI_FORMAT GetBackBufferFormat() const;
+    DXGI_FORMAT GetDepthStencilFormat() const;
 
 private:
     const DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -75,6 +76,11 @@ inline ID3D12Resource* Swapchain::GetCurrentBackBuffer() const
 inline DXGI_FORMAT Swapchain::GetBackBufferFormat() const
 {
     return m_backBufferFormat;
+}
+
+inline DXGI_FORMAT Swapchain::GetDepthStencilFormat() const
+{
+    return m_depthStencilFormat;
 }
 
 }
