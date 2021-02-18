@@ -38,6 +38,7 @@ Mesh::Mesh(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> i
 {
     m_vertices.swap(vertices);
     m_indices.swap(indices);
+    m_indexCount = static_cast<UINT>(m_indices.size());
 
     m_vertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(m_vertices.data()), static_cast<UINT>(sizeof(Vertex) * m_vertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
     m_indexBuffer = new IndexBuffer(reinterpret_cast<byte*>(m_indices.data()), static_cast<UINT>(sizeof(UINT) * m_indices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);

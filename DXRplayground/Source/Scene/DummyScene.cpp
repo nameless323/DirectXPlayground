@@ -107,6 +107,15 @@ void DummyScene::Render(RenderContext& context)
     const float clearColor[] = { 1.0f, 0.9f, 0.4f, 1.0f };
     context.CommandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
 
+    context.CommandList->SetPipelineState(m_pso.Get());
+    context.CommandList->SetGraphicsRootSignature(m_triangleRootSig.Get());
+
+    context.CommandList->IASetVertexBuffers(0, 1, &m_mesh->GetVertexBufferView());
+    context.CommandList->IASetIndexBuffer(&m_mesh->GetIndexBufferView());
+
+    context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context.CommandList->DrawIndexedInstanced(m_mesh->GetIndexCount(), 1, 0, 0, 0);
+
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     context.CommandList->ResourceBarrier(1, &toPresent);
 

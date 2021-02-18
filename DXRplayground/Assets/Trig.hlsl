@@ -21,5 +21,5 @@ vOut vs(vIn i)
 
 float4 ps(vOut i) : SV_Target
 {
-    return float4(i.pos.xy, 0, 1);
+    return float4(i.ndcPos.xy * 0.5 + 0.5, 0, 1);
 }
