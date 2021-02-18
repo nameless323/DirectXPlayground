@@ -24,6 +24,11 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
         shader.m_bytecode = CD3DX12_SHADER_BYTECODE(shader.m_shaderBlob.Get());
         shader.m_compiled = true;
     }
+    else
+    {
+        OutputDebugStringA("Shader compilation error");
+        OutputDebugStringA(reinterpret_cast<char*>(shader.m_error->GetBufferPointer()));
+    }
     return hr;
 }
 

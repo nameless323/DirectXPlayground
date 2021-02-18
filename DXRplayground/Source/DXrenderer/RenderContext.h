@@ -14,8 +14,8 @@ struct RenderContext
     UINT DsvDescriptorSize = -1;
     UINT SamplerDescriptorSize = -1;
 
-    int Width = 0;
-    int Height = 0;
+    UINT Width = 0;
+    UINT Height = 0;
 
     ID3D12GraphicsCommandList* CommandList = nullptr;
     ID3D12Device* Device = nullptr;

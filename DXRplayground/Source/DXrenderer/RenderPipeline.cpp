@@ -77,7 +77,16 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 
     InitImGui();
 
+    m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()]->Reset();
+    m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr);
+
+    m_context.CommandList = m_commandList.Get();
     scene->InitResources(m_context);
+
+    m_commandList->Close();
+    ID3D12CommandList* cmdLists[] = { m_commandList.Get() };
+    m_commandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+
     Flush(); // 3 flushes in a row...
 }
 

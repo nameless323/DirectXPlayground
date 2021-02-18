@@ -11,7 +11,7 @@ struct vOut
     float3 ndcPos : TEXCOORD0;
 };
 
-float4 vs(vIn i) : SV_Position
+vOut vs(vIn i)
 {
     vOut o;
     o.pos = float4(i.pos.xy, 0.0f, 1.0f);
@@ -21,5 +21,5 @@ float4 vs(vIn i) : SV_Position
 
 float4 ps(vOut i) : SV_Target
 {
-    return float4(i.xy, 0, 1);
+    return float4(i.pos.xy, 0, 1);
 }

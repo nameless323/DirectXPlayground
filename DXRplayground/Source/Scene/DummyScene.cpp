@@ -54,8 +54,9 @@ void DummyScene::InitResources(RenderContext& context)
 
     NAME_D3D12_OBJECT(m_triangleRootSig);
 
-    m_vs = Shader::CompileFromFile("../Assets/Trig.hlsl", "vs", "vs_5_1");
-    m_ps = Shader::CompileFromFile("../Assets/Trig.hlsl", "ps", "ps_5_1");
+    auto shaderPath = std::string(ASSETS_DIR) + std::string("Trig.hlsl");
+    m_vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
+    m_ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
     desc.pRootSignature = m_triangleRootSig.Get();
@@ -89,6 +90,19 @@ void DummyScene::Render(RenderContext& context)
     context.CommandList->ResourceBarrier(1, &toRt);
 
     auto rtCpuHandle = context.SwapChain->GetCurrentBackBufferCPUhandle(context);
+
+    D3D12_RECT scissorRect = { 0, 0, LONG(context.Width), LONG(context.Height) };
+    D3D12_VIEWPORT viewport = {};
+    viewport.TopLeftX = 0.0f;
+    viewport.TopLeftY = 0.0f;
+    viewport.Width = static_cast<float>(context.Width);
+    viewport.Height = static_cast<float>(context.Height);
+    viewport.MinDepth = 0.0f;
+    viewport.MaxDepth = 1.0f;
+
+    context.CommandList->RSSetScissorRects(1, &scissorRect);
+    context.CommandList->RSSetViewports(1, &viewport);
+
     context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, nullptr);
     const float clearColor[] = { 1.0f, 0.9f, 0.4f, 1.0f };
     context.CommandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
