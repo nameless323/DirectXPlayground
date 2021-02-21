@@ -111,15 +111,14 @@ void DummyScene::InitResources(RenderContext& context)
 
 void DummyScene::Render(RenderContext& context)
 {
+    m_cameraController->Update();
+
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
-    XMFLOAT4X4 vp;
-    XMStoreFloat4x4(&vp, XMMatrixTranspose(m_camera->GetViewProjection()));
     XMFLOAT4X4 toWorld;
     XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
-    m_cameraCb->UploadData(frameIndex, vp);
+    m_cameraCb->UploadData(frameIndex, TransposeMatrix(m_camera->GetViewProjection()));
     m_objectCb->UploadData(frameIndex, toWorld);
 
-    m_cameraController->Update();
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
 

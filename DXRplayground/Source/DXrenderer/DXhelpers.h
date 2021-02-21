@@ -3,6 +3,7 @@
 #include <exception>
 #include <windows.h>
 #include <string>
+#include <DirectXMath.h>
 #include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
@@ -51,4 +52,13 @@ inline void SetDXobjectName(ID3D12Object*, LPCWSTR)
 #endif
 
 #define NAME_D3D12_OBJECT(x) SetDXobjectName(x.Get(), L#x)
+
+inline DirectX::XMFLOAT4X4 TransposeMatrix(const DirectX::XMFLOAT4X4& m)
+{
+    DirectX::XMMATRIX tmp = XMLoadFloat4x4(&m);
+    tmp = XMMatrixTranspose(tmp);
+    DirectX::XMFLOAT4X4 res;
+    XMStoreFloat4x4(&res, tmp);
+    return res;
+}
 }

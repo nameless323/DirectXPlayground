@@ -11,6 +11,12 @@
 
 namespace DirectxPlayground
 {
+namespace
+{
+static constexpr float ScrollMultiplier = 2.0f;
+static constexpr float KeyMoveMultiplier = 9.0f;
+static constexpr float MouseDeltaMultiplier = 70.0f;
+
 enum KeyboardKeys
 {
     KEY_A = 0x41,
@@ -19,6 +25,7 @@ enum KeyboardKeys
     KEY_W = 0x57,
     KEY_SPACE = 0x20
 };
+}
 
 CameraController::CameraController(Camera* camera)
     : m_camera(camera)
@@ -27,58 +34,57 @@ CameraController::CameraController(Camera* camera)
 
 void CameraController::Update()
 {
-    XMMATRIX viewSimd = m_camera->GetView();
-    XMMATRIX cameraToWorld = XMMatrixInverse(&XMMatrixDeterminant(viewSimd), viewSimd);
-    XMFLOAT4X4 view = {};
-    XMStoreFloat4x4(&view, viewSimd);
-    XMVECTOR right = { view(0, 0), view(1, 0), view(2, 0) };
-    XMVECTOR up = { view(0, 1), view(1, 1), view(2, 1) };
-    XMVECTOR fwd = { view(0, 2), view(1, 2), view(2, 2) };
-    XMVECTOR pos = { view(3, 0), view(3, 1), view(3, 2) };
-
     XMFLOAT3 thisFrameOffset{};
 
     ImGuiIO& io = ImGui::GetIO();
     float dt = io.DeltaTime;
 
     float scroll = io.MouseWheel;
-    thisFrameOffset.z = scroll * 0.01f;
+    thisFrameOffset.z = scroll * ScrollMultiplier;
 
     XMFLOAT2 mouseDelta = { io.MouseDelta.x, io.MouseDelta.y };
     if (io.MouseDown[2])
     {
-        thisFrameOffset.x = -mouseDelta.x * 0.005f;
-        thisFrameOffset.y = mouseDelta.y * 0.005f;
+        thisFrameOffset.x = -mouseDelta.x * KeyMoveMultiplier * dt;
+        thisFrameOffset.y = mouseDelta.y * KeyMoveMultiplier * dt;
     }
-    thisFrameOffset.x += io.KeysDown[KEY_D] * 0.005f;
-    thisFrameOffset.x -= io.KeysDown[KEY_A] * 0.005f;
-    thisFrameOffset.z += io.KeysDown[KEY_W] * 0.005f;
-    thisFrameOffset.z -= io.KeysDown[KEY_S] * 0.005f;
+    thisFrameOffset.x += io.KeysDown[KEY_D] * KeyMoveMultiplier * dt;
+    thisFrameOffset.x -= io.KeysDown[KEY_A] * KeyMoveMultiplier * dt;
+    thisFrameOffset.z += io.KeysDown[KEY_W] * KeyMoveMultiplier * dt;
+    thisFrameOffset.z -= io.KeysDown[KEY_S] * KeyMoveMultiplier * dt;
 
     float x = 0;
     float y = 0;
     if (!io.MouseDown[2] && io.MouseDown[1])
     {
-        x = XMConvertToRadians(mouseDelta.x) * 0.1f;
-        y = XMConvertToRadians(mouseDelta.y) * 0.1f;
+        x = XMConvertToRadians(mouseDelta.x) * MouseDeltaMultiplier * dt;
+        y = XMConvertToRadians(mouseDelta.y) * MouseDeltaMultiplier * dt;
     }
-    XMMATRIX pitch = XMMatrixRotationAxis(right, y);
+
+    XMVECTOR camRight = XMLoadFloat4(&m_camera->GetRight());
+
+    XMMATRIX pitch = XMMatrixRotationAxis(camRight, y);
     XMMATRIX yaw = XMMatrixRotationY(x);
     XMMATRIX frameRot = pitch * yaw;
 
+    XMMATRIX cameraToWorld = XMLoadFloat4x4(&m_camera->GetToWorld());
     XMVECTOR offset = XMVector4Transform(XMVECTOR{ thisFrameOffset.x, thisFrameOffset.y, thisFrameOffset.z, 1.0f }, cameraToWorld);
     XMFLOAT4 storedOffset;
     XMStoreFloat4(&storedOffset, offset);
 
     cameraToWorld *= frameRot;
-    XMFLOAT4X4 storedInv;
-    XMStoreFloat4x4(&storedInv, cameraToWorld);
+    XMFLOAT4X4 storedToWorld;
+    XMStoreFloat4x4(&storedToWorld, cameraToWorld);
 
-    storedInv(3, 0) = storedOffset.x;
-    storedInv(3, 1) = storedOffset.y;
-    storedInv(3, 2) = storedOffset.z;
-    cameraToWorld = XMLoadFloat4x4(&storedInv);
-    m_camera->SetView(XMMatrixInverse(&XMMatrixDeterminant(cameraToWorld), cameraToWorld), true);
+    storedToWorld(3, 0) = storedOffset.x;
+    storedToWorld(3, 1) = storedOffset.y;
+    storedToWorld(3, 2) = storedOffset.z;
+    cameraToWorld = XMLoadFloat4x4(&storedToWorld);
+    XMMATRIX newView = XMMatrixInverse(&XMMatrixDeterminant(cameraToWorld), cameraToWorld);
+    XMFLOAT4X4 newViewStored;
+    XMStoreFloat4x4(&newViewStored, newView);
+
+    m_camera->SetView(newViewStored, storedToWorld, true);
 }
 
 }
