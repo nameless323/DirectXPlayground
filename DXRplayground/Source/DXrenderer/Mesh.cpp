@@ -69,6 +69,13 @@ void Mesh::LoadModel(const std::string& path, tinygltf::Model& model)
         res = loader.LoadASCIIFromFile(&model, &err, &warn, path.c_str());
     else
         assert(false);
+    if (!res)
+    {
+        std::stringstream ss;
+        ss << "Failed to load model " << path << std::endl;
+        OutputDebugStringA(ss.str().c_str());
+        assert(ss.str().c_str() && false);
+    }
 }
 
 void Mesh::ParseModelNodes(const tinygltf::Model& model, const tinygltf::Node& node)

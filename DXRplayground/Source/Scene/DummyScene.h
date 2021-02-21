@@ -23,11 +23,13 @@ public:
 
 private:
     Mesh* m_mesh = nullptr;
+    Mesh* m_sphere = nullptr;
     Shader m_ps;
     Shader m_vs;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_triangleRootSig;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso;
     UploadBuffer* m_cameraCb = nullptr;
+    UploadBuffer* m_objectCb = nullptr;
 
     Camera* m_camera = nullptr;
     CameraController* m_cameraController = nullptr;

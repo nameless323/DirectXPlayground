@@ -2,8 +2,13 @@ struct CbCamera
 {
     float4x4 ViewProjection;
 };
+struct CbObject
+{
+    float4x4 ToWorld;
+};
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
+ConstantBuffer<CbObject> cbObject : register(b1);
 
 struct vIn
 {
@@ -15,18 +20,19 @@ struct vIn
 struct vOut
 {
     float4 pos : SV_Position;
-    float3 ndcPos : TEXCOORD0;
+    float3 norm : NORMAL;
 };
 
 vOut vs(vIn i)
 {
     vOut o;
-    o.pos = mul(float4(i.pos.xy, 3.0f, 1.0f), cbCamera.ViewProjection);
-    o.ndcPos = o.pos;
+    float4 wPos = mul(float4(i.pos.xyz, 1.0f), cbObject.ToWorld);
+    o.pos = mul(wPos, cbCamera.ViewProjection);
+    o.norm = i.norm;
     return o;
 }
 
 float4 ps(vOut i) : SV_Target
 {
-    return float4(i.ndcPos.xy * 0.5 + 0.5, 0, 1);
+    return float4(i.norm.xyz * 0.5 + 0.5, 1);
 }

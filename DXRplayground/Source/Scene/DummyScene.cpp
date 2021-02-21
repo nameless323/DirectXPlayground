@@ -20,6 +20,10 @@ DummyScene::~DummyScene()
         delete m_camera;
     if (m_cameraController != nullptr)
         delete m_cameraController;
+    if (m_objectCb != nullptr)
+        delete m_objectCb;
+    if (m_sphere != nullptr)
+        delete m_sphere;
 }
 
 void DummyScene::InitResources(RenderContext& context)
@@ -28,27 +32,33 @@ void DummyScene::InitResources(RenderContext& context)
 
     m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
+    m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
 
     std::vector<Vertex> verts;
     std::vector<UINT> ind;
 
     verts = {
-        { { -0.5f, -0.5f, 0.0f }, {}, {} },
-        { { 0.5f, 0.5f, 0.0f }, {}, {} },
-        { { 0.5f, -0.5f, 0.0f }, {}, {} }
+        { { -0.5f, -0.5f, 3.0f }, {}, {} },
+        { { 0.5f, 0.5f, 3.0f }, {}, {} },
+        { { 0.5f, -0.5f, 3.0f }, {}, {} }
     };
     ind = { 0, 1, 2 };
 
     m_mesh = new Mesh(context, verts, ind);
+    auto shperePath = std::string(ASSETS_DIR) + std::string("Models//Sphere.glb");
+    m_sphere = new Mesh(context, shperePath);
 
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
     inputLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
     inputLayout.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
     inputLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
 
-    CD3DX12_ROOT_PARAMETER1 cbParam;
-    cbParam.InitAsConstantBufferView(0, 0);
+    std::vector<CD3DX12_ROOT_PARAMETER1> cbParams;
+    cbParams.emplace_back();
+    cbParams.back().InitAsConstantBufferView(0, 0);
+    cbParams.emplace_back();
+    cbParams.back().InitAsConstantBufferView(1, 0);
 
     D3D12_FEATURE_DATA_ROOT_SIGNATURE signatureData = {};
     signatureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -58,7 +68,7 @@ void DummyScene::InitResources(RenderContext& context)
 
     D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    rootSignatureDesc.Init_1_1(1, &cbParam, 0, nullptr, flags);
+    rootSignatureDesc.Init_1_1(UINT(cbParams.size()), cbParams.data(), 0, nullptr, flags);
 
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> rootSignatureCreationError;
@@ -69,7 +79,7 @@ void DummyScene::InitResources(RenderContext& context)
 
     NAME_D3D12_OBJECT(m_triangleRootSig);
 
-    auto shaderPath = std::string(ASSETS_DIR) + std::string("Trig.hlsl");
+    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Trig.hlsl");
     m_vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
     m_ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
 
@@ -101,11 +111,15 @@ void DummyScene::InitResources(RenderContext& context)
 
 void DummyScene::Render(RenderContext& context)
 {
+    UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
     XMFLOAT4X4 vp;
     XMStoreFloat4x4(&vp, XMMatrixTranspose(m_camera->GetViewProjection()));
-    m_cameraCb->UploadData(context.SwapChain->GetCurrentBackBufferIndex(), vp);
+    XMFLOAT4X4 toWorld;
+    XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
+    m_cameraCb->UploadData(frameIndex, vp);
+    m_objectCb->UploadData(frameIndex, toWorld);
 
-    //m_cameraController->Update();
+    m_cameraController->Update();
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
 
@@ -129,13 +143,14 @@ void DummyScene::Render(RenderContext& context)
 
     context.CommandList->SetPipelineState(m_pso.Get());
     context.CommandList->SetGraphicsRootSignature(m_triangleRootSig.Get());
-    context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(context.SwapChain->GetCurrentBackBufferIndex()));
+    context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(1, m_objectCb->GetFrameDataGpuAddress(frameIndex));
 
-    context.CommandList->IASetVertexBuffers(0, 1, &m_mesh->GetVertexBufferView());
-    context.CommandList->IASetIndexBuffer(&m_mesh->GetIndexBufferView());
+    context.CommandList->IASetVertexBuffers(0, 1, &m_sphere->GetVertexBufferView());
+    context.CommandList->IASetIndexBuffer(&m_sphere->GetIndexBufferView());
 
     context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context.CommandList->DrawIndexedInstanced(m_mesh->GetIndexCount(), 1, 0, 0, 0);
+    context.CommandList->DrawIndexedInstanced(m_sphere->GetIndexCount(), 1, 0, 0, 0);
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     context.CommandList->ResourceBarrier(1, &toPresent);
