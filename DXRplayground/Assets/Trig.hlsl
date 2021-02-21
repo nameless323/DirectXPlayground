@@ -1,3 +1,10 @@
+struct CbCamera
+{
+    float4x4 ViewProjection;
+};
+
+ConstantBuffer<CbCamera> cbCamera : register(b0);
+
 struct vIn
 {
     float3 pos : POSITION;
@@ -14,7 +21,7 @@ struct vOut
 vOut vs(vIn i)
 {
     vOut o;
-    o.pos = float4(i.pos.xy, 0.0f, 1.0f);
+    o.pos = mul(float4(i.pos.xy, 3.0f, 1.0f), cbCamera.ViewProjection);
     o.ndcPos = o.pos;
     return o;
 }

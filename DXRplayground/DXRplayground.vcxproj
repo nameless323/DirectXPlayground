@@ -143,6 +143,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Camera.cpp" />
+    <ClCompile Include="Source\CameraController.cpp" />
     <ClCompile Include="Source\DXrenderer\Buffers\UploadBuffer.cpp" />
     <ClCompile Include="Source\DXrenderer\Mesh.cpp" />
     <ClCompile Include="Source\DXrenderer\RenderPipeline.cpp" />
@@ -160,6 +162,8 @@
     <ClCompile Include="Source\WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Camera.h" />
+    <ClInclude Include="Source\CameraController.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\HeapBuffer.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\UploadBuffer.h" />
     <ClInclude Include="Source\DXrenderer\DXhelpers.h" />

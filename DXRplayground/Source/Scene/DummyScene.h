@@ -5,9 +5,13 @@
 #include "DXrenderer/Shader.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
+#include "CameraController.h"
+#include "Camera.h"
+
 namespace DirectxPlayground
 {
 class Mesh;
+class UploadBuffer;
 
 class DummyScene : public Scene
 {
@@ -23,5 +27,9 @@ private:
     Shader m_vs;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_triangleRootSig;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso;
+    UploadBuffer* m_cameraCb = nullptr;
+
+    Camera* m_camera = nullptr;
+    CameraController* m_cameraController = nullptr;
 };
 }

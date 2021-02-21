@@ -5,6 +5,8 @@
 #include "DXrenderer/Mesh.h"
 #include "DXrenderer/Shader.h"
 
+#include "DXrenderer/Buffers/UploadBuffer.h"
+
 namespace DirectxPlayground
 {
 
@@ -12,11 +14,21 @@ DummyScene::~DummyScene()
 {
     if (m_mesh != nullptr)
         delete m_mesh;
+    if (m_cameraCb != nullptr)
+        delete m_cameraCb;
+    if (m_camera != nullptr)
+        delete m_camera;
+    if (m_cameraController != nullptr)
+        delete m_cameraController;
 }
 
 void DummyScene::InitResources(RenderContext& context)
 {
     using Microsoft::WRL::ComPtr;
+
+    m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
+    m_cameraCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
+    m_cameraController = new CameraController(m_camera);
 
     std::vector<Vertex> verts;
     std::vector<UINT> ind;
@@ -35,6 +47,9 @@ void DummyScene::InitResources(RenderContext& context)
     inputLayout.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
     inputLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
 
+    CD3DX12_ROOT_PARAMETER1 cbParam;
+    cbParam.InitAsConstantBufferView(0, 0);
+
     D3D12_FEATURE_DATA_ROOT_SIGNATURE signatureData = {};
     signatureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
@@ -43,7 +58,7 @@ void DummyScene::InitResources(RenderContext& context)
 
     D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    rootSignatureDesc.Init_1_1(0, nullptr, 0, nullptr, flags);
+    rootSignatureDesc.Init_1_1(1, &cbParam, 0, nullptr, flags);
 
     ComPtr<ID3DBlob> signature;
     ComPtr<ID3DBlob> rootSignatureCreationError;
@@ -86,6 +101,11 @@ void DummyScene::InitResources(RenderContext& context)
 
 void DummyScene::Render(RenderContext& context)
 {
+    XMFLOAT4X4 vp;
+    XMStoreFloat4x4(&vp, XMMatrixTranspose(m_camera->GetViewProjection()));
+    m_cameraCb->UploadData(context.SwapChain->GetCurrentBackBufferIndex(), vp);
+
+    //m_cameraController->Update();
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
 
@@ -104,11 +124,12 @@ void DummyScene::Render(RenderContext& context)
     context.CommandList->RSSetViewports(1, &viewport);
 
     context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, nullptr);
-    const float clearColor[] = { 1.0f, 0.9f, 0.4f, 1.0f };
+    const float clearColor[] = { 0.0f, 0.4f, 0.9f, 1.0f };
     context.CommandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
 
     context.CommandList->SetPipelineState(m_pso.Get());
     context.CommandList->SetGraphicsRootSignature(m_triangleRootSig.Get());
+    context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(context.SwapChain->GetCurrentBackBufferIndex()));
 
     context.CommandList->IASetVertexBuffers(0, 1, &m_mesh->GetVertexBufferView());
     context.CommandList->IASetIndexBuffer(&m_mesh->GetIndexBufferView());
