@@ -22,8 +22,12 @@ public:
     void Render(RenderContext& context) override;
 
 private:
+    void CreateGeometry(RenderContext& context);
+    void CreateRootSignature(RenderContext& context);
+    void CreatePSOs(RenderContext& context);
+
     Mesh* m_mesh = nullptr;
-    Mesh* m_sphere = nullptr;
+    Mesh* m_gltfMesh = nullptr;
     Shader m_ps;
     Shader m_vs;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_triangleRootSig;

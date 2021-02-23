@@ -61,14 +61,20 @@ void CameraController::Update()
         y = XMConvertToRadians(mouseDelta.y) * MouseDeltaMultiplier * dt;
     }
 
+    UpdateCameraMatrices(x, y, thisFrameOffset);
+
+}
+
+void CameraController::UpdateCameraMatrices(float xRotation, float yRotation, const XMFLOAT3& localOffsets)
+{
     XMVECTOR camRight = XMLoadFloat4(&m_camera->GetRight());
 
-    XMMATRIX pitch = XMMatrixRotationAxis(camRight, y);
-    XMMATRIX yaw = XMMatrixRotationY(x);
+    XMMATRIX pitch = XMMatrixRotationAxis(camRight, yRotation);
+    XMMATRIX yaw = XMMatrixRotationY(xRotation);
     XMMATRIX frameRot = pitch * yaw;
 
     XMMATRIX cameraToWorld = XMLoadFloat4x4(&m_camera->GetToWorld());
-    XMVECTOR offset = XMVector4Transform(XMVECTOR{ thisFrameOffset.x, thisFrameOffset.y, thisFrameOffset.z, 1.0f }, cameraToWorld);
+    XMVECTOR offset = XMVector4Transform(XMVECTOR{ localOffsets.x, localOffsets.y, localOffsets.z, 1.0f }, cameraToWorld);
     XMFLOAT4 storedOffset;
     XMStoreFloat4(&storedOffset, offset);
 

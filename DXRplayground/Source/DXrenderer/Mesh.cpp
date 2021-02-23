@@ -151,7 +151,11 @@ void Mesh::ParseVertices(const tinygltf::Model& model, const tinygltf::Mesh& mes
             }
         }
         else
-            assert(false);
+        {
+            std::stringstream ss;
+            ss << "GLTF Warning: attrib " << attrib.first << " isn't parsed properly" << '\n';
+            LOG(ss.str().c_str());
+        }
     }
 }
 

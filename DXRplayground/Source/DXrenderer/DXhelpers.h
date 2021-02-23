@@ -61,4 +61,28 @@ inline DirectX::XMFLOAT4X4 TransposeMatrix(const DirectX::XMFLOAT4X4& m)
     XMStoreFloat4x4(&res, tmp);
     return res;
 }
+
+#ifdef _DEBUG
+#define LOG_(msg, file, line) \
+{ \
+    std::stringstream ss___; \
+    ss___ << file << "(" << line << "): " << msg << std::endl; \
+    OutputDebugStringA(ss___.str().c_str()); \
+    printf("%s\n", ss___.str().c_str()); \
+}
+#define LOG(msg) LOG_(msg, __FILE__, __LINE__)
+#else
+#define LOG(msg)
+#endif
+
+template <typename T>
+inline void SafeDelete(T*& ptr)
+{
+    if (ptr != nullptr)
+    {
+        delete ptr;
+        ptr = nullptr;
+    }
+}
+
 }

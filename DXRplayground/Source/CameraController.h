@@ -1,5 +1,10 @@
 #pragma once
 
+namespace DirectX
+{
+struct XMFLOAT3;
+}
+
 namespace DirectxPlayground
 {
 class Camera;
@@ -11,6 +16,8 @@ public:
     void Update();
 
 private:
+    void UpdateCameraMatrices(float xRotation, float yRotation, const DirectX::XMFLOAT3& localOffsets);
+
     Camera* m_camera = nullptr;
 };
 }
