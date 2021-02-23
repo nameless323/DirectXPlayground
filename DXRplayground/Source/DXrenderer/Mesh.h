@@ -77,34 +77,34 @@ public:
     const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const;
     const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const;
 
-    const std::vector<Submesh>& GetSubmeshes() const;
+    const std::vector<Submesh*>& GetSubmeshes() const;
 
 private:
     void LoadModel(const std::string& path, tinygltf::Model& model);
     void ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node);
     void ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Mesh& mesh);
-    void ParseVertices(Submesh& submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
-    void ParseIndices(Submesh& submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
+    void ParseVertices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
+    void ParseIndices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
 
-    std::vector<Submesh> m_submeshes;
+    std::vector<Submesh*> m_submeshes;
 };
 
 inline UINT Mesh::GetIndexCount() const
 {
-    return m_submeshes[0].GetIndexCount();
+    return m_submeshes[0]->GetIndexCount();
 }
 
 inline const D3D12_VERTEX_BUFFER_VIEW& Mesh::GetVertexBufferView() const
 {
-    return m_submeshes[0].GetVertexBufferView();
+    return m_submeshes[0]->GetVertexBufferView();
 }
 
 inline const D3D12_INDEX_BUFFER_VIEW& Mesh::GetIndexBufferView() const
 {
-    return m_submeshes[0].GetIndexBufferView();
+    return m_submeshes[0]->GetIndexBufferView();
 }
 
-inline const std::vector<Mesh::Submesh>& Mesh::GetSubmeshes() const
+inline const std::vector<Mesh::Submesh*>& Mesh::GetSubmeshes() const
 {
     return m_submeshes;
 }
