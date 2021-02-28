@@ -12,18 +12,11 @@ namespace DirectxPlayground
 
 GltfViewer::~GltfViewer()
 {
-    if (m_mesh != nullptr)
-        delete m_mesh;
-    if (m_cameraCb != nullptr)
-        delete m_cameraCb;
-    if (m_camera != nullptr)
-        delete m_camera;
-    if (m_cameraController != nullptr)
-        delete m_cameraController;
-    if (m_objectCb != nullptr)
-        delete m_objectCb;
-    if (m_gltfMesh != nullptr)
-        delete m_gltfMesh;
+    SafeDelete(m_cameraCb);
+    SafeDelete(m_camera);
+    SafeDelete(m_cameraController);
+    SafeDelete(m_objectCb);
+    SafeDelete(m_gltfMesh);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
@@ -98,17 +91,6 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::CreateGeometry(RenderContext& context)
 {
-    std::vector<Vertex> verts;
-    std::vector<UINT> ind;
-
-    verts = {
-        { { -0.5f, -0.5f, 3.0f }, {}, {} },
-        { { 0.5f, 0.5f, 3.0f }, {}, {} },
-        { { 0.5f, -0.5f, 3.0f }, {}, {} }
-    };
-    ind = { 0, 1, 2 };
-
-    m_mesh = new Mesh(context, verts, ind);
     auto path = std::string(ASSETS_DIR) + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     m_gltfMesh = new Mesh(context, path);
 }
