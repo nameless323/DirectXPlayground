@@ -1,4 +1,4 @@
-#include "Scene/DummyScene.h"
+#include "Scene/GltfViewer.h"
 
 #include "DXrenderer/Swapchain.h"
 
@@ -10,7 +10,7 @@
 namespace DirectxPlayground
 {
 
-DummyScene::~DummyScene()
+GltfViewer::~GltfViewer()
 {
     if (m_mesh != nullptr)
         delete m_mesh;
@@ -26,7 +26,7 @@ DummyScene::~DummyScene()
         delete m_gltfMesh;
 }
 
-void DummyScene::InitResources(RenderContext& context)
+void GltfViewer::InitResources(RenderContext& context)
 {
     using Microsoft::WRL::ComPtr;
 
@@ -40,13 +40,13 @@ void DummyScene::InitResources(RenderContext& context)
 
     CreateRootSignature(context);
 
-    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Trig.hlsl");
+    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Unlit.hlsl");
     m_vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
     m_ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
     CreatePSOs(context);
 }
 
-void DummyScene::Render(RenderContext& context)
+void GltfViewer::Render(RenderContext& context)
 {
     m_cameraController->Update();
 
@@ -73,26 +73,30 @@ void DummyScene::Render(RenderContext& context)
     context.CommandList->RSSetScissorRects(1, &scissorRect);
     context.CommandList->RSSetViewports(1, &viewport);
 
-    context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, nullptr);
+    context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &context.SwapChain->GetDSCPUhandle());
     const float clearColor[] = { 0.0f, 0.4f, 0.9f, 1.0f };
     context.CommandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
+    context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     context.CommandList->SetPipelineState(m_pso.Get());
     context.CommandList->SetGraphicsRootSignature(m_triangleRootSig.Get());
     context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(1, m_objectCb->GetFrameDataGpuAddress(frameIndex));
 
-    context.CommandList->IASetVertexBuffers(0, 1, &m_gltfMesh->GetVertexBufferView());
-    context.CommandList->IASetIndexBuffer(&m_gltfMesh->GetIndexBufferView());
+    for (const auto submesh : m_gltfMesh->GetSubmeshes())
+    {
+        context.CommandList->IASetVertexBuffers(0, 1, &submesh->GetVertexBufferView());
+        context.CommandList->IASetIndexBuffer(&submesh->GetIndexBufferView());
 
-    context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    context.CommandList->DrawIndexedInstanced(m_gltfMesh->GetIndexCount(), 1, 0, 0, 0);
+        context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        context.CommandList->DrawIndexedInstanced(submesh->GetIndexCount(), 1, 0, 0, 0);
+    }
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     context.CommandList->ResourceBarrier(1, &toPresent);
 }
 
-void DummyScene::CreateGeometry(RenderContext& context)
+void GltfViewer::CreateGeometry(RenderContext& context)
 {
     std::vector<Vertex> verts;
     std::vector<UINT> ind;
@@ -105,11 +109,11 @@ void DummyScene::CreateGeometry(RenderContext& context)
     ind = { 0, 1, 2 };
 
     m_mesh = new Mesh(context, verts, ind);
-    auto path = std::string(ASSETS_DIR) + std::string("Models//Sponza//glTF//Sponza.gltf");
+    auto path = std::string(ASSETS_DIR) + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     m_gltfMesh = new Mesh(context, path);
 }
 
-void DummyScene::CreateRootSignature(RenderContext& context)
+void GltfViewer::CreateRootSignature(RenderContext& context)
 {
     std::vector<CD3DX12_ROOT_PARAMETER1> cbParams;
     cbParams.emplace_back();
@@ -137,7 +141,7 @@ void DummyScene::CreateRootSignature(RenderContext& context)
     NAME_D3D12_OBJECT(m_triangleRootSig);
 }
 
-void DummyScene::CreatePSOs(RenderContext& context)
+void GltfViewer::CreatePSOs(RenderContext& context)
 {
     std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
     inputLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
@@ -153,9 +157,10 @@ void DummyScene::CreatePSOs(RenderContext& context)
     desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
     D3D12_DEPTH_STENCIL_DESC dsDesc = {};
-    dsDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-    dsDesc.DepthEnable = false;
+    dsDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    dsDesc.DepthEnable = true;
     dsDesc.StencilEnable = false;
+    dsDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
     desc.DepthStencilState = dsDesc;
     desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;

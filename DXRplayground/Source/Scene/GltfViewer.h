@@ -13,10 +13,10 @@ namespace DirectxPlayground
 class Mesh;
 class UploadBuffer;
 
-class DummyScene : public Scene
+class GltfViewer : public Scene
 {
 public:
-    ~DummyScene() override;
+    ~GltfViewer() override;
 
     void InitResources(RenderContext& context) override;
     void Render(RenderContext& context) override;

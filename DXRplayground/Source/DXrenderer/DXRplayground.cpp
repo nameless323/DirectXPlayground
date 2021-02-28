@@ -5,7 +5,7 @@
 #include "DXrenderer/RenderPipeline.h"
 #include "WindowsApp.h"
 
-#include "Scene/DummyScene.h"
+#include "Scene/GltfViewer.h"
 
 using namespace DirectxPlayground;
 
@@ -14,7 +14,7 @@ namespace
 RenderPipeline DirectXPipeline;
 }
 
-DummyScene scene;
+GltfViewer scene;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int nCmdShow)
 {

@@ -158,7 +158,7 @@
     <ClCompile Include="Source\External\IMGUI\imgui_impl_dx12.cpp" />
     <ClCompile Include="Source\External\IMGUI\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\External\IMGUI\imgui_widgets.cpp" />
-    <ClCompile Include="Source\Scene\DummyScene.cpp" />
+    <ClCompile Include="Source\Scene\GltfViewer.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -186,7 +186,7 @@
     <ClInclude Include="Source\External\TinyGLTF\stb_image.h" />
     <ClInclude Include="Source\External\TinyGLTF\stb_image_write.h" />
     <ClInclude Include="Source\External\TinyGLTF\tiny_gltf.h" />
-    <ClInclude Include="Source\Scene\DummyScene.h" />
+    <ClInclude Include="Source\Scene\GltfViewer.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\WindowsApp.h" />
   </ItemGroup>

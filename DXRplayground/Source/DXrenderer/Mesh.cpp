@@ -91,19 +91,21 @@ void Mesh::ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, con
 
 void Mesh::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Mesh& mesh)
 {
-    m_submeshes.push_back(new Submesh{});
-    Submesh* submesh = m_submeshes.back();
     for (size_t i = 0; i < mesh.primitives.size(); ++i)
     {
+        m_submeshes.push_back(new Submesh{});
+        Submesh* submesh = m_submeshes.back();
+
         tinygltf::Primitive primitive = mesh.primitives[i];
 
         ParseVertices(submesh, model, mesh, primitive);
         ParseIndices(submesh, model, mesh, primitive);
-    }
-    submesh->m_indexCount = static_cast<UINT>(submesh->m_indices.size());
 
-    submesh->m_vertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(submesh->m_vertices.data()), static_cast<UINT>(sizeof(Vertex) * submesh->m_vertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
-    submesh->m_indexBuffer = new IndexBuffer(reinterpret_cast<byte*>(submesh->m_indices.data()), static_cast<UINT>(sizeof(UINT) * submesh->m_indices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+        submesh->m_indexCount = static_cast<UINT>(submesh->m_indices.size());
+
+        submesh->m_vertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(submesh->m_vertices.data()), static_cast<UINT>(sizeof(Vertex) * submesh->m_vertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
+        submesh->m_indexBuffer = new IndexBuffer(reinterpret_cast<byte*>(submesh->m_indices.data()), static_cast<UINT>(sizeof(UINT) * submesh->m_indices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+    }
 }
 
 void Mesh::ParseVertices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive)
@@ -115,7 +117,7 @@ void Mesh::ParseVertices(Submesh* submesh, const tinygltf::Model& model, const t
 
         const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
         const byte* bufferData = &model.buffers[bufferView.buffer].data.at(0);
-        const byte* bufferStart = bufferData + bufferView.byteOffset;
+        const byte* bufferStart = bufferData + bufferView.byteOffset + accessor.byteOffset;
 
         size_t elemCount = accessor.count;
         if (submesh->m_vertices.empty())
@@ -173,26 +175,22 @@ void Mesh::ParseIndices(Submesh* submesh, const tinygltf::Model& model, const ti
 
     const tinygltf::BufferView& indexView = model.bufferViews[indexAccessor.bufferView];
     const byte* bufferData = &model.buffers[indexView.buffer].data.at(0);
-    size_t byteOffset = indexView.byteOffset;
+    size_t byteOffset = indexView.byteOffset + indexAccessor.byteOffset;
     size_t byteLength = indexView.byteLength;
 
     UINT byteStride = indexAccessor.ByteStride(indexView);
-    if (byteStride == 2)
+    const byte* bufferStart = bufferData + byteOffset;
+    assert((indexAccessor.count % 3 == 0) && "GLTF index accessor doesn't represent triangles");
+    if (byteStride == 2 || byteStride == 4)
     {
-        for (size_t i = 0; i < indexAccessor.count; ++i)
+        for (size_t i = 0; i < indexAccessor.count; i ++)
         {
-            const byte* bufferStart = bufferData + byteOffset;
-            short index = GetElementFromBuffer<short>(bufferStart, byteStride, i);
-            submesh->m_indices.push_back(index);
-        }
-    }
-    else if (byteStride == 4)
-    {
-        for (size_t i = 0; i < indexAccessor.count; ++i)
-        {
-            const byte* bufferStart = bufferData + byteOffset;
-            int index = GetElementFromBuffer<int>(bufferStart, byteStride, i);
-            submesh->m_indices.push_back(index);
+            short i0 = GetElementFromBuffer<short>(bufferStart, byteStride, i + 0);
+            //short i1 = GetElementFromBuffer<short>(bufferStart, byteStride, i + 1);
+            //short i2 = GetElementFromBuffer<short>(bufferStart, byteStride, i + 2);
+            submesh->m_indices.push_back(i0);
+            //submesh->m_indices.push_back(i1);
+            //submesh->m_indices.push_back(i2);
         }
     }
     else
