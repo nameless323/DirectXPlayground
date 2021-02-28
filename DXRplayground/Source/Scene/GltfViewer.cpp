@@ -91,7 +91,7 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::CreateGeometry(RenderContext& context)
 {
-    auto path = std::string(ASSETS_DIR) + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    auto path = std::string(ASSETS_DIR) + std::string("Models//Sponza//glTF//Sponza.gltf");
     m_gltfMesh = new Mesh(context, path);
 }
 
@@ -136,6 +136,8 @@ void GltfViewer::CreatePSOs(RenderContext& context)
     desc.PS = m_ps.GetBytecode();
     desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
     desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+    desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
     desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
     D3D12_DEPTH_STENCIL_DESC dsDesc = {};

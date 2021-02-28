@@ -25,6 +25,15 @@ Mesh::Mesh(RenderContext& ctx, const std::string& path)
     tinygltf::Model model;
     LoadModel(path, model);
 
+    for (UINT i = 0; i < model.accessors.size(); ++i)
+    {
+        const auto& accessor = model.accessors[i];
+        if (accessor.sparse.isSparse)
+        {
+            assert("Sparse accessors aren't supported at the moment" && false);
+        }
+    }
+
     const tinygltf::Scene& scene = model.scenes[model.defaultScene];
     for (int node : scene.nodes)
         ParseModelNodes(ctx, model, model.nodes[node]);
@@ -82,14 +91,14 @@ void Mesh::LoadModel(const std::string& path, tinygltf::Model& model)
 
 void Mesh::ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node)
 {
-    ParseGLTFMesh(ctx, model, model.meshes[node.mesh]);
+    ParseGLTFMesh(ctx, model, node, model.meshes[node.mesh]);
     for (int i : node.children)
     {
         ParseModelNodes(ctx, model, model.nodes[i]);
     }
 }
 
-void Mesh::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Mesh& mesh)
+void Mesh::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh)
 {
     for (size_t i = 0; i < mesh.primitives.size(); ++i)
     {
@@ -98,7 +107,7 @@ void Mesh::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const
 
         tinygltf::Primitive primitive = mesh.primitives[i];
 
-        ParseVertices(submesh, model, mesh, primitive);
+        ParseVertices(submesh, model, node, mesh, primitive);
         ParseIndices(submesh, model, mesh, primitive);
 
         submesh->m_indexCount = static_cast<UINT>(submesh->m_indices.size());
@@ -108,7 +117,7 @@ void Mesh::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const
     }
 }
 
-void Mesh::ParseVertices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive)
+void Mesh::ParseVertices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive)
 {
     for (auto& attrib : primitive.attributes)
     {
@@ -130,6 +139,10 @@ void Mesh::ParseVertices(Submesh* submesh, const tinygltf::Model& model, const t
         //    size = accessor.type;
 
         UINT byteStride = accessor.ByteStride(bufferView);
+        XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
+        if (node.scale.size() == 3)
+            scale = { static_cast<float>(node.scale[0]), static_cast<float>(node.scale[1]), static_cast<float>(node.scale[2]) };
+
         if (attrib.first.compare("POSITION") == 0)
         {
             for (size_t i = 0; i < elemCount; ++i)
@@ -137,7 +150,7 @@ void Mesh::ParseVertices(Submesh* submesh, const tinygltf::Model& model, const t
                 float x = GetElementFromBuffer<float>(bufferStart, byteStride, i, 0);
                 float y = GetElementFromBuffer<float>(bufferStart, byteStride, i, 4);
                 float z = GetElementFromBuffer<float>(bufferStart, byteStride, i, 8);
-                submesh->m_vertices[i].Pos = { x, y, z };
+                submesh->m_vertices[i].Pos = { x * scale.x, y * scale.y, z * scale.z }; // For now bake the scale directly in the position
             }
         }
         else if (attrib.first.compare("NORMAL") == 0)
@@ -181,16 +194,20 @@ void Mesh::ParseIndices(Submesh* submesh, const tinygltf::Model& model, const ti
     UINT byteStride = indexAccessor.ByteStride(indexView);
     const byte* bufferStart = bufferData + byteOffset;
     assert((indexAccessor.count % 3 == 0) && "GLTF index accessor doesn't represent triangles");
-    if (byteStride == 2 || byteStride == 4)
+    if (byteStride == 2)
     {
         for (size_t i = 0; i < indexAccessor.count; i ++)
         {
             short i0 = GetElementFromBuffer<short>(bufferStart, byteStride, i + 0);
-            //short i1 = GetElementFromBuffer<short>(bufferStart, byteStride, i + 1);
-            //short i2 = GetElementFromBuffer<short>(bufferStart, byteStride, i + 2);
             submesh->m_indices.push_back(i0);
-            //submesh->m_indices.push_back(i1);
-            //submesh->m_indices.push_back(i2);
+        }
+    }
+    else if (byteStride == 4)
+    {
+        for (size_t i = 0; i < indexAccessor.count; i++)
+        {
+            UINT i0 = GetElementFromBuffer<UINT>(bufferStart, byteStride, i + 0);
+            submesh->m_indices.push_back(i0);
         }
     }
     else

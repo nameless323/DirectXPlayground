@@ -82,8 +82,8 @@ public:
 private:
     void LoadModel(const std::string& path, tinygltf::Model& model);
     void ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node);
-    void ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Mesh& mesh);
-    void ParseVertices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
+    void ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh);
+    void ParseVertices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
     void ParseIndices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
 
     std::vector<Submesh*> m_submeshes;
