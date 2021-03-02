@@ -12,6 +12,7 @@ namespace DirectxPlayground
 {
 class Mesh;
 class UploadBuffer;
+class TextureManager;
 
 class GltfViewer : public Scene
 {
@@ -33,6 +34,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso;
     UploadBuffer* m_cameraCb = nullptr;
     UploadBuffer* m_objectCb = nullptr;
+
+    TextureManager* m_textureManager = nullptr;
 
     Camera* m_camera = nullptr;
     CameraController* m_cameraController = nullptr;

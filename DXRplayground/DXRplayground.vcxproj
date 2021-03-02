@@ -151,6 +151,7 @@
     <ClCompile Include="Source\DXrenderer\DXRplayground.cpp" />
     <ClCompile Include="Source\DXrenderer\Shader.cpp" />
     <ClCompile Include="Source\DXrenderer\Swapchain.cpp" />
+    <ClCompile Include="Source\DXrenderer\TextureManager.cpp" />
     <ClCompile Include="Source\External\Dx12Helpers\DDSTextureLoader.cpp" />
     <ClCompile Include="Source\External\IMGUI\imgui.cpp" />
     <ClCompile Include="Source\External\IMGUI\imgui_demo.cpp" />
@@ -158,6 +159,7 @@
     <ClCompile Include="Source\External\IMGUI\imgui_impl_dx12.cpp" />
     <ClCompile Include="Source\External\IMGUI\imgui_impl_win32.cpp" />
     <ClCompile Include="Source\External\IMGUI\imgui_widgets.cpp" />
+    <ClCompile Include="Source\External\lodepng\lodepng.cpp" />
     <ClCompile Include="Source\Scene\GltfViewer.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
   </ItemGroup>
@@ -172,6 +174,7 @@
     <ClInclude Include="Source\DXrenderer\RenderContext.h" />
     <ClInclude Include="Source\DXrenderer\Shader.h" />
     <ClInclude Include="Source\DXrenderer\Swapchain.h" />
+    <ClInclude Include="Source\DXrenderer\TextureManager.h" />
     <ClInclude Include="Source\External\Dx12Helpers\d3dx12.h" />
     <ClInclude Include="Source\External\Dx12Helpers\DDSTextureLoader.h" />
     <ClInclude Include="Source\External\IMGUI\imconfig.h" />
@@ -182,6 +185,7 @@
     <ClInclude Include="Source\External\IMGUI\imstb_rectpack.h" />
     <ClInclude Include="Source\External\IMGUI\imstb_textedit.h" />
     <ClInclude Include="Source\External\IMGUI\imstb_truetype.h" />
+    <ClInclude Include="Source\External\lodepng\lodepng.h" />
     <ClInclude Include="Source\External\TinyGLTF\json.hpp" />
     <ClInclude Include="Source\External\TinyGLTF\stb_image.h" />
     <ClInclude Include="Source\External\TinyGLTF\stb_image_write.h" />

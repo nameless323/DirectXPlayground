@@ -4,6 +4,7 @@
 
 #include "DXrenderer/Mesh.h"
 #include "DXrenderer/Shader.h"
+#include "DXrenderer/TextureManager.h"
 
 #include "DXrenderer/Buffers/UploadBuffer.h"
 
@@ -17,6 +18,7 @@ GltfViewer::~GltfViewer()
     SafeDelete(m_cameraController);
     SafeDelete(m_objectCb);
     SafeDelete(m_gltfMesh);
+    SafeDelete(m_textureManager);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
@@ -27,6 +29,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
+    m_textureManager = new TextureManager(context);
 
     CreateGeometry(context);
 
@@ -73,8 +76,11 @@ void GltfViewer::Render(RenderContext& context)
 
     context.CommandList->SetPipelineState(m_pso.Get());
     context.CommandList->SetGraphicsRootSignature(m_triangleRootSig.Get());
+    ID3D12DescriptorHeap* descHeap[] = { m_textureManager->GetDescriptorHeap() };
+    context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(1, m_objectCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootDescriptorTable(2, m_textureManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
     for (const auto submesh : m_gltfMesh->GetSubmeshes())
     {
@@ -93,6 +99,9 @@ void GltfViewer::CreateGeometry(RenderContext& context)
 {
     auto path = std::string(ASSETS_DIR) + std::string("Models//Sponza//glTF//Sponza.gltf");
     m_gltfMesh = new Mesh(context, path);
+
+    auto texPath = std::string(ASSETS_DIR) + std::string("Textures//rick.png");
+    m_textureManager->CreateTexture(context, texPath);
 }
 
 void GltfViewer::CreateRootSignature(RenderContext& context)
@@ -103,6 +112,24 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
     cbParams.emplace_back();
     cbParams.back().InitAsConstantBufferView(1, 0);
 
+    D3D12_DESCRIPTOR_RANGE1 texRange;
+    texRange.NumDescriptors = 1;
+    texRange.BaseShaderRegister = 0;
+    texRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+    texRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+    texRange.RegisterSpace = 0;
+    texRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+
+    cbParams.emplace_back();
+    cbParams.back().InitAsDescriptorTable(1, &texRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+    CD3DX12_STATIC_SAMPLER_DESC linearClamp(
+        0,
+        D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
+        D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+
     D3D12_FEATURE_DATA_ROOT_SIGNATURE signatureData = {};
     signatureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
 
@@ -111,7 +138,7 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
 
     D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    rootSignatureDesc.Init_1_1(UINT(cbParams.size()), cbParams.data(), 0, nullptr, flags);
+    rootSignatureDesc.Init_1_1(UINT(cbParams.size()), cbParams.data(), 1, &linearClamp, flags);
 
     Microsoft::WRL::ComPtr<ID3DBlob> signature;
     Microsoft::WRL::ComPtr<ID3DBlob> rootSignatureCreationError;
