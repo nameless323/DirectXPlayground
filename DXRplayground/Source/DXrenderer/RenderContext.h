@@ -9,6 +9,7 @@ class Swapchain;
 struct RenderContext
 {
     static constexpr UINT FramesCount = 3;
+    static constexpr UINT MaxTextures = 10000;
     UINT CbvSrvUavDescriptorSize = -1;
     UINT RtvDescriptorSize = -1;
     UINT DsvDescriptorSize = -1;

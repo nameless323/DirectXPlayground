@@ -113,7 +113,7 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
     cbParams.back().InitAsConstantBufferView(1, 0);
 
     D3D12_DESCRIPTOR_RANGE1 texRange;
-    texRange.NumDescriptors = 1;
+    texRange.NumDescriptors = RenderContext::MaxTextures;
     texRange.BaseShaderRegister = 0;
     texRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
     texRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
