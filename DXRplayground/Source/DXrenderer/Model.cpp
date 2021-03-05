@@ -89,18 +89,7 @@ Model::~Model()
 void Model::UpdateMeshes(UINT frame)
 {
     for (auto mesh : m_meshes)
-    {
-        Material m;
-        Material& modelMat = m_materials[mesh->m_material];
-        m.BaseColorTexture = m_images[m_textures[modelMat.BaseColorTexture]].IndexInHeap; // well... shit
-        if (modelMat.MetallicRoughnessTexture != -1)
-            m.MetallicRoughnessTexture = m_images[m_textures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
-        if (modelMat.NormalTexture != -1)
-            m.NormalTexture = m_images[m_textures[modelMat.NormalTexture]].IndexInHeap;
-        if (modelMat.OcclusionTexture != -1)
-            m.OcclusionTexture = m_images[m_textures[modelMat.OcclusionTexture]].IndexInHeap;
-        mesh->UpdateMaterialBuffer(frame, std::move(m));
-    }
+        mesh->UpdateMaterialBuffer(frame);
 }
 
 void Model::LoadModel(const std::string& path, tinygltf::Model& model)
@@ -154,7 +143,15 @@ void Model::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, cons
 
         mesh->m_indexCount = static_cast<UINT>(mesh->m_indices.size());
 
-        mesh->m_material = primitive.material;
+        Material& modelMat = m_materials[primitive.material];
+        mesh->m_material.BaseColorTexture = m_images[m_textures[modelMat.BaseColorTexture]].IndexInHeap;
+        if (modelMat.MetallicRoughnessTexture != -1)
+            mesh->m_material.MetallicRoughnessTexture = m_images[m_textures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
+        if (modelMat.NormalTexture != -1)
+            mesh->m_material.NormalTexture = m_images[m_textures[modelMat.NormalTexture]].IndexInHeap;
+        if (modelMat.OcclusionTexture != -1)
+            mesh->m_material.OcclusionTexture = m_images[m_textures[modelMat.OcclusionTexture]].IndexInHeap;
+        memcpy(mesh->m_material.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
 
         mesh->m_vertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh->m_vertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh->m_vertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
         mesh->m_indexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh->m_indices.data()), static_cast<UINT>(sizeof(UINT) * mesh->m_indices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);

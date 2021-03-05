@@ -42,6 +42,7 @@ struct Material
     int MetallicRoughnessTexture = 0;
     int NormalTexture = 0;
     int OcclusionTexture = 0;
+    float BaseColorFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 };
 
 class Model
@@ -77,16 +78,16 @@ public:
             return m_materialBuffer->GetFrameDataGpuAddress(frame);
         }
 
-        void UpdateMaterialBuffer(UINT frame, Material m)
+        void UpdateMaterialBuffer(UINT frame)
         {
-            m_materialBuffer->UploadData(frame, m);
+            m_materialBuffer->UploadData(frame, m_material);
         }
 
     private:
         friend class Model;
 
         UINT m_indexCount = 0;
-        int m_material = 0;
+        Material m_material{};
 
         std::vector<Vertex> m_vertices;
         std::vector<UINT> m_indices;

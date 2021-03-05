@@ -12,6 +12,7 @@ struct CbMaterial
     int MetallicRoughnessTexture;
     int NormalTexture;
     int OcclusionTexture;
+    float4 BaseColorFactor;
 };
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
@@ -22,6 +23,16 @@ Texture2D<float4> Textures[10000] : register(t0);
 
 SamplerState LinearClampSampler : register(s0);
 SamplerState LinearWrapSampler : register(s1);
+
+float4 sRGBtoRGB(float4 c)
+{
+    return float4(pow(c.rgb, 2.2f), c.a);
+}
+
+float4 RGBtosRGB(float4 c)
+{
+    return float4(pow(c.rgb, 1.0f / 2.2f), c.a);
+}
 
 struct vIn
 {
@@ -50,6 +61,6 @@ vOut vs(vIn i)
 float4 ps(vOut i) : SV_Target
 {
     float4 t = Textures[cbMaterial.BaseColorTexture].Sample(LinearWrapSampler, i.uv);
-    return t;
+    return sRGBtoRGB(t);
     //return float4(i.norm.xyz * 0.5 + 0.5, 1);
 }
