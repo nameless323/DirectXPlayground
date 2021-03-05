@@ -214,6 +214,17 @@ void Model::ParseVertices(Mesh* mesh, const tinygltf::Model& model, const tinygl
                 mesh->m_vertices[i].Uv = { u, v };
             }
         }
+        else if (attrib.first.compare("TANGENT") == 0)
+        {
+            for (size_t i = 0; i < elemCount; ++i)
+            {
+                float x = GetElementFromBuffer<float>(bufferStart, byteStride, i, 0);
+                float y = GetElementFromBuffer<float>(bufferStart, byteStride, i, 4);
+                float z = GetElementFromBuffer<float>(bufferStart, byteStride, i, 8);
+                float w = GetElementFromBuffer<float>(bufferStart, byteStride, i, 12);
+                mesh->m_vertices[i].Tangent = { x, y, z, w };
+            }
+        }
         else
         {
             std::stringstream ss;

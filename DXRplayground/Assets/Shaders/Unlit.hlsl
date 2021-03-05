@@ -39,6 +39,7 @@ struct vIn
     float3 pos : POSITION;
     float3 norm : NORMAL;
     float2 uv : TEXCOORD0;
+    float4 tangent : TANGENT0;
 };
 
 struct vOut

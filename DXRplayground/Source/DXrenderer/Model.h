@@ -28,6 +28,7 @@ struct Vertex
     XMFLOAT3 Pos;
     XMFLOAT3 Norm;
     XMFLOAT2 Uv;
+    XMFLOAT4 Tangent;
 };
 
 struct Image
