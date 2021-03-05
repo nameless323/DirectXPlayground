@@ -6,9 +6,17 @@ struct CbObject
 {
     float4x4 ToWorld;
 };
+struct CbMaterial
+{
+    int BaseColorTexture;
+    int MetallicRoughnessTexture;
+    int NormalTexture;
+    int OcclusionTexture;
+};
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
 ConstantBuffer<CbObject> cbObject : register(b1);
+ConstantBuffer<CbMaterial> cbMaterial : register(b2);
 
 Texture2D<float4> Textures[10000] : register(t0);
 SamplerState LinearClampSampler : register(s0);
@@ -39,7 +47,7 @@ vOut vs(vIn i)
 
 float4 ps(vOut i) : SV_Target
 {
-    float4 t = Textures[0].Sample(LinearClampSampler, i.uv);
+    float4 t = Textures[cbMaterial.BaseColorTexture].Sample(LinearClampSampler, i.uv);
     return t;
     //return float4(i.norm.xyz * 0.5 + 0.5, 1);
 }

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Buffers/HeapBuffer.h"
+#include "Buffers/UploadBuffer.h"
 
 namespace tinygltf
 {
@@ -35,17 +36,26 @@ struct Image
     std::string Name;
 };
 
-class Mesh
+struct Material
+{
+    int BaseColorTexture = 0;
+    int MetallicRoughnessTexture = 0;
+    int NormalTexture = 0;
+    int OcclusionTexture = 0;
+};
+
+class Model
 {
 public:
-    class Submesh
+    class Mesh
     {
     public:
-        Submesh() = default;
-        ~Submesh()
+        Mesh() = default;
+        ~Mesh()
         {
             SafeDelete(m_indexBuffer);
             SafeDelete(m_vertexBuffer);
+            SafeDelete(m_materialBuffer);
         }
 
         UINT GetIndexCount() const
@@ -62,8 +72,18 @@ public:
             return m_indexBuffer->GetIndexBufferView();
         }
 
+        D3D12_GPU_VIRTUAL_ADDRESS GetMaterialBufferGpuAddress(UINT frame) const
+        {
+            return m_materialBuffer->GetFrameDataGpuAddress(frame);
+        }
+
+        void UpdateMaterialBuffer(UINT frame, Material m)
+        {
+            m_materialBuffer->UploadData(frame, m);
+        }
+
     private:
-        friend class Mesh;
+        friend class Model;
 
         UINT m_indexCount = 0;
         int m_material = 0;
@@ -71,51 +91,54 @@ public:
         std::vector<Vertex> m_vertices;
         std::vector<UINT> m_indices;
 
-        std::vector<Image> m_images;
-
         VertexBuffer* m_vertexBuffer = nullptr;
         IndexBuffer* m_indexBuffer = nullptr;
 
+        UploadBuffer* m_materialBuffer = nullptr;
     };
 
-    Mesh(RenderContext& ctx, const std::string& path);
-    Mesh(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices);
-    ~Mesh();
+    Model(RenderContext& ctx, const std::string& path);
+    Model(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices);
+    ~Model();
 
     UINT GetIndexCount() const;
 
     const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const;
     const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const;
 
-    const std::vector<Submesh*>& GetSubmeshes() const;
+    const std::vector<Mesh*>& GetMeshes() const;
+    void UpdateMeshes(UINT frame);
 
 private:
     void LoadModel(const std::string& path, tinygltf::Model& model);
     void ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node);
     void ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh);
-    void ParseVertices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
-    void ParseIndices(Submesh* submesh, const tinygltf::Model& model, const tinygltf::Mesh& mesh, const tinygltf::Primitive& primitive);
+    void ParseVertices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Primitive& primitive);
+    void ParseIndices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
 
-    std::vector<Submesh*> m_submeshes;
+    std::vector<Mesh*> m_meshes;
+    std::vector<Image> m_images;
+    std::vector<int> m_textures;
+    std::vector<Material> m_materials;
 };
 
-inline UINT Mesh::GetIndexCount() const
+inline UINT Model::GetIndexCount() const
 {
-    return m_submeshes[0]->GetIndexCount();
+    return m_meshes[0]->GetIndexCount();
 }
 
-inline const D3D12_VERTEX_BUFFER_VIEW& Mesh::GetVertexBufferView() const
+inline const D3D12_VERTEX_BUFFER_VIEW& Model::GetVertexBufferView() const
 {
-    return m_submeshes[0]->GetVertexBufferView();
+    return m_meshes[0]->GetVertexBufferView();
 }
 
-inline const D3D12_INDEX_BUFFER_VIEW& Mesh::GetIndexBufferView() const
+inline const D3D12_INDEX_BUFFER_VIEW& Model::GetIndexBufferView() const
 {
-    return m_submeshes[0]->GetIndexBufferView();
+    return m_meshes[0]->GetIndexBufferView();
 }
 
-inline const std::vector<Mesh::Submesh*>& Mesh::GetSubmeshes() const
+inline const std::vector<Model::Mesh*>& Model::GetMeshes() const
 {
-    return m_submeshes;
+    return m_meshes;
 }
 }

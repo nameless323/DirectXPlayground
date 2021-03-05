@@ -2,7 +2,7 @@
 
 #include "DXrenderer/Swapchain.h"
 
-#include "DXrenderer/Mesh.h"
+#include "DXrenderer/Model.h"
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/TextureManager.h"
 
@@ -29,7 +29,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
 
-    CreateGeometry(context);
+    LoadGeometry(context);
 
 
     CreateRootSignature(context);
@@ -49,6 +49,7 @@ void GltfViewer::Render(RenderContext& context)
     XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
     m_cameraCb->UploadData(frameIndex, TransposeMatrix(m_camera->GetViewProjection()));
     m_objectCb->UploadData(frameIndex, toWorld);
+    m_gltfMesh->UpdateMeshes(frameIndex);
 
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
@@ -78,28 +79,27 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(1, m_objectCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootDescriptorTable(2, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+    context.CommandList->SetGraphicsRootDescriptorTable(3, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
-    for (const auto submesh : m_gltfMesh->GetSubmeshes())
+    for (const auto mesh : m_gltfMesh->GetMeshes())
     {
-        context.CommandList->IASetVertexBuffers(0, 1, &submesh->GetVertexBufferView());
-        context.CommandList->IASetIndexBuffer(&submesh->GetIndexBufferView());
+        context.CommandList->SetGraphicsRootConstantBufferView(2, mesh->GetMaterialBufferGpuAddress(frameIndex));
+
+        context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
+        context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
 
         context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context.CommandList->DrawIndexedInstanced(submesh->GetIndexCount(), 1, 0, 0, 0);
+        context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
     }
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     context.CommandList->ResourceBarrier(1, &toPresent);
 }
 
-void GltfViewer::CreateGeometry(RenderContext& context)
+void GltfViewer::LoadGeometry(RenderContext& context)
 {
     auto path = std::string(ASSETS_DIR) + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
-    m_gltfMesh = new Mesh(context, path);
-
-    auto texPath = std::string(ASSETS_DIR) + std::string("Textures//rick.png");
-    context.TexManager->CreateTexture(context, texPath);
+    m_gltfMesh = new Model(context, path);
 }
 
 void GltfViewer::CreateRootSignature(RenderContext& context)
@@ -109,6 +109,8 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
     cbParams.back().InitAsConstantBufferView(0, 0);
     cbParams.emplace_back();
     cbParams.back().InitAsConstantBufferView(1, 0);
+    cbParams.emplace_back();
+    cbParams.back().InitAsConstantBufferView(2, 0);
 
     D3D12_DESCRIPTOR_RANGE1 texRange;
     texRange.NumDescriptors = RenderContext::MaxTextures;

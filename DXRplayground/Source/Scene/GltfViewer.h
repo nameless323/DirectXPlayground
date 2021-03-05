@@ -10,7 +10,7 @@
 
 namespace DirectxPlayground
 {
-class Mesh;
+class Model;
 class UploadBuffer;
 class TextureManager;
 
@@ -23,11 +23,11 @@ public:
     void Render(RenderContext& context) override;
 
 private:
-    void CreateGeometry(RenderContext& context);
+    void LoadGeometry(RenderContext& context);
     void CreateRootSignature(RenderContext& context);
     void CreatePSOs(RenderContext& context);
 
-    Mesh* m_gltfMesh = nullptr;
+    Model* m_gltfMesh = nullptr;
     Shader m_ps;
     Shader m_vs;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_triangleRootSig;
