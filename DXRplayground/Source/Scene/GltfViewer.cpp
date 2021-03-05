@@ -1,5 +1,7 @@
 #include "Scene/GltfViewer.h"
 
+#include <array>
+
 #include "DXrenderer/Swapchain.h"
 
 #include "DXrenderer/Model.h"
@@ -98,7 +100,7 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    auto path = std::string(ASSETS_DIR) + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    auto path = std::string(ASSETS_DIR) + std::string("Models//Sponza//glTF//Sponza.gltf");
     m_gltfMesh = new Model(context, path);
 }
 
@@ -129,6 +131,13 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
         D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
         D3D12_TEXTURE_ADDRESS_MODE_CLAMP,
         D3D12_TEXTURE_ADDRESS_MODE_CLAMP);
+    CD3DX12_STATIC_SAMPLER_DESC linearWrap(
+        1,
+        D3D12_FILTER_MIN_MAG_MIP_LINEAR,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP,
+        D3D12_TEXTURE_ADDRESS_MODE_WRAP);
+    std::array<CD3DX12_STATIC_SAMPLER_DESC, 2> staticSamplers = { linearClamp, linearWrap };
 
     D3D12_FEATURE_DATA_ROOT_SIGNATURE signatureData = {};
     signatureData.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1;
@@ -138,7 +147,7 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
 
     D3D12_ROOT_SIGNATURE_FLAGS flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    rootSignatureDesc.Init_1_1(UINT(cbParams.size()), cbParams.data(), 1, &linearClamp, flags);
+    rootSignatureDesc.Init_1_1(UINT(cbParams.size()), cbParams.data(), UINT(staticSamplers.size()), staticSamplers.data(), flags);
 
     Microsoft::WRL::ComPtr<ID3DBlob> signature;
     Microsoft::WRL::ComPtr<ID3DBlob> rootSignatureCreationError;

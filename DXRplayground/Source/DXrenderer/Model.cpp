@@ -91,10 +91,14 @@ void Model::UpdateMeshes(UINT frame)
     for (auto mesh : m_meshes)
     {
         Material m;
-        m.BaseColorTexture = m_images[m_textures[m_materials[mesh->m_material].BaseColorTexture]].IndexInHeap; // well... shit
-        m.MetallicRoughnessTexture = m_images[m_textures[m_materials[mesh->m_material].MetallicRoughnessTexture]].IndexInHeap;
-        m.NormalTexture = m_images[m_textures[m_materials[mesh->m_material].NormalTexture]].IndexInHeap;
-        m.OcclusionTexture = m_images[m_textures[m_materials[mesh->m_material].OcclusionTexture]].IndexInHeap;
+        Material& modelMat = m_materials[mesh->m_material];
+        m.BaseColorTexture = m_images[m_textures[modelMat.BaseColorTexture]].IndexInHeap; // well... shit
+        if (modelMat.MetallicRoughnessTexture != -1)
+            m.MetallicRoughnessTexture = m_images[m_textures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
+        if (modelMat.NormalTexture != -1)
+            m.NormalTexture = m_images[m_textures[modelMat.NormalTexture]].IndexInHeap;
+        if (modelMat.OcclusionTexture != -1)
+            m.OcclusionTexture = m_images[m_textures[modelMat.OcclusionTexture]].IndexInHeap;
         mesh->UpdateMaterialBuffer(frame, std::move(m));
     }
 }
