@@ -18,6 +18,8 @@ class Scene;
 class RenderPipeline
 {
 public:
+    ~RenderPipeline();
+
     void Init(HWND hwnd, int width, int height, Scene* scene);
     void Flush();
     void Resize(int width, int height);
@@ -38,6 +40,7 @@ private:
     RenderContext m_context;
 
     Swapchain m_swapChain;
+    TextureManager* m_textureManager = nullptr;
 
     ID3D12DescriptorHeap* m_imguiDescriptorHeap = nullptr;
 

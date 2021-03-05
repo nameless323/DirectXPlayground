@@ -114,6 +114,8 @@ void Mesh::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const
 
         submesh->m_vertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(submesh->m_vertices.data()), static_cast<UINT>(sizeof(Vertex) * submesh->m_vertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
         submesh->m_indexBuffer = new IndexBuffer(reinterpret_cast<byte*>(submesh->m_indices.data()), static_cast<UINT>(sizeof(UINT) * submesh->m_indices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+
+        submesh->m_material = primitive.material;
     }
 }
 

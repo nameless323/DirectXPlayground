@@ -8,12 +8,18 @@
 #include "WindowsApp.h"
 
 #include "DXrenderer/DXhelpers.h"
+#include "DXrenderer/TextureManager.h"
 
 #include "Scene/Scene.h"
 
 namespace DirectxPlayground
 {
 using Microsoft::WRL::ComPtr;
+
+RenderPipeline::~RenderPipeline()
+{
+    SafeDelete(m_textureManager);
+}
 
 void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 {
@@ -71,6 +77,9 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
     m_context.RtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     m_context.DsvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     m_context.SamplerDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+    m_textureManager = new TextureManager(m_context);
+    m_context.TexManager = m_textureManager;
 
     Flush();
     Resize(width, height);
@@ -187,6 +196,7 @@ void RenderPipeline::Render(Scene* scene)
 
 void RenderPipeline::Shutdown()
 {
+    SafeDelete(m_textureManager);
     if (m_context.Device != nullptr)
         Flush();
 

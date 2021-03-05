@@ -35,8 +35,6 @@ private:
     UploadBuffer* m_cameraCb = nullptr;
     UploadBuffer* m_objectCb = nullptr;
 
-    TextureManager* m_textureManager = nullptr;
-
     Camera* m_camera = nullptr;
     CameraController* m_cameraController = nullptr;
 };

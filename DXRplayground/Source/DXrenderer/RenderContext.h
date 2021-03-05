@@ -5,6 +5,7 @@
 namespace DirectxPlayground
 {
 class Swapchain;
+class TextureManager;
 
 struct RenderContext
 {
@@ -21,5 +22,6 @@ struct RenderContext
     ID3D12GraphicsCommandList* CommandList = nullptr;
     ID3D12Device* Device = nullptr;
     Swapchain* SwapChain = nullptr;
+    TextureManager* TexManager = nullptr;
 };
 }

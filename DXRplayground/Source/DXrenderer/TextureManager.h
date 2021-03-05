@@ -13,14 +13,16 @@ class TextureManager
 {
 public:
     TextureManager(RenderContext& ctx);
-    void CreateTexture(RenderContext& ctx, const std::string& filename);
+    UINT CreateTexture(RenderContext& ctx, const std::string& filename);
 
     ID3D12DescriptorHeap* GetDescriptorHeap() const;
 
 private:
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_resource = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_uploadResource = nullptr;
+    std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_resources;
+    std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_uploadResources;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap = nullptr;
+
+    UINT m_currentTexCount = 0;
 };
 
 inline ID3D12DescriptorHeap* TextureManager::GetDescriptorHeap() const

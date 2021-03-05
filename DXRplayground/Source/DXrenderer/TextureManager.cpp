@@ -36,20 +36,25 @@ TextureManager::TextureManager(RenderContext& ctx)
     }
 }
 
-void TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename)
+UINT TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename)
 {
-    std::vector<unsigned char> buffer_;
+    std::vector<unsigned char> bufferInMemory;
     std::vector<unsigned char> buffer;
 
     UINT w = 0, h = 0;
-    lodepng::load_file(buffer_, filename);
-    UINT error = lodepng::decode(buffer, w, h, buffer_);
+    lodepng::load_file(bufferInMemory, filename);
+    UINT error = lodepng::decode(buffer, w, h, bufferInMemory);
     if (error)
     {
         std::stringstream ss;
         ss << "PNG decoding error " << error << " : " << lodepng_error_text(error) << std::endl;
         LOG(ss.str().c_str());
     }
+
+    m_resources.emplace_back();
+    auto resource = m_resources.back().Get();
+    m_uploadResources.emplace_back();
+    auto uploadResource = m_uploadResources.back().Get();
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.MipLevels = 1;
@@ -67,9 +72,14 @@ void TextureManager::CreateTexture(RenderContext& ctx, const std::string& filena
         &texDesc,
         D3D12_RESOURCE_STATE_COPY_DEST,
         nullptr,
-        IID_PPV_ARGS(&m_resource)));
+        IID_PPV_ARGS(&resource)));
 
-    const UINT64 uploadBufferSize = GetRequiredIntermediateSize(m_resource.Get(), 0, 1);
+#if defined(_DEBUG)
+    std::wstring s{ filename.begin(), filename.end() };
+    SetDXobjectName(resource, s.c_str());
+#endif
+
+    const UINT64 uploadBufferSize = GetRequiredIntermediateSize(resource, 0, 1);
 
     size_t texSize = buffer.size() * sizeof(unsigned char);
     CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
@@ -80,28 +90,31 @@ void TextureManager::CreateTexture(RenderContext& ctx, const std::string& filena
         &bufferDesc,
         D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr,
-        IID_PPV_ARGS(&m_uploadResource)));
+        IID_PPV_ARGS(&uploadResource)));
 
     D3D12_SUBRESOURCE_DATA texData = {};
     texData.pData = buffer.data();
     texData.RowPitch = w * 4;
     texData.SlicePitch = texData.RowPitch * h;
 
+    UpdateSubresources(ctx.CommandList, resource, uploadResource, 0, 0, 1, &texData);
 
-    UpdateSubresources(ctx.CommandList, m_resource.Get(), m_uploadResource.Get(), 0, 0, 1, &texData);
-
-    CD3DX12_RESOURCE_BARRIER toDest = CD3DX12_RESOURCE_BARRIER::Transition(m_resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    CD3DX12_RESOURCE_BARRIER toDest = CD3DX12_RESOURCE_BARRIER::Transition(resource, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     ctx.CommandList->ResourceBarrier(1, &toDest);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
     viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-    viewDesc.Format = m_resource->GetDesc().Format;
+    viewDesc.Format = resource->GetDesc().Format;
     viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-    viewDesc.Texture2D.MipLevels = m_resource->GetDesc().MipLevels;
+    viewDesc.Texture2D.MipLevels = resource->GetDesc().MipLevels;
     viewDesc.Texture2D.MostDetailedMip = 0;
     viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-    ctx.Device->CreateShaderResourceView(m_resource.Get(), &viewDesc, m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+    handle.Offset(m_currentTexCount * ctx.CbvSrvUavDescriptorSize);
+    ctx.Device->CreateShaderResourceView(resource, &viewDesc, handle);
+
+    return m_currentTexCount++;
 }
 
 }

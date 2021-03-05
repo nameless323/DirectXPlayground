@@ -20,12 +20,19 @@ namespace DirectxPlayground
 using namespace DirectX;
 
 struct RenderContext;
+class TextureManager;
 
 struct Vertex
 {
     XMFLOAT3 Pos;
     XMFLOAT3 Norm;
     XMFLOAT2 Uv;
+};
+
+struct Image
+{
+    UINT IndexInHeap = 0;
+    std::string Name;
 };
 
 class Mesh
@@ -59,9 +66,12 @@ public:
         friend class Mesh;
 
         UINT m_indexCount = 0;
+        int m_material = 0;
 
         std::vector<Vertex> m_vertices;
         std::vector<UINT> m_indices;
+
+        std::vector<Image> m_images;
 
         VertexBuffer* m_vertexBuffer = nullptr;
         IndexBuffer* m_indexBuffer = nullptr;

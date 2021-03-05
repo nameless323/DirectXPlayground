@@ -18,7 +18,6 @@ GltfViewer::~GltfViewer()
     SafeDelete(m_cameraController);
     SafeDelete(m_objectCb);
     SafeDelete(m_gltfMesh);
-    SafeDelete(m_textureManager);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
@@ -29,7 +28,6 @@ void GltfViewer::InitResources(RenderContext& context)
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
-    m_textureManager = new TextureManager(context);
 
     CreateGeometry(context);
 
@@ -76,11 +74,11 @@ void GltfViewer::Render(RenderContext& context)
 
     context.CommandList->SetPipelineState(m_pso.Get());
     context.CommandList->SetGraphicsRootSignature(m_triangleRootSig.Get());
-    ID3D12DescriptorHeap* descHeap[] = { m_textureManager->GetDescriptorHeap() };
+    ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
     context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(1, m_objectCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootDescriptorTable(2, m_textureManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+    context.CommandList->SetGraphicsRootDescriptorTable(2, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
     for (const auto submesh : m_gltfMesh->GetSubmeshes())
     {
@@ -97,11 +95,11 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::CreateGeometry(RenderContext& context)
 {
-    auto path = std::string(ASSETS_DIR) + std::string("Models//Sponza//glTF//Sponza.gltf");
+    auto path = std::string(ASSETS_DIR) + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     m_gltfMesh = new Mesh(context, path);
 
     auto texPath = std::string(ASSETS_DIR) + std::string("Textures//rick.png");
-    m_textureManager->CreateTexture(context, texPath);
+    context.TexManager->CreateTexture(context, texPath);
 }
 
 void GltfViewer::CreateRootSignature(RenderContext& context)
