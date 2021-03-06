@@ -28,9 +28,7 @@ private:
     void CreatePSOs(RenderContext& context);
 
     Model* m_gltfMesh = nullptr;
-    Shader m_ps;
-    Shader m_vs;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_triangleRootSig;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso;
     UploadBuffer* m_cameraCb = nullptr;
     UploadBuffer* m_objectCb = nullptr;

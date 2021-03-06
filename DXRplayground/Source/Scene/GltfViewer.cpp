@@ -32,13 +32,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_cameraController = new CameraController(m_camera);
 
     LoadGeometry(context);
-
-
     CreateRootSignature(context);
-
-    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Unlit.hlsl");
-    m_vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
-    m_ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
     CreatePSOs(context);
 }
 
@@ -76,7 +70,7 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     context.CommandList->SetPipelineState(m_pso.Get());
-    context.CommandList->SetGraphicsRootSignature(m_triangleRootSig.Get());
+    context.CommandList->SetGraphicsRootSignature(m_commonRootSig.Get());
     ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
     context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
@@ -100,7 +94,7 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    auto path = std::string(ASSETS_DIR) + std::string("Models//Sponza//glTF//Sponza.gltf");
+    auto path = std::string(ASSETS_DIR) + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     m_gltfMesh = new Model(context, path);
 }
 
@@ -154,9 +148,9 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
     HRESULT hr = D3DX12SerializeVersionedRootSignature(&rootSignatureDesc, signatureData.HighestVersion, &signature, &rootSignatureCreationError);
     if (hr != S_OK)
         OutputDebugStringA(reinterpret_cast<char*>(rootSignatureCreationError->GetBufferPointer()));
-    hr = context.Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_triangleRootSig));
+    hr = context.Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_commonRootSig));
 
-    NAME_D3D12_OBJECT(m_triangleRootSig);
+    NAME_D3D12_OBJECT(m_commonRootSig);
 }
 
 void GltfViewer::CreatePSOs(RenderContext& context)
@@ -167,10 +161,15 @@ void GltfViewer::CreatePSOs(RenderContext& context)
     inputLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
     inputLayout.push_back({ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
 
+
+    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Unlit.hlsl");
+    Shader vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
+    Shader ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
+
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
-    desc.pRootSignature = m_triangleRootSig.Get();
-    desc.VS = m_vs.GetBytecode();
-    desc.PS = m_ps.GetBytecode();
+    desc.pRootSignature = m_commonRootSig.Get();
+    desc.VS = vs.GetBytecode();
+    desc.PS = ps.GetBytecode();
     desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
     desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
