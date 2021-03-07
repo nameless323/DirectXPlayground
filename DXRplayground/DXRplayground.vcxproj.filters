@@ -72,6 +72,9 @@
     <ClCompile Include="Source\DXrenderer\Model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\DXrenderer\Tonemapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\WindowsApp.h">
@@ -159,6 +162,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\DXrenderer\Model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\DXrenderer\Tonemapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

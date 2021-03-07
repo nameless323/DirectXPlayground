@@ -2,7 +2,6 @@
 
 #include <d3d12.h>
 #include "Scene/Scene.h"
-#include "DXrenderer/Shader.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
 #include "CameraController.h"
@@ -13,6 +12,7 @@ namespace DirectxPlayground
 class Model;
 class UploadBuffer;
 class TextureManager;
+class Tonemapper;
 
 class GltfViewer : public Scene
 {
@@ -28,12 +28,13 @@ private:
     void CreatePSOs(RenderContext& context);
 
     Model* m_gltfMesh = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso;
     UploadBuffer* m_cameraCb = nullptr;
     UploadBuffer* m_objectCb = nullptr;
 
     Camera* m_camera = nullptr;
     CameraController* m_cameraController = nullptr;
+    Tonemapper* m_tonemapper = nullptr;
 };
 }

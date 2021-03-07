@@ -26,7 +26,7 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
     }
     else
     {
-        OutputDebugStringA("Shader compilation error");
+        OutputDebugStringA("Shader compilation error ");
         OutputDebugStringA(reinterpret_cast<char*>(shader.m_error->GetBufferPointer()));
     }
     return hr;

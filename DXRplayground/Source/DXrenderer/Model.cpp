@@ -42,7 +42,7 @@ Model::Model(RenderContext& ctx, const std::string& path)
     std::string dir = pathToModel.parent_path().string() + '\\';
     for (const auto& image : model.images)
     {
-        UINT index = ctx.TexManager->CreateTexture(ctx, dir + image.uri);
+        UINT index = ctx.TexManager->CreateTexture(ctx, dir + image.uri).SRVOffset;
         m_images.push_back({ index, image.uri });
     }
     for (const auto& texture : model.textures)

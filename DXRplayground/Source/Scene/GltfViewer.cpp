@@ -7,6 +7,7 @@
 #include "DXrenderer/Model.h"
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/TextureManager.h"
+#include "DXrenderer/Tonemapper.h"
 
 #include "DXrenderer/Buffers/UploadBuffer.h"
 
@@ -20,6 +21,7 @@ GltfViewer::~GltfViewer()
     SafeDelete(m_cameraController);
     SafeDelete(m_objectCb);
     SafeDelete(m_gltfMesh);
+    SafeDelete(m_tonemapper);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
@@ -33,6 +35,10 @@ void GltfViewer::InitResources(RenderContext& context)
 
     LoadGeometry(context);
     CreateRootSignature(context);
+
+    m_tonemapper = new Tonemapper();
+    m_tonemapper->InitResources(context, m_commonRootSig.Get());
+
     CreatePSOs(context);
 }
 
@@ -50,7 +56,7 @@ void GltfViewer::Render(RenderContext& context)
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
 
-    auto rtCpuHandle = context.SwapChain->GetCurrentBackBufferCPUhandle(context);
+    auto rtCpuHandle = context.TexManager->GetRtHandle(context, m_tonemapper->GetRtIndex());
 
     D3D12_RECT scissorRect = { 0, 0, LONG(context.Width), LONG(context.Height) };
     D3D12_VIEWPORT viewport = {};
@@ -69,8 +75,8 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
     context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-    context.CommandList->SetPipelineState(m_pso.Get());
     context.CommandList->SetGraphicsRootSignature(m_commonRootSig.Get());
+    context.CommandList->SetPipelineState(m_pso.Get());
     ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
     context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
@@ -87,6 +93,7 @@ void GltfViewer::Render(RenderContext& context)
         context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
     }
+    m_tonemapper->Render(context);
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     context.CommandList->ResourceBarrier(1, &toPresent);
@@ -161,7 +168,6 @@ void GltfViewer::CreatePSOs(RenderContext& context)
     inputLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
     inputLayout.push_back({ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
 
-
     auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Unlit.hlsl");
     Shader vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
     Shader ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
@@ -187,7 +193,7 @@ void GltfViewer::CreatePSOs(RenderContext& context)
 
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
     desc.NumRenderTargets = 1;
-    desc.RTVFormats[0] = context.SwapChain->GetBackBufferFormat();
+    desc.RTVFormats[0] = m_tonemapper->GetHDRTargetFormat();
 
     desc.SampleMask = UINT_MAX;
     desc.SampleDesc.Count = 1;

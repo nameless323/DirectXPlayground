@@ -152,6 +152,7 @@
     <ClCompile Include="Source\DXrenderer\Shader.cpp" />
     <ClCompile Include="Source\DXrenderer\Swapchain.cpp" />
     <ClCompile Include="Source\DXrenderer\TextureManager.cpp" />
+    <ClCompile Include="Source\DXrenderer\Tonemapper.cpp" />
     <ClCompile Include="Source\External\Dx12Helpers\DDSTextureLoader.cpp" />
     <ClCompile Include="Source\External\IMGUI\imgui.cpp" />
     <ClCompile Include="Source\External\IMGUI\imgui_demo.cpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Source\DXrenderer\Shader.h" />
     <ClInclude Include="Source\DXrenderer\Swapchain.h" />
     <ClInclude Include="Source\DXrenderer\TextureManager.h" />
+    <ClInclude Include="Source\DXrenderer\Tonemapper.h" />
     <ClInclude Include="Source\External\Dx12Helpers\d3dx12.h" />
     <ClInclude Include="Source\External\Dx12Helpers\DDSTextureLoader.h" />
     <ClInclude Include="Source\External\IMGUI\imconfig.h" />
