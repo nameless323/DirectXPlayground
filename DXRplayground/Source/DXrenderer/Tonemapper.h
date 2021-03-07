@@ -21,17 +21,24 @@ public:
     UINT GetRtIndex() const;
 
 private:
+    struct TonemapperData
+    {
+        UINT HdrTexIndex = 0;
+        float Exposure = 2.0f;
+    };
+
     void CreateRenderTarget(RenderContext& ctx);
     void CreateGeometry(RenderContext& context);
     void CreatePSO(RenderContext& ctx, ID3D12RootSignature* rootSig);
 
     Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso;
     Model* m_model = nullptr;
+    TonemapperData m_tonemapperData{};
     UINT m_rtvOffset = 0;
-    UINT m_srvOffset = 0;
     UINT m_resourceIdx = 0;
     DXGI_FORMAT m_rtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
     UploadBuffer* m_hdrRtBuffer = nullptr;
+
 };
 
 inline DXGI_FORMAT Tonemapper::GetHDRTargetFormat() const

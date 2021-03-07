@@ -1,5 +1,7 @@
 #include "DXrenderer/Tonemapper.h"
 
+#include "External/IMGUI/imgui.h"
+
 #include "DXrenderer/DXhelpers.h"
 #include "DXrenderer/RenderContext.h"
 #include "DXrenderer/Shader.h"
@@ -19,15 +21,19 @@ Tonemapper::~Tonemapper()
 void Tonemapper::InitResources(RenderContext& ctx, ID3D12RootSignature* rootSig)
 {
     CreateRenderTarget(ctx);
-    m_hdrRtBuffer = new UploadBuffer(*ctx.Device, sizeof(UINT), true, RenderContext::FramesCount);
+    m_hdrRtBuffer = new UploadBuffer(*ctx.Device, sizeof(TonemapperData), true, RenderContext::FramesCount);
     CreateGeometry(ctx);
     CreatePSO(ctx, rootSig);
 }
 
 void Tonemapper::Render(RenderContext& ctx)
 {
+    ImGui::Begin("Tonemapping");
+    ImGui::SliderFloat("Exposure", &m_tonemapperData.Exposure, 0.0f, 10.0f);
+    ImGui::End();
+
     UINT frameIndex = ctx.SwapChain->GetCurrentBackBufferIndex();
-    m_hdrRtBuffer->UploadData(frameIndex, m_srvOffset);
+    m_hdrRtBuffer->UploadData(frameIndex, m_tonemapperData);
 
     ID3D12Resource* hdrTex = ctx.TexManager->GetResource(m_resourceIdx);
     auto toPSResource = CD3DX12_RESOURCE_BARRIER::Transition(hdrTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -75,8 +81,8 @@ void Tonemapper::CreateRenderTarget(RenderContext& ctx)
 
     RtvSrvResourceIdx p = ctx.TexManager->CreateRT(ctx, desc, L"HDRTexture");
     m_rtvOffset = p.RTVOffset;
-    m_srvOffset = p.SRVOffset;
     m_resourceIdx = p.ResourceIdx;
+    m_tonemapperData.HdrTexIndex = p.SRVOffset;
 }
 
 void Tonemapper::CreateGeometry(RenderContext& context)

@@ -1,3 +1,5 @@
+#include "Lighting.hlsl"
+
 Texture2D<float4> Textures[10000] : register(t0);
 
 SamplerState LinearClampSampler : register(s0);
@@ -5,6 +7,7 @@ SamplerState LinearClampSampler : register(s0);
 struct CbTonemapper
 {
     uint HdrTexIndex;
+    float Exposure;
 };
 ConstantBuffer<CbTonemapper> cbTonemapper : register(b0);
 
@@ -33,6 +36,7 @@ vOut vs(vIn i)
 
 float4 ps(vOut i) : SV_Target
 {
-    float4 t = Textures[cbTonemapper.HdrTexIndex].Sample(LinearClampSampler, i.uv);
-    return t;
+    float4 hdrColor = Textures[cbTonemapper.HdrTexIndex].Sample(LinearClampSampler, i.uv);
+    float4 mappedColor = float4(float3(1.0f, 1.0f, 1.0f) - exp(-hdrColor.xyz * cbTonemapper.Exposure), hdrColor.a);
+    return RGBtosRGB(mappedColor);
 }

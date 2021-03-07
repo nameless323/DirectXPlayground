@@ -54,8 +54,6 @@ vOut vs(vIn i)
 float4 ps(vOut i) : SV_Target
 {
     float4 t = Textures[cbMaterial.BaseColorTexture].Sample(LinearWrapSampler, i.uv);
-    if (t.r > 0.4)
-        t.r *= 500;
-    return t;
+    return sRGBtoRGB(t);
     //return float4(i.norm.xyz * 0.5 + 0.5, 1);
 }
