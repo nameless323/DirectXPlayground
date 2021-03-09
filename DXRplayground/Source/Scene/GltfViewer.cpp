@@ -71,8 +71,7 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->RSSetViewports(1, &viewport);
 
     context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &context.SwapChain->GetDSCPUhandle());
-    const float clearColor[] = { 0.0f, 0.4f, 0.9f, 1.0f };
-    context.CommandList->ClearRenderTargetView(rtCpuHandle, clearColor, 0, nullptr);
+    context.CommandList->ClearRenderTargetView(rtCpuHandle, m_tonemapper->GetClearColor(), 0, nullptr);
     context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     context.CommandList->SetGraphicsRootSignature(m_commonRootSig.Get());

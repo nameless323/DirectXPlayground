@@ -103,7 +103,7 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
     return res;
 }
 
-RtvSrvResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, bool createSRV /*= true*/)
+RtvSrvResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue /*= nullptr*/, bool createSRV /*= true*/)
 {
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 
@@ -111,7 +111,7 @@ RtvSrvResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DE
         D3D12_HEAP_FLAG_NONE,
         &desc,
         D3D12_RESOURCE_STATE_RENDER_TARGET,
-        nullptr,
+        clearValue,
         IID_PPV_ARGS(&resource)));
 
 #if defined(_DEBUG)

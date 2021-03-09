@@ -24,7 +24,7 @@ class TextureManager
 public:
     TextureManager(RenderContext& ctx);
     RtvSrvResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename);
-    RtvSrvResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, bool createSRV = true);
+    RtvSrvResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true);
 
     ID3D12DescriptorHeap* GetDescriptorHeap() const;
     D3D12_CPU_DESCRIPTOR_HANDLE GetRtHandle(RenderContext& ctx, UINT index) const;

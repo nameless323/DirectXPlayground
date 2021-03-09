@@ -20,6 +20,8 @@ public:
     DXGI_FORMAT GetHDRTargetFormat() const;
     UINT GetRtIndex() const;
 
+    const float* GetClearColor() const;
+
 private:
     struct TonemapperData
     {
@@ -39,6 +41,7 @@ private:
     DXGI_FORMAT m_rtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
     UploadBuffer* m_hdrRtBuffer = nullptr;
 
+    const float m_clearColor[4] = { 0.0f, 0.4f, 0.9f, 1.0f };
 };
 
 inline DXGI_FORMAT Tonemapper::GetHDRTargetFormat() const
@@ -49,5 +52,10 @@ inline DXGI_FORMAT Tonemapper::GetHDRTargetFormat() const
 inline UINT Tonemapper::GetRtIndex() const
 {
     return m_rtvOffset;
+}
+
+inline const float* Tonemapper::GetClearColor() const
+{
+    return m_clearColor;
 }
 }

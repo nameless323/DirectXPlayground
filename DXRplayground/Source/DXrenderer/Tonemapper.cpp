@@ -79,7 +79,14 @@ void Tonemapper::CreateRenderTarget(RenderContext& ctx)
     desc.SampleDesc.Quality = 0;
     desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    RtvSrvResourceIdx p = ctx.TexManager->CreateRT(ctx, desc, L"HDRTexture");
+    D3D12_CLEAR_VALUE clearValue{};
+    clearValue.Color[0] = m_clearColor[0];
+    clearValue.Color[1] = m_clearColor[1];
+    clearValue.Color[2] = m_clearColor[2];
+    clearValue.Color[3] = m_clearColor[3];
+    clearValue.Format = m_rtFormat;
+
+    RtvSrvResourceIdx p = ctx.TexManager->CreateRT(ctx, desc, L"HDRTexture", &clearValue);
     m_rtvOffset = p.RTVOffset;
     m_resourceIdx = p.ResourceIdx;
     m_tonemapperData.HdrTexIndex = p.SRVOffset;
