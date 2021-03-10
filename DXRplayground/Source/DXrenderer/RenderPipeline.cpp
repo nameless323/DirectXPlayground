@@ -26,10 +26,11 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
     UINT dxgiFactoryFlags = 0;
 #ifdef _DEBUG
     {
-        ComPtr<ID3D12Debug> debugController;
+        ComPtr<ID3D12Debug1> debugController;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
         {
             debugController->EnableDebugLayer();
+            debugController->SetEnableGPUBasedValidation(true);
             dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
         }
     }

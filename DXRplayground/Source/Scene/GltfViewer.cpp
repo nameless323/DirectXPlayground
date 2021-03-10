@@ -118,7 +118,7 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
     texRange.NumDescriptors = RenderContext::MaxTextures;
     texRange.BaseShaderRegister = 0;
     texRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-    texRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+    texRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
     texRange.RegisterSpace = 0;
     texRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
