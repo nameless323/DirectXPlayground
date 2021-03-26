@@ -8,8 +8,11 @@
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/TextureManager.h"
 #include "DXrenderer/Tonemapper.h"
+#include "DXrenderer/LightManager.h"
 
 #include "DXrenderer/Buffers/UploadBuffer.h"
+
+#include "External/IMGUI/imgui.h"
 
 namespace DirectxPlayground
 {
@@ -22,6 +25,7 @@ GltfViewer::~GltfViewer()
     SafeDelete(m_objectCb);
     SafeDelete(m_gltfMesh);
     SafeDelete(m_tonemapper);
+    SafeDelete(m_lightManager);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
@@ -32,6 +36,9 @@ void GltfViewer::InitResources(RenderContext& context)
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
+    m_lightManager = new LightManager(context);
+    Light l = { { 1.0f, 1.0f, 1.0f, 1.0f}, { 0.70710678f, -0.70710678f, 0.0f } };
+    m_directionalLightInd = m_lightManager->AddLight(l);
 
     LoadGeometry(context);
     CreateRootSignature(context);
@@ -45,8 +52,10 @@ void GltfViewer::InitResources(RenderContext& context)
 void GltfViewer::Render(RenderContext& context)
 {
     m_cameraController->Update();
+    UpdateLights(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
+
     XMFLOAT4X4 toWorld;
     XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
     m_cameraCb->UploadData(frameIndex, TransposeMatrix(m_camera->GetViewProjection()));
@@ -80,7 +89,8 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(1, m_objectCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootDescriptorTable(3, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+    context.CommandList->SetGraphicsRootConstantBufferView(3, m_lightManager->GetLightsBufferGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootDescriptorTable(4, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
     for (const auto mesh : m_gltfMesh->GetMeshes())
     {
@@ -106,13 +116,15 @@ void GltfViewer::LoadGeometry(RenderContext& context)
 
 void GltfViewer::CreateRootSignature(RenderContext& context)
 {
-    std::vector<CD3DX12_ROOT_PARAMETER1> cbParams;
+    std::vector<CD3DX12_ROOT_PARAMETER1> cbParams; // todo: just make 100 cb and that's it
     cbParams.emplace_back();
     cbParams.back().InitAsConstantBufferView(0, 0);
     cbParams.emplace_back();
     cbParams.back().InitAsConstantBufferView(1, 0);
     cbParams.emplace_back();
     cbParams.back().InitAsConstantBufferView(2, 0);
+    cbParams.emplace_back();
+    cbParams.back().InitAsConstantBufferView(3, 0);
 
     D3D12_DESCRIPTOR_RANGE1 texRange;
     texRange.NumDescriptors = RenderContext::MaxTextures;
@@ -199,4 +211,16 @@ void GltfViewer::CreatePSOs(RenderContext& context)
 
     ThrowIfFailed(context.Device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&m_pso)));
 }
+
+void GltfViewer::UpdateLights(RenderContext& context)
+{
+    Light& dirLight = m_lightManager->GetLightRef(m_directionalLightInd);
+    ImGui::Begin("Lights");
+    ImGui::InputFloat4("Color", reinterpret_cast<float*>(&dirLight.Color));
+    ImGui::InputFloat3("Direction", reinterpret_cast<float*>(&dirLight.Direction));
+    ImGui::End();
+
+    m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
+}
+
 }

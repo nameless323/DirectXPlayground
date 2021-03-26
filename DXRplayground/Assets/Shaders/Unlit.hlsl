@@ -16,10 +16,21 @@ struct CbMaterial
     int OcclusionTexture;
     float4 BaseColorFactor;
 };
+struct Light
+{
+    float4 Color;
+    float3 Direction;
+};
+struct CbLight
+{
+    Light Lights[128];
+    uint UsedLights;
+};
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
 ConstantBuffer<CbObject> cbObject : register(b1);
 ConstantBuffer<CbMaterial> cbMaterial : register(b2);
+ConstantBuffer<CbLight> cbLight : register(b3);
 
 Texture2D<float4> Textures[10000] : register(t0);
 
@@ -54,6 +65,6 @@ vOut vs(vIn i)
 float4 ps(vOut i) : SV_Target
 {
     float4 t = Textures[cbMaterial.NormalTexture].Sample(LinearWrapSampler, i.uv);
-    return sRGBtoRGB(t);
+    return sRGBtoRGB(t) * cbLight.Lights[0].Color;
     //return float4(i.norm.xyz * 0.5 + 0.5, 1);
 }
