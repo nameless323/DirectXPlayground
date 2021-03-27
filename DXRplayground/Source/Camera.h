@@ -6,6 +6,12 @@ namespace DirectxPlayground
 {
 using namespace DirectX;
 
+struct CameraShaderData
+{
+    XMFLOAT4X4 ViewProj;
+    XMFLOAT3 Position;
+};
+
 class Camera
 {
 public:

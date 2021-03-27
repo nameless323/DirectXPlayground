@@ -33,7 +33,7 @@ void GltfViewer::InitResources(RenderContext& context)
     using Microsoft::WRL::ComPtr;
 
     m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
-    m_cameraCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
+    m_cameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
     m_lightManager = new LightManager(context);
@@ -58,7 +58,10 @@ void GltfViewer::Render(RenderContext& context)
 
     XMFLOAT4X4 toWorld;
     XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
-    m_cameraCb->UploadData(frameIndex, TransposeMatrix(m_camera->GetViewProjection()));
+    m_cameraData.ViewProj = TransposeMatrix(m_camera->GetViewProjection());
+    XMFLOAT4 camPos = m_camera->GetPosition();
+    m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
+    m_cameraCb->UploadData(frameIndex, m_cameraData);
     m_objectCb->UploadData(frameIndex, toWorld);
     m_gltfMesh->UpdateMeshes(frameIndex);
 

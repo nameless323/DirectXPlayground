@@ -40,5 +40,6 @@ private:
     Tonemapper* m_tonemapper = nullptr;
     LightManager* m_lightManager = nullptr;
     UINT m_directionalLightInd = 0;
+    CameraShaderData m_cameraData{};
 };
 }

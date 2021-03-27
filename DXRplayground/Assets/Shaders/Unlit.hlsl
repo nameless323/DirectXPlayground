@@ -13,6 +13,7 @@ float3 BlinnPhong(float3 lightDir, float3 lightColor, float3 eyePos, float3 pos,
 struct CbCamera
 {
     float4x4 ViewProjection;
+    float3 Position;
 };
 struct CbObject
 {
