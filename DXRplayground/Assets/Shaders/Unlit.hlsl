@@ -62,6 +62,7 @@ struct vOut
     float3 wpos : TEXCOORD1;
     float3 norm : NORMAL;
     float2 uv : TEXCOORD0;
+    float4 tangent : TANGENT0;
 };
 
 vOut vs(vIn i)
@@ -71,6 +72,7 @@ vOut vs(vIn i)
     o.wpos = wPos.xyz;
     o.pos = mul(wPos, cbCamera.ViewProjection);
     o.norm = i.norm;
+    o.tangent = i.tangent;
     o.uv = i.uv;
     return o;
 }
@@ -79,7 +81,13 @@ float4 ps(vOut i) : SV_Target
 {
     float4 t = Textures[cbMaterial.BaseColorTexture].Sample(LinearWrapSampler, i.uv);
     float3 normal = normalize(i.norm);
-    float3 bp = BlinnPhong(cbLight.Lights[0].Direction, cbLight.Lights[0].Color, cbCamera.Position, i.wpos, normal);
+    float3 tangent = normalize(i.tangent.xyz);
+    float3 bitangent = cross(normal, tangent) * i.tangent.w;
+    float3x3 tbn = float3x3(tangent, bitangent, normal);
+
+    float3 bumpNorm = Textures[cbMaterial.NormalTexture].Sample(LinearWrapSampler, i.uv).xyz * 2.0f - 1.0f;
+    bumpNorm = normalize(mul(bumpNorm, tbn));
+
+    float3 bp = BlinnPhong(cbLight.Lights[0].Direction, cbLight.Lights[0].Color, cbCamera.Position, i.wpos, bumpNorm);
     return sRGBtoRGB(t) * float4(bp, 1.0);
-    //return float4(i.norm.xyz * 0.5 + 0.5, 1);
 }
