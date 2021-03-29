@@ -7,7 +7,7 @@ float3 BlinnPhong(float3 lightDir, float3 lightColor, float3 eyePos, float3 pos,
     float d = max(0.0f, dot(n, -lightDir));
     float s = pow(max(0.0f, dot(n, h)), 64);
 
-    return lightColor * (d + s) + float3(0.2f, 0.2f, 0.2f);
+    return lightColor * (d + s) +float3(0.1f, 0.1f, 0.1f);
 }
 
 struct CbCamera
@@ -59,6 +59,7 @@ struct vIn
 struct vOut
 {
     float4 pos : SV_Position;
+    float3 wpos : TEXCOORD1;
     float3 norm : NORMAL;
     float2 uv : TEXCOORD0;
 };
@@ -67,6 +68,7 @@ vOut vs(vIn i)
 {
     vOut o;
     float4 wPos = mul(float4(i.pos.xyz, 1.0f), cbObject.ToWorld);
+    o.wpos = wPos.xyz;
     o.pos = mul(wPos, cbCamera.ViewProjection);
     o.norm = i.norm;
     o.uv = i.uv;
@@ -75,7 +77,9 @@ vOut vs(vIn i)
 
 float4 ps(vOut i) : SV_Target
 {
-    float4 t = Textures[cbMaterial.NormalTexture].Sample(LinearWrapSampler, i.uv);
-    return sRGBtoRGB(t) * cbLight.Lights[0].Color;
+    float4 t = Textures[cbMaterial.BaseColorTexture].Sample(LinearWrapSampler, i.uv);
+    float3 normal = normalize(i.norm);
+    float3 bp = BlinnPhong(cbLight.Lights[0].Direction, cbLight.Lights[0].Color, cbCamera.Position, i.wpos, normal);
+    return sRGBtoRGB(t) * float4(bp, 1.0);
     //return float4(i.norm.xyz * 0.5 + 0.5, 1);
 }
