@@ -26,6 +26,7 @@ GltfViewer::~GltfViewer()
     SafeDelete(m_gltfMesh);
     SafeDelete(m_tonemapper);
     SafeDelete(m_lightManager);
+    SafeDelete(m_debugBuffer);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
@@ -35,6 +36,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
+    m_debugBuffer = new UploadBuffer(*context.Device, m_debugData.size() * sizeof(float), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
     m_lightManager = new LightManager(context);
     Light l = { { 1.0f, 1.0f, 1.0f, 1.0f}, { 0.70710678f, -0.70710678f, 0.0f } };
@@ -53,6 +55,7 @@ void GltfViewer::Render(RenderContext& context)
 {
     m_cameraController->Update();
     UpdateLights(context);
+    UpdateDebugBuffer(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
@@ -93,7 +96,8 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(1, m_objectCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(3, m_lightManager->GetLightsBufferGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootDescriptorTable(4, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+    context.CommandList->SetGraphicsRootConstantBufferView(4, m_debugBuffer->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootDescriptorTable(5, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
     for (const auto mesh : m_gltfMesh->GetMeshes())
     {
@@ -128,6 +132,8 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
     cbParams.back().InitAsConstantBufferView(2, 0);
     cbParams.emplace_back();
     cbParams.back().InitAsConstantBufferView(3, 0);
+    cbParams.emplace_back();
+    cbParams.back().InitAsConstantBufferView(0, 1);
 
     D3D12_DESCRIPTOR_RANGE1 texRange;
     texRange.NumDescriptors = RenderContext::MaxTextures;
@@ -224,6 +230,17 @@ void GltfViewer::UpdateLights(RenderContext& context)
     ImGui::End();
 
     m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
+}
+
+void GltfViewer::UpdateDebugBuffer(RenderContext& context)
+{
+    ImGui::Begin("Debug");
+    ImGui::InputFloat("Debug0", &m_debugData[0]);
+    ImGui::InputFloat("Debug1", &m_debugData[1]);
+    ImGui::InputFloat("Debug2", &m_debugData[2]);
+    ImGui::InputFloat("Debug3", &m_debugData[3]);
+    ImGui::End();
+    m_debugBuffer->UploadData(context.SwapChain->GetCurrentBackBufferIndex(), reinterpret_cast<byte*>(m_debugData.data()));
 }
 
 }

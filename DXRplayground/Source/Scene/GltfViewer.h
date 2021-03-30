@@ -7,6 +7,8 @@
 #include "CameraController.h"
 #include "Camera.h"
 
+#include <array>
+
 namespace DirectxPlayground
 {
 class Model;
@@ -28,6 +30,7 @@ private:
     void CreateRootSignature(RenderContext& context);
     void CreatePSOs(RenderContext& context);
     void UpdateLights(RenderContext& context);
+    void UpdateDebugBuffer(RenderContext& context);
 
     Model* m_gltfMesh = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
@@ -41,5 +44,8 @@ private:
     LightManager* m_lightManager = nullptr;
     UINT m_directionalLightInd = 0;
     CameraShaderData m_cameraData{};
+
+    UploadBuffer* m_debugBuffer = nullptr;
+    std::array<float, 128> m_debugData;
 };
 }

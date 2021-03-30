@@ -37,6 +37,11 @@ struct CbLight
     Light Lights[128];
     uint UsedLights;
 };
+struct CbDebug
+{
+    float Data[128];
+};
+ConstantBuffer<CbDebug> cbDebug : register(b0, space1);
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
 ConstantBuffer<CbObject> cbObject : register(b1);
