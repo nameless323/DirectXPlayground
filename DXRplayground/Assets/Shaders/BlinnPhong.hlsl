@@ -88,6 +88,8 @@ float4 ps(vOut i) : SV_Target
     float3 normal = normalize(i.norm);
     float3 tangent = normalize(i.tangent.xyz);
     float3 bitangent = cross(normal, tangent) * i.tangent.w;
+    if (cbDebug.Data[0] > 0.0)
+        bitangent *= -1.0f;
     float3x3 tbn = float3x3(tangent, bitangent, normal);
 
     float3 bumpNorm = Textures[cbMaterial.NormalTexture].Sample(LinearWrapSampler, i.uv).xyz * 2.0f - 1.0f;

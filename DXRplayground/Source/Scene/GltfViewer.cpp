@@ -188,7 +188,7 @@ void GltfViewer::CreatePSOs(RenderContext& context)
     inputLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
     inputLayout.push_back({ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
 
-    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Unlit.hlsl");
+    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//BlinnPhong.hlsl");
     Shader vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
     Shader ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
 
