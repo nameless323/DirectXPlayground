@@ -17,6 +17,16 @@
 namespace DirectxPlayground
 {
 
+static constexpr UINT BuffersPerSpace = 8;
+static constexpr UINT MaxCBSpaces = 2;
+static constexpr UINT TextureTableIndex = BuffersPerSpace * MaxCBSpaces;
+
+UINT GetCBRootParamIndex(UINT index, UINT space = 0)
+{
+    assert(space < 2 && index < BuffersPerSpace && "CB space is invalid");
+    return index + space * BuffersPerSpace;
+}
+
 GltfViewer::~GltfViewer()
 {
     SafeDelete(m_cameraCb);
@@ -36,7 +46,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
-    m_debugBuffer = new UploadBuffer(*context.Device, m_debugData.size() * sizeof(float), true, context.FramesCount);
+    m_debugBuffer = new UploadBuffer(*context.Device, UINT(m_debugData.size() * sizeof(float)), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
     m_lightManager = new LightManager(context);
     Light l = { { 1.0f, 1.0f, 1.0f, 1.0f}, { 0.70710678f, -0.70710678f, 0.0f } };
@@ -93,15 +103,15 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->SetPipelineState(m_pso.Get());
     ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
     context.CommandList->SetDescriptorHeaps(1, descHeap);
-    context.CommandList->SetGraphicsRootConstantBufferView(0, m_cameraCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(1, m_objectCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(3, m_lightManager->GetLightsBufferGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(4, m_debugBuffer->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootDescriptorTable(5, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), m_cameraCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_objectCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), m_lightManager->GetLightsBufferGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0, 1), m_debugBuffer->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
     for (const auto mesh : m_gltfMesh->GetMeshes())
     {
-        context.CommandList->SetGraphicsRootConstantBufferView(2, mesh->GetMaterialBufferGpuAddress(frameIndex));
+        context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
 
         context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
         context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
@@ -123,17 +133,15 @@ void GltfViewer::LoadGeometry(RenderContext& context)
 
 void GltfViewer::CreateRootSignature(RenderContext& context)
 {
-    std::vector<CD3DX12_ROOT_PARAMETER1> cbParams; // todo: just make 100 cb and that's it
-    cbParams.emplace_back();
-    cbParams.back().InitAsConstantBufferView(0, 0);
-    cbParams.emplace_back();
-    cbParams.back().InitAsConstantBufferView(1, 0);
-    cbParams.emplace_back();
-    cbParams.back().InitAsConstantBufferView(2, 0);
-    cbParams.emplace_back();
-    cbParams.back().InitAsConstantBufferView(3, 0);
-    cbParams.emplace_back();
-    cbParams.back().InitAsConstantBufferView(0, 1);
+    std::vector<CD3DX12_ROOT_PARAMETER1> cbParams;
+    for (UINT i = 0; i < MaxCBSpaces; ++i)
+    {
+        for (UINT j = 0; j < BuffersPerSpace; ++j)
+        {
+            cbParams.emplace_back();
+            cbParams.back().InitAsConstantBufferView(j, i);
+        }
+    }
 
     D3D12_DESCRIPTOR_RANGE1 texRange;
     texRange.NumDescriptors = RenderContext::MaxTextures;
@@ -182,11 +190,7 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
 
 void GltfViewer::CreatePSOs(RenderContext& context)
 {
-    std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
-    inputLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-    inputLayout.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-    inputLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-    inputLayout.push_back({ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
+    auto& inputLayout = GetInputLayoutUV_N_T();
 
     auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//BlinnPhong.hlsl");
     Shader vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");

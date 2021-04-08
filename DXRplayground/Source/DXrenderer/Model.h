@@ -26,8 +26,8 @@ class TextureManager;
 struct Vertex
 {
     XMFLOAT3 Pos;
-    XMFLOAT3 Norm;
     XMFLOAT2 Uv;
+    XMFLOAT3 Norm;
     XMFLOAT4 Tangent;
 };
 
