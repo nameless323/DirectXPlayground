@@ -4,6 +4,7 @@
 
 namespace DirectxPlayground
 {
+void Init();
 void Run();
 void Shutdown();
 }
@@ -61,6 +62,8 @@ bool Init(HINSTANCE hInstance, int nCmdShow, std::wstring caption)
     }
 
     ShowWindow(Hwnd, nCmdShow);
+
+    DirectxPlayground::Init();
 
     return true;
 }
