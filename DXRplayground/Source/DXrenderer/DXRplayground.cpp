@@ -41,6 +41,7 @@ void Run()
 
 void Shutdown()
 {
+    ShaderWatcher.Shutdown();
     DirectXPipeline.Shutdown();
 }
 }

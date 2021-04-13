@@ -45,6 +45,11 @@ public:
             assert(false);
     }
 
+    void SleepAlertable()
+    {
+        DWORD rc = SleepEx(INFINITE, true);
+    }
+
     void BackupBuffer(DWORD size)
     {
         memcpy(&m_backupBuffer[0], &m_buffer[0], size);
@@ -53,7 +58,7 @@ public:
     void ReadDirectoryChanges()
     {
         DWORD dwBytes = 0;
-        BOOL sucess = ReadDirectoryChangesW(m_dirHandle, &m_buffer[0], DWORD(m_buffer.size()), true, FILE_NOTIFY_CHANGE_LAST_WRITE, &dwBytes, &m_overlapped, &DirectoryModificationCallback);
+        BOOL sucess = ReadDirectoryChangesW(m_dirHandle, &m_buffer[0], DWORD(m_buffer.size()), true, FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_FILE_NAME, &dwBytes, &m_overlapped, &DirectoryModificationCallback);
     }
 
     void ProcessDirectoryNotification()
@@ -98,15 +103,16 @@ public:
 
         watcher->ReadDirectoryChanges();
         watcher->ProcessDirectoryNotification();
+        watcher->SleepAlertable();
     }
 
     void operator()()
     {
-        assert(m_isRunning && "File watcher thread is already running");
-        m_isRunning = true;
+        //assert(m_isRunning && "File watcher thread is already running");
+        //m_isRunning = true;
 
         ReadDirectoryChanges();
-
+        SleepAlertable();
         /*
         while (m_isRunning)
         {
