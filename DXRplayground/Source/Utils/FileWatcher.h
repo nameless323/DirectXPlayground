@@ -22,7 +22,7 @@ public:
     static constexpr DWORD m_bufferSize = 16384;
     std::vector<BYTE> m_buffer;
     std::vector<BYTE> m_backupBuffer;
-    CStringW m_wstrDirectory = L"C:\\Repos\\DXRplayground\\DXRplayground\\tmp";
+    std::wstring m_wstrDirectory = L"C:\\Repos\\DXRplayground\\DXRplayground\\tmp";
 
     FileWatcher(std::string path)
         : m_path(std::move(path))
@@ -60,7 +60,7 @@ public:
     void ReadDirectoryChanges()
     {
         DWORD dwBytes = 0;
-        BOOL sucess = ReadDirectoryChangesW(m_dirHandle, &m_buffer[0], DWORD(m_buffer.size()), true, FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_FILE_NAME, &dwBytes, &m_overlapped, &DirectoryModificationCallback);
+        BOOL sucess = ReadDirectoryChangesW(m_dirHandle, &m_buffer[0], DWORD(m_buffer.size()), true, FILE_NOTIFY_CHANGE_LAST_WRITE, &dwBytes, &m_overlapped, &DirectoryModificationCallback);
     }
 
     void ProcessDirectoryNotification()
@@ -70,19 +70,19 @@ public:
         {
             FILE_NOTIFY_INFORMATION& fni = (FILE_NOTIFY_INFORMATION&)*data;
 
-            CStringW filename(fni.FileName, fni.FileNameLength / sizeof(wchar_t));
-            if (m_wstrDirectory.Right(1) != L"\\")
+            std::wstring filename(fni.FileName, fni.FileNameLength / sizeof(wchar_t));
+            if (m_wstrDirectory.back() != L'\\')
                 filename = m_wstrDirectory + L"\\" + filename;
             else
                 filename = m_wstrDirectory + filename;
 
-            LPCWSTR wszFilename = PathFindFileNameW(filename);
+            LPCWSTR wszFilename = PathFindFileNameW(filename.c_str());
             int len = lstrlenW(wszFilename);
 
             if (len <= 12 && wcschr(wszFilename, L'~'))
             {
                 wchar_t wbuf[MAX_PATH];
-                if (GetLongPathNameW(filename, wbuf, _countof(wbuf)) > 0)
+                if (GetLongPathNameW(filename.c_str(), wbuf, _countof(wbuf)) > 0)
                     filename = wbuf;
             }
             if (!fni.NextEntryOffset)
@@ -102,7 +102,10 @@ public:
         }
 
         if (numberOfBytesTransfered == 0)
+        {
+            delete watcher; // Not sure here. In theory CancelIo should trigger errorCode == ERROR_OPERATION_ABORTED, in practice, it says "no errors" but 0 bytes are transferred.
             return;
+        }
 
         watcher->BackupBuffer(numberOfBytesTransfered); // To avoid race condition.
 
@@ -129,8 +132,10 @@ public:
 
     void Shutdown()
     {
+        if (m_dirHandle == INVALID_HANDLE_VALUE)return;
         m_isRunning = false;
         CancelIo(m_dirHandle);
         CloseHandle(m_dirHandle);
+        m_dirHandle = INVALID_HANDLE_VALUE;
     }
 };
