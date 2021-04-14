@@ -13,7 +13,7 @@ using namespace DirectxPlayground;
 namespace
 {
 RenderPipeline DirectXPipeline;
-FileWatcher ShaderWatcher{ "" };
+FileWatcher* ShaderWatcher = nullptr;
 }
 
 GltfViewer scene;
@@ -30,7 +30,8 @@ namespace DirectxPlayground
 {
 void Init()
 {
-    std::thread shaderWatcherThread(std::ref(ShaderWatcher));
+    ShaderWatcher = new FileWatcher(""); // Will be deleted in DirectoryModificationCallback in FileWatcher. In if (errorCode == ERROR_OPERATION_ABORTED)
+    std::thread shaderWatcherThread(std::ref(*ShaderWatcher));
     shaderWatcherThread.detach();
 }
 
@@ -41,7 +42,7 @@ void Run()
 
 void Shutdown()
 {
-    ShaderWatcher.Shutdown();
+    ShaderWatcher->Shutdown();
     DirectXPipeline.Shutdown();
 }
 }

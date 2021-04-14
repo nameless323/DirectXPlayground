@@ -2,6 +2,8 @@
 
 // Check https://qualapps.blogspot.com/2010/05/understanding-readdirectorychangesw.html to better understand this abomination.
 
+// IMPORTANT: Instances of FileWatcher should be created on heap only. They are deleted in DirectoryModificationCallback when no more i/o events are pending.
+
 #include <atomic>
 #include <cassert>
 #include <string>
@@ -93,8 +95,11 @@ public:
     {
         FileWatcher* watcher = (FileWatcher*)overlapped->hEvent;
 
-        if (errorCode == ERROR_OPERATION_ABORTED)
+        if (errorCode == ERROR_OPERATION_ABORTED) // Reason of this error code - CancelIo was called. Watcher may lay in peace now.
+        {
+            delete watcher;
             return;
+        }
 
         if (numberOfBytesTransfered == 0)
             return;
