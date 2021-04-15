@@ -163,6 +163,7 @@
     <ClCompile Include="Source\External\IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="Source\External\lodepng\lodepng.cpp" />
     <ClCompile Include="Source\Scene\GltfViewer.cpp" />
+    <ClCompile Include="Source\Utils\FileWatcher.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>

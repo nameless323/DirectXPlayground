@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 
 #include <windows.h>
+#include <thread>
 
 #include "DXrenderer/RenderPipeline.h"
 #include "WindowsApp.h"
@@ -30,7 +31,7 @@ namespace DirectxPlayground
 {
 void Init()
 {
-    ShaderWatcher = new FileWatcher(""); // Will be deleted in DirectoryModificationCallback in FileWatcher. In if (errorCode == ERROR_OPERATION_ABORTED)
+    ShaderWatcher = new FileWatcher(L"C:\\Repos\\DXRplayground\\DXRplayground\\tmp"); // Will be deleted in DirectoryModificationCallback in FileWatcher. In if (errorCode == ERROR_OPERATION_ABORTED)
     std::thread shaderWatcherThread(std::ref(*ShaderWatcher));
     shaderWatcherThread.detach();
 }
