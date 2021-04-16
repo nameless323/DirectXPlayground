@@ -199,6 +199,7 @@
     <ClInclude Include="Source\Scene\GltfViewer.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Utils\FileWatcher.h" />
+    <ClInclude Include="Source\Utils\ThreadSafeQueue.h" />
     <ClInclude Include="Source\WindowsApp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
