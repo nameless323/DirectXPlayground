@@ -93,6 +93,7 @@ void FileWatcher::ProcessDirectoryNotification()
             if (GetLongPathNameW(filename.c_str(), wbuf, _countof(wbuf)) > 0)
                 filename = wbuf;
         }
+        m_modifiedFilesQueue.Push(std::move(filename));
         if (!fni.NextEntryOffset)
             break;
         data += fni.NextEntryOffset;

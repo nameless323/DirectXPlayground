@@ -8,6 +8,8 @@
 #include <string>
 #include <windows.h>
 
+#include "Utils/ThreadSafeQueue.h"
+
 namespace DirectxPlayground
 {
 
@@ -18,6 +20,8 @@ public:
 
     void Shutdown();
     void operator()();
+
+    ThreadSafeQueue<std::wstring>& GetModifiedFilesQueue();
 
 private:
     static VOID CALLBACK DirectoryModificationCallback(DWORD errorCode, DWORD numberOfBytesTransfered, LPOVERLAPPED overlapped);
@@ -35,7 +39,13 @@ private:
     std::wstring m_path;
     std::vector<BYTE> m_buffer;
     std::vector<BYTE> m_backupBuffer;
+    ThreadSafeQueue<std::wstring> m_modifiedFilesQueue;
 };
+
+inline ThreadSafeQueue<std::wstring>& FileWatcher::GetModifiedFilesQueue()
+{
+    return m_modifiedFilesQueue;
+}
 
 inline void FileWatcher::SleepAlertable()
 {
