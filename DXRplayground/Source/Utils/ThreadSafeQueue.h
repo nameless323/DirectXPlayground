@@ -62,7 +62,7 @@ template <typename T>
 void ThreadSafeQueue<T>::Push(T&& item)
 {
     std::scoped_lock l(m_mutex);
-    m_queue.push(std::forward(item));
+    m_queue.push(std::forward<T>(item));
 }
 
 template <typename T>
