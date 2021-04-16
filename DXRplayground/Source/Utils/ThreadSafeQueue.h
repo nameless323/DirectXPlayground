@@ -18,6 +18,7 @@ public:
     size_t Size() const;
     std::optional<T> Pop();
     void Push(const T& item);
+    void Push(T&& item);
     std::optional<T> Front() const;
 
 private:
@@ -55,6 +56,13 @@ void ThreadSafeQueue<T>::Push(const T& item)
 {
     std::scoped_lock l(m_mutex);
     m_queue.push(item);
+}
+
+template <typename T>
+void ThreadSafeQueue<T>::Push(T&& item)
+{
+    std::scoped_lock l(m_mutex);
+    m_queue.push(std::forward(item));
 }
 
 template <typename T>
