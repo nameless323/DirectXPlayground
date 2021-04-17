@@ -3,14 +3,14 @@
 namespace DirectxPlayground
 {
 
-bool Shader::CompileFromFile(const std::string& path, const std::string& entry, const std::string& shaderModel, Shader& outShader)
+bool Shader::CompileFromFile(const std::wstring& path, const std::string& entry, const std::string& shaderModel, Shader& outShader)
 {
 #ifdef _DEBUG
     static constexpr UINT shaderFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
     static constexpr UINT shaderFlags = 0;
 #endif
-    HRESULT hr = CompileFromFile(outShader, std::wstring{ path.begin(), path.end() }.c_str(), entry.c_str(), shaderModel.c_str(), shaderFlags);
+    HRESULT hr = CompileFromFile(outShader, path.c_str(), entry.c_str(), shaderModel.c_str(), shaderFlags);
     return SUCCEEDED(hr);
 }
 

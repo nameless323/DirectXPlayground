@@ -133,7 +133,7 @@ void Tonemapper::CreatePSO(RenderContext& ctx, ID3D12RootSignature* rootSig)
     desc.SampleMask = UINT_MAX;
     desc.SampleDesc.Count = 1;
 
-    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Tonemapper.hlsl");
+    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Tonemapper.hlsl");
     ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
 }
 

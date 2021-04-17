@@ -5,7 +5,6 @@
 
 #include "DXrenderer/RenderPipeline.h"
 #include "WindowsApp.h"
-#include "Utils/FileWatcher.h"
 
 #include "Scene/GltfViewer.h"
 
@@ -14,7 +13,6 @@ using namespace DirectxPlayground;
 namespace
 {
 RenderPipeline DirectXPipeline;
-FileWatcher* ShaderWatcher = nullptr;
 }
 
 GltfViewer scene;
@@ -31,9 +29,6 @@ namespace DirectxPlayground
 {
 void Init()
 {
-    ShaderWatcher = new FileWatcher(L"C:\\Repos\\DXRplayground\\DXRplayground\\tmp"); // Will be deleted in DirectoryModificationCallback in FileWatcher. In if (errorCode == ERROR_OPERATION_ABORTED)
-    std::thread shaderWatcherThread(std::ref(*ShaderWatcher));
-    shaderWatcherThread.detach();
 }
 
 void Run()
@@ -43,7 +38,6 @@ void Run()
 
 void Shutdown()
 {
-    ShaderWatcher->Shutdown();
     DirectXPipeline.Shutdown();
 }
 }

@@ -12,7 +12,7 @@ namespace DirectxPlayground
 class Shader
 {
 public:
-    static bool Shader::CompileFromFile(const std::string& path, const std::string& entry, const std::string& shaderModel, Shader& outShader);
+    static bool Shader::CompileFromFile(const std::wstring& path, const std::string& entry, const std::string& shaderModel, Shader& outShader);
 
     const CD3DX12_SHADER_BYTECODE& GetBytecode() const;
     char* GetErrorMsg() const;

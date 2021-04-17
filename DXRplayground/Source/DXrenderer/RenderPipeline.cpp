@@ -201,6 +201,7 @@ void RenderPipeline::Render(Scene* scene)
 
 void RenderPipeline::Shutdown()
 {
+    m_psoManager->Shutdown();
     SafeDelete(m_textureManager); // To dtor to safely delete stuff
     SafeDelete(m_psoManager);
     if (m_context.Device != nullptr)

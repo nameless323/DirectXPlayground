@@ -1,9 +1,11 @@
 #include "DXrenderer/PsoManager.h"
 
 #include <cassert>
+#include <thread>
 
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/DXhelpers.h"
+#include "Utils/FileWatcher.h"
 
 namespace DirectxPlayground
 {
@@ -11,7 +13,7 @@ namespace DirectxPlayground
 PsoManager::PsoManager()
 {
     m_psos.reserve(m_maxPso);
-    std::string shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Fallback.hlsl");
+    std::wstring shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Fallback.hlsl");
     bool vsSucceeded = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1", m_vsFallback);
     bool psSucceeded = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1", m_psFallback);
     assert(vsSucceeded && psSucceeded && "Fallback compilation failed");
@@ -19,15 +21,18 @@ PsoManager::PsoManager()
 
 void PsoManager::Init()
 {
-
+    /*std::wstring s = LR"()";
+    m_shaderWatcher = new FileWatcher(ASSETS_DIR_W + std::wstring(L"Shaders//")); // Will be deleted in DirectoryModificationCallback in FileWatcher. In if (errorCode == ERROR_OPERATION_ABORTED)
+    std::thread shaderWatcherThread(std::ref(*m_shaderWatcher));
+    shaderWatcherThread.detach();*/
 }
 
 void PsoManager::Shutdown()
 {
-
+    //m_shaderWatcher->Shutdown();
 }
 
-void PsoManager::CreatePso(RenderContext& context, std::string name, std::string shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc)
+void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc)
 {
     assert(m_psoMap.find(name) == m_psoMap.end() && "PSO with the same name has already been created");
     assert(m_psos.size() < (m_maxPso - 1) && "PSO max size reached, it will lead to reallocation and to breaking all pointers saved in m_psoMap and m_shadersPsos");

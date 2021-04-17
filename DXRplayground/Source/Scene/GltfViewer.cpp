@@ -118,7 +118,7 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    auto path = std::string(ASSETS_DIR) + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     m_gltfMesh = new Model(context, path);
 }
 
@@ -137,7 +137,7 @@ void GltfViewer::CreatePSOs(RenderContext& context)
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
     desc.RTVFormats[0] = m_tonemapper->GetHDRTargetFormat();
 
-    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//BlinnPhong.hlsl");
+    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//BlinnPhong.hlsl");
     context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
 }
 

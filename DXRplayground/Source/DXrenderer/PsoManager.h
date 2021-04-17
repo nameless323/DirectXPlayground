@@ -9,6 +9,7 @@
 namespace DirectxPlayground
 {
 struct RenderContext;
+class FileWatcher;
 
 class PsoManager
 {
@@ -19,7 +20,7 @@ public:
 
     void Init();
     void Shutdown();
-    void CreatePso(RenderContext& context, std::string name, std::string shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc);
+    void CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc);
     ID3D12PipelineState* GetPso(const std::string& name);
 
 private:
@@ -32,8 +33,10 @@ private:
 
     std::vector<PsoDesc> m_psos;
     std::map<std::string, PsoDesc*> m_psoMap;
-    std::map<std::string, std::vector<PsoDesc*>> m_shadersPsos;
+    std::map<std::wstring, std::vector<PsoDesc*>> m_shadersPsos;
     Shader m_vsFallback;
     Shader m_psFallback;
+
+    FileWatcher* m_shaderWatcher = nullptr;
 };
 }
