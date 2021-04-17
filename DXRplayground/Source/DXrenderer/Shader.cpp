@@ -3,16 +3,15 @@
 namespace DirectxPlayground
 {
 
-Shader Shader::CompileFromFile(const std::string& path, const std::string& entry, const std::string& shaderModel)
+bool Shader::CompileFromFile(const std::string& path, const std::string& entry, const std::string& shaderModel, Shader& outShader)
 {
-    Shader res;
 #ifdef _DEBUG
     static constexpr UINT shaderFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
     static constexpr UINT shaderFlags = 0;
 #endif
-    CompileFromFile(res, std::wstring{ path.begin(), path.end() }.c_str(), entry.c_str(), shaderModel.c_str(), shaderFlags);
-    return res;
+    HRESULT hr = CompileFromFile(outShader, std::wstring{ path.begin(), path.end() }.c_str(), entry.c_str(), shaderModel.c_str(), shaderFlags);
+    return SUCCEEDED(hr);
 }
 
 HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHADER_MACRO* defines, ID3DInclude* includes, LPCSTR entry, LPCSTR target, UINT flags1, UINT flags2)

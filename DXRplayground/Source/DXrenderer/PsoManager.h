@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include "External/Dx12Helpers/d3dx12.h"
+#include "DXrenderer/Shader.h"
 
 namespace DirectxPlayground
 {
@@ -32,5 +33,7 @@ private:
     std::vector<PsoDesc> m_psos;
     std::map<std::string, PsoDesc*> m_psoMap;
     std::map<std::string, std::vector<PsoDesc*>> m_shadersPsos;
+    Shader m_vsFallback;
+    Shader m_psFallback;
 };
 }

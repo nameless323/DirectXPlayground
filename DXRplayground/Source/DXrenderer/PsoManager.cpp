@@ -11,6 +11,10 @@ namespace DirectxPlayground
 PsoManager::PsoManager()
 {
     m_psos.reserve(m_maxPso);
+    std::string shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Fallback.hlsl");
+    bool vsSucceeded = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1", m_vsFallback);
+    bool psSucceeded = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1", m_psFallback);
+    assert(vsSucceeded && psSucceeded && "Fallback compilation failed");
 }
 
 void PsoManager::Init()
@@ -27,10 +31,12 @@ void PsoManager::CreatePso(RenderContext& context, std::string name, std::string
 {
     assert(m_psoMap.find(name) == m_psoMap.end() && "PSO with the same name has already been created");
     assert(m_psos.size() < (m_maxPso - 1) && "PSO max size reached, it will lead to reallocation and to breaking all pointers saved in m_psoMap and m_shadersPsos");
-    Shader vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
-    Shader ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
-    desc.VS = vs.GetBytecode();
-    desc.PS = ps.GetBytecode();
+    Shader vs;
+    bool vsSucceeded = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1", vs);
+    Shader ps;
+    bool psSucceeded = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1", ps);
+    desc.VS = vsSucceeded ? vs.GetBytecode() : m_vsFallback.GetBytecode();
+    desc.PS = psSucceeded ? ps.GetBytecode() : m_psFallback.GetBytecode();
 
     m_psos.emplace_back();
     PsoDesc* currPsoDesc = &m_psos.back();
