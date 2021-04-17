@@ -41,6 +41,7 @@ private:
 
     Swapchain m_swapChain;
     TextureManager* m_textureManager = nullptr;
+    PsoManager* m_psoManager = nullptr;
 
     ID3D12DescriptorHeap* m_imguiDescriptorHeap = nullptr;
 

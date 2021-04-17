@@ -33,7 +33,7 @@ private:
     void CreateGeometry(RenderContext& context);
     void CreatePSO(RenderContext& ctx, ID3D12RootSignature* rootSig);
 
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso;
+    std::string m_psoName = "Tonemapper";
     Model* m_model = nullptr;
     TonemapperData m_tonemapperData{};
     UINT m_rtvOffset = 0;

@@ -9,6 +9,7 @@
 
 #include "DXrenderer/DXhelpers.h"
 #include "DXrenderer/TextureManager.h"
+#include "DXrenderer/PsoManager.h"
 
 #include "Scene/Scene.h"
 
@@ -81,6 +82,9 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 
     m_textureManager = new TextureManager(m_context);
     m_context.TexManager = m_textureManager;
+
+    m_psoManager = new PsoManager();
+    m_context.PsoManager = m_psoManager;
 
     Flush();
     Resize(width, height);
@@ -197,7 +201,8 @@ void RenderPipeline::Render(Scene* scene)
 
 void RenderPipeline::Shutdown()
 {
-    SafeDelete(m_textureManager);
+    SafeDelete(m_textureManager); // To dtor to safely delete stuff
+    SafeDelete(m_psoManager);
     if (m_context.Device != nullptr)
         Flush();
 

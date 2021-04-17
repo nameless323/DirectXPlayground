@@ -6,6 +6,7 @@ namespace DirectxPlayground
 {
 class Swapchain;
 class TextureManager;
+class PsoManager;
 
 struct RenderContext
 {
@@ -24,5 +25,6 @@ struct RenderContext
     ID3D12Device* Device = nullptr;
     Swapchain* SwapChain = nullptr;
     TextureManager* TexManager = nullptr;
+    PsoManager* PsoManager = nullptr;
 };
 }

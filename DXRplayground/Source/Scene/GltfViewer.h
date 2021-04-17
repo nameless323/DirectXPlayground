@@ -34,9 +34,9 @@ private:
 
     Model* m_gltfMesh = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
-    Microsoft::WRL::ComPtr<ID3D12PipelineState> m_pso;
     UploadBuffer* m_cameraCb = nullptr;
     UploadBuffer* m_objectCb = nullptr;
+    const std::string m_psoName = "Opaque_PBR";
 
     Camera* m_camera = nullptr;
     CameraController* m_cameraController = nullptr;

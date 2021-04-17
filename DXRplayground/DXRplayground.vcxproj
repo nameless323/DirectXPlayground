@@ -148,6 +148,7 @@
     <ClCompile Include="Source\DXrenderer\Buffers\UploadBuffer.cpp" />
     <ClCompile Include="Source\DXrenderer\LightManager.cpp" />
     <ClCompile Include="Source\DXrenderer\Model.cpp" />
+    <ClCompile Include="Source\DXrenderer\PsoManager.cpp" />
     <ClCompile Include="Source\DXrenderer\RenderPipeline.cpp" />
     <ClCompile Include="Source\DXrenderer\DXRplayground.cpp" />
     <ClCompile Include="Source\DXrenderer\Shader.cpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="Source\DXrenderer\Light.h" />
     <ClInclude Include="Source\DXrenderer\LightManager.h" />
     <ClInclude Include="Source\DXrenderer\Model.h" />
+    <ClInclude Include="Source\DXrenderer\PsoManager.h" />
     <ClInclude Include="Source\DXrenderer\RenderPipeline.h" />
     <ClInclude Include="Source\DXrenderer\RenderContext.h" />
     <ClInclude Include="Source\DXrenderer\Shader.h" />

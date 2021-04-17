@@ -6,6 +6,7 @@
 
 #include "DXrenderer/Model.h"
 #include "DXrenderer/Shader.h"
+#include "DXrenderer/PsoManager.h"
 #include "DXrenderer/TextureManager.h"
 #include "DXrenderer/Tonemapper.h"
 #include "DXrenderer/LightManager.h"
@@ -90,7 +91,7 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     context.CommandList->SetGraphicsRootSignature(m_commonRootSig.Get());
-    context.CommandList->SetPipelineState(m_pso.Get());
+    context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_psoName));
     ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
     context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), m_cameraCb->GetFrameDataGpuAddress(frameIndex));
@@ -130,20 +131,14 @@ void GltfViewer::CreateRootSignature(RenderContext& context)
 void GltfViewer::CreatePSOs(RenderContext& context)
 {
     auto& inputLayout = GetInputLayoutUV_N_T();
-
-    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//BlinnPhong.hlsl");
-    Shader vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
-    Shader ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
-
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = GetDefaultOpaquePsoDescriptor(m_commonRootSig.Get(), 1);
-    desc.VS = vs.GetBytecode();
-    desc.PS = ps.GetBytecode();
     desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
 
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
     desc.RTVFormats[0] = m_tonemapper->GetHDRTargetFormat();
 
-    ThrowIfFailed(context.Device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&m_pso)));
+    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//BlinnPhong.hlsl");
+    context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
 }
 
 void GltfViewer::UpdateLights(RenderContext& context)

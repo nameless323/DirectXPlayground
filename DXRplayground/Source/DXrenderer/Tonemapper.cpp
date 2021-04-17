@@ -7,6 +7,7 @@
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/Swapchain.h"
 #include "DXrenderer/TextureManager.h"
+#include "DXrenderer/PsoManager.h"
 #include "Model.h"
 
 namespace DirectxPlayground
@@ -53,7 +54,7 @@ void Tonemapper::Render(RenderContext& ctx)
 
     ctx.CommandList->OMSetRenderTargets(1, &ctx.SwapChain->GetCurrentBackBufferCPUhandle(ctx), false, nullptr);
 
-    ctx.CommandList->SetPipelineState(m_pso.Get());
+    ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(m_psoName));
     ctx.CommandList->SetGraphicsRootConstantBufferView(0, m_hdrRtBuffer->GetFrameDataGpuAddress(frameIndex));
 
     ctx.CommandList->IASetVertexBuffers(0, 1, &m_model->GetVertexBufferView());
@@ -106,20 +107,11 @@ void Tonemapper::CreateGeometry(RenderContext& context)
 
 void Tonemapper::CreatePSO(RenderContext& ctx, ID3D12RootSignature* rootSig)
 {
-    std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout;
-    inputLayout.push_back({ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-    inputLayout.push_back({ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-    inputLayout.push_back({ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-    inputLayout.push_back({ "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 });
-
-    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Tonemapper.hlsl");
-    Shader vs = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1");
-    Shader ps = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1");
+    auto& inputLayout = GetInputLayoutUV_N_T();
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = {};
     desc.pRootSignature = rootSig;
-    desc.VS = vs.GetBytecode();
-    desc.PS = ps.GetBytecode();
+
     desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
     desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
@@ -141,7 +133,8 @@ void Tonemapper::CreatePSO(RenderContext& ctx, ID3D12RootSignature* rootSig)
     desc.SampleMask = UINT_MAX;
     desc.SampleDesc.Count = 1;
 
-    ThrowIfFailed(ctx.Device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&m_pso)));
+    auto shaderPath = std::string(ASSETS_DIR) + std::string("Shaders//Tonemapper.hlsl");
+    ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
 }
 
 }
