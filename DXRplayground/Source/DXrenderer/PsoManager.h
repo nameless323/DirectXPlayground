@@ -3,6 +3,7 @@
 #include <d3d12.h>
 #include <map>
 #include <string>
+#include <filesystem>
 #include "External/Dx12Helpers/d3dx12.h"
 #include "DXrenderer/Shader.h"
 
@@ -18,7 +19,7 @@ public:
     ~PsoManager() = default;
     PsoManager& operator= (const PsoManager&) = delete;
 
-    void Init();
+    void BeginFrame(RenderContext& context);
     void Shutdown();
     void CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc);
     ID3D12PipelineState* GetPso(const std::string& name);
@@ -26,14 +27,16 @@ public:
 private:
     struct PsoDesc
     {
-        D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc;
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc{};
         Microsoft::WRL::ComPtr<ID3D12PipelineState> CompiledPso;
     };
     static constexpr UINT m_maxPso = 4096;
 
+    void CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc);
+
     std::vector<PsoDesc> m_psos;
     std::map<std::string, PsoDesc*> m_psoMap;
-    std::map<std::wstring, std::vector<PsoDesc*>> m_shadersPsos;
+    std::map<std::filesystem::path, std::vector<PsoDesc*>> m_shadersPsos;
     Shader m_vsFallback;
     Shader m_psFallback;
 

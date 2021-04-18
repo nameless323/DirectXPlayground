@@ -164,6 +164,8 @@ void RenderPipeline::Render(Scene* scene)
 
     m_context.CommandList = m_commandList.Get();
 
+    m_context.PsoManager->BeginFrame(m_context);
+
     scene->Render(m_context);
 
     // Redundant but for this playground - ok
