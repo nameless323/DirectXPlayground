@@ -1,5 +1,7 @@
 #include "Shader.h"
 
+#include "Utils/Logger.h"
+
 namespace DirectxPlayground
 {
 
@@ -22,6 +24,12 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
     {
         shader.m_bytecode = CD3DX12_SHADER_BYTECODE(shader.m_shaderBlob.Get());
         shader.m_compiled = true;
+    }
+    else if (hr == HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
+    {
+        std::wstringstream ss;
+        ss << "ERROR_SHARING_VIOLATION occurred while compiling " << fileName << " please retry \n";
+        LOG_W(ss.str().c_str());
     }
     else
     {

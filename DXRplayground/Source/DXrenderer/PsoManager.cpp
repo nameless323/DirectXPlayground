@@ -2,10 +2,13 @@
 
 #include <cassert>
 #include <thread>
+#include <set>
 
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/DXhelpers.h"
 #include "Utils/FileWatcher.h"
+
+#include "Utils/Logger.h"
 
 namespace DirectxPlayground
 {
@@ -26,9 +29,14 @@ PsoManager::PsoManager()
 
 void PsoManager::BeginFrame(RenderContext& context)
 {
+    std::set<std::filesystem::path> processedFiles;
     while (auto changedFile = m_shaderWatcher->GetModifiedFilesQueue().Pop())
     {
         const auto& path = *changedFile;
+        if (processedFiles.find(path) != processedFiles.end())
+            continue;
+        processedFiles.insert(std::filesystem::path{ path });
+
         auto psoVectorIt = m_shadersPsos.find(path);
         if (psoVectorIt != m_shadersPsos.end())
         {
@@ -38,6 +46,11 @@ void PsoManager::BeginFrame(RenderContext& context)
                 CompilePsoWithShader(context, IID_PPV_ARGS(&psoDesc->CompiledPso), path, psoDesc->Desc);
             }
         }
+#ifdef _DEBUG
+        std::wstringstream ss;
+        ss << "Shader with the path \"" << path << "\" has been recompiled \n";
+        LOG_W(ss.str().c_str());
+#endif
     }
 }
 
