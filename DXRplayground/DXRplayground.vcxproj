@@ -165,6 +165,7 @@
     <ClCompile Include="Source\External\lodepng\lodepng.cpp" />
     <ClCompile Include="Source\Scene\GltfViewer.cpp" />
     <ClCompile Include="Source\Utils\FileWatcher.cpp" />
+    <ClCompile Include="Source\Utils\Logger.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -201,6 +202,7 @@
     <ClInclude Include="Source\Scene\GltfViewer.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Utils\FileWatcher.h" />
+    <ClInclude Include="Source\Utils\ImguiLogger.h" />
     <ClInclude Include="Source\Utils\Logger.h" />
     <ClInclude Include="Source\Utils\ThreadSafeQueue.h" />
     <ClInclude Include="Source\WindowsApp.h" />

@@ -46,11 +46,7 @@ void PsoManager::BeginFrame(RenderContext& context)
                 CompilePsoWithShader(context, IID_PPV_ARGS(&psoDesc->CompiledPso), path, psoDesc->Desc);
             }
         }
-#ifdef _DEBUG
-        std::wstringstream ss;
-        ss << "Shader with the path \"" << path << "\" has been recompiled \n";
-        LOG_W(ss.str().c_str());
-#endif
+        LOG_W("Shader with the path \"", path, "\" has been recompiled \n");
     }
 }
 

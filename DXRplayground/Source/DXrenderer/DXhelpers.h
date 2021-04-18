@@ -64,6 +64,7 @@ inline DirectX::XMFLOAT4X4 TransposeMatrix(const DirectX::XMFLOAT4X4& m)
     return res;
 }
 
+/*
 #ifdef _DEBUG
 #define LOG_(msg, file, line) \
 { \
@@ -75,7 +76,7 @@ inline DirectX::XMFLOAT4X4 TransposeMatrix(const DirectX::XMFLOAT4X4& m)
 #define LOG(msg) LOG_(msg, __FILE__, __LINE__)
 #else
 #define LOG(msg)
-#endif
+#endif*/
 
 template <typename T>
 inline void SafeDelete(T*& ptr)

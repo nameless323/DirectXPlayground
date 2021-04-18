@@ -5,6 +5,7 @@
 
 #include "External/Dx12Helpers/d3dx12.h"
 #include "External/lodepng/lodepng.h"
+#include "Utils/Logger.h"
 
 #include "DXhelpers.h"
 

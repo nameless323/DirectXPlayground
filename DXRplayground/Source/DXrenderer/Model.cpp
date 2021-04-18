@@ -3,6 +3,7 @@
 #include "DXrenderer/RenderContext.h"
 #include "DXrenderer/TextureManager.h"
 #include "DXrenderer/Buffers/UploadBuffer.h"
+#include "Utils/Logger.h"
 
 #include <filesystem>
 

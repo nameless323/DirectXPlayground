@@ -13,6 +13,8 @@
 
 #include "Scene/Scene.h"
 
+#include "Utils/Logger.h"
+
 namespace DirectxPlayground
 {
 using Microsoft::WRL::ComPtr;
@@ -167,6 +169,8 @@ void RenderPipeline::Render(Scene* scene)
     m_context.PsoManager->BeginFrame(m_context);
 
     scene->Render(m_context);
+
+    ImguiLogger::Logger.Draw("Logger");
 
     // Redundant but for this playground - ok
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(m_swapChain.GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);

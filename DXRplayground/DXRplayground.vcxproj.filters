@@ -84,6 +84,9 @@
     <ClCompile Include="Source\DXrenderer\PsoManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Utils\Logger.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\WindowsApp.h">
@@ -192,6 +195,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Utils\Logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utils\ImguiLogger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
