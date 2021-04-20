@@ -28,9 +28,7 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
     UINT error = lodepng::decode(buffer, w, h, bufferInMemory);
     if (error)
     {
-        std::stringstream ss;
-        ss << "PNG decoding error " << error << " : " << lodepng_error_text(error) << std::endl;
-        LOG(ss.str().c_str());
+        LOG("PNG decoding error ", error, " : ", lodepng_error_text(error), "\n");
     }
 
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;

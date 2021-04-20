@@ -228,9 +228,7 @@ void Model::ParseVertices(Mesh* mesh, const tinygltf::Model& model, const tinygl
         }
         else
         {
-            std::stringstream ss;
-            ss << "GLTF Warning: attrib " << attrib.first << " isn't parsed properly" << '\n';
-            LOG(ss.str().c_str());
+            LOG("GLTF Warning: attrib ", attrib.first, " isn't parsed properly\n");
         }
     }
 }

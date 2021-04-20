@@ -7,6 +7,7 @@
 
 #include "Buffers/HeapBuffer.h"
 #include "Buffers/UploadBuffer.h"
+#include "Utils/Helpers.h"
 
 namespace tinygltf
 {

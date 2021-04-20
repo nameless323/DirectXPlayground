@@ -197,7 +197,7 @@
     <ClInclude Include="Source\Utils\Logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Utils\ImguiLogger.h">
+    <ClInclude Include="Source\Utils\Helpers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

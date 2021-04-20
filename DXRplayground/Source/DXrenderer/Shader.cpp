@@ -27,14 +27,11 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
     }
     else if (hr == HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
     {
-        std::wstringstream ss;
-        ss << "ERROR_SHARING_VIOLATION occurred while compiling " << fileName << " please retry \n";
-        LOG_W(ss.str().c_str());
+        LOG_W("ERROR_SHARING_VIOLATION occurred while compiling ", fileName, " please retry \n");
     }
     else
     {
-        OutputDebugStringA("Shader compilation error ");
-        OutputDebugStringA(reinterpret_cast<char*>(shader.m_error->GetBufferPointer()));
+        LOG("Shader compilation error ", reinterpret_cast<char*>(shader.m_error->GetBufferPointer()));
     }
     return hr;
 }

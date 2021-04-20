@@ -1,6 +1,6 @@
 #include "DXrenderer/LightManager.h"
 
-#include "DXhelpers.h"
+#include "Utils/Helpers.h"
 #include "DXrenderer/RenderContext.h"
 
 namespace DirectxPlayground

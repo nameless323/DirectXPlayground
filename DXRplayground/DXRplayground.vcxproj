@@ -202,7 +202,7 @@
     <ClInclude Include="Source\Scene\GltfViewer.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Utils\FileWatcher.h" />
-    <ClInclude Include="Source\Utils\ImguiLogger.h" />
+    <ClInclude Include="Source\Utils\Helpers.h" />
     <ClInclude Include="Source\Utils\Logger.h" />
     <ClInclude Include="Source\Utils\ThreadSafeQueue.h" />
     <ClInclude Include="Source\WindowsApp.h" />
