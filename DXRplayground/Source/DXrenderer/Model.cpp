@@ -123,7 +123,8 @@ void Model::LoadModel(const std::string& path, tinygltf::Model& model)
 
 void Model::ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node)
 {
-    ParseGLTFMesh(ctx, model, node, model.meshes[node.mesh]);
+    if (node.mesh != -1) // Camera usually
+        ParseGLTFMesh(ctx, model, node, model.meshes[node.mesh]);
     for (int i : node.children)
     {
         ParseModelNodes(ctx, model, model.nodes[i]);
@@ -145,7 +146,8 @@ void Model::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, cons
         mesh->m_indexCount = static_cast<UINT>(mesh->m_indices.size());
 
         Material& modelMat = m_materials[primitive.material];
-        mesh->m_material.BaseColorTexture = m_images[m_textures[modelMat.BaseColorTexture]].IndexInHeap;
+        if (modelMat.BaseColorTexture != -1)
+            mesh->m_material.BaseColorTexture = m_images[m_textures[modelMat.BaseColorTexture]].IndexInHeap;
         if (modelMat.MetallicRoughnessTexture != -1)
             mesh->m_material.MetallicRoughnessTexture = m_images[m_textures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
         if (modelMat.NormalTexture != -1)
