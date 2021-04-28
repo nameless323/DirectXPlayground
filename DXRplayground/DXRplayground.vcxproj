@@ -164,6 +164,7 @@
     <ClCompile Include="Source\External\IMGUI\imgui_widgets.cpp" />
     <ClCompile Include="Source\External\lodepng\lodepng.cpp" />
     <ClCompile Include="Source\Scene\GltfViewer.cpp" />
+    <ClCompile Include="Source\Scene\PbrTester.cpp" />
     <ClCompile Include="Source\Utils\FileWatcher.cpp" />
     <ClCompile Include="Source\Utils\Logger.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="Source\External\TinyGLTF\stb_image_write.h" />
     <ClInclude Include="Source\External\TinyGLTF\tiny_gltf.h" />
     <ClInclude Include="Source\Scene\GltfViewer.h" />
+    <ClInclude Include="Source\Scene\PbrTester.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Utils\FileWatcher.h" />
     <ClInclude Include="Source\Utils\Helpers.h" />

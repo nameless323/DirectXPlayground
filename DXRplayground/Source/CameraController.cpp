@@ -25,8 +25,13 @@ enum KeyboardKeys
 };
 }
 
-CameraController::CameraController(Camera* camera)
+CameraController::CameraController(Camera* camera, float scrollMult /*= 1.0f*/, float keyMoveMult /*= 3.0f*/, float mouseDeltaMult /*= 30.0f*/, float shiftMoveMult /*= 4.0f*/, float ctrlMoveMult /*= 0.25f*/)
     : m_camera(camera)
+    , m_scrollMultiplier(scrollMult)
+    , m_keyMoveMultiplier(keyMoveMult)
+    , m_mouseDeltaMultiplier(mouseDeltaMult)
+    , m_shiftMoveMultiplier(shiftMoveMult)
+    , m_ctrlMoveMultiplier(ctrlMoveMult)
 {
 }
 

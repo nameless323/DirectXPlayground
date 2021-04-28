@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include <d3d12.h>
 #include "Scene/Scene.h"
 #include "External/Dx12Helpers/d3dx12.h"
@@ -17,15 +18,29 @@ class TextureManager;
 class Tonemapper;
 class LightManager;
 
-class GltfViewer : public Scene
+class PbrTester : public Scene
 {
 public:
-    ~GltfViewer() override;
+    ~PbrTester() override;
 
     void InitResources(RenderContext& context) override;
     void Render(RenderContext& context) override;
 
 private:
+    inline static constexpr UINT m_renderObjectsNum = 100;
+    struct InstanceBuffers
+    {
+        XMFLOAT4X4 ToWorld[m_renderObjectsNum];
+    };
+    struct Material
+    {
+        XMFLOAT4 DiffuseColor;
+    };
+    struct InstanceMaterials
+    {
+        Material Materials[m_renderObjectsNum];
+    };
+
     void LoadGeometry(RenderContext& context);
     void CreateRootSignature(RenderContext& context);
     void CreatePSOs(RenderContext& context);
@@ -34,7 +49,9 @@ private:
     Model* m_gltfMesh = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
     UploadBuffer* m_cameraCb = nullptr;
-    UploadBuffer* m_objectCb = nullptr;
+    UploadBuffer* m_objectCbs = nullptr;
+    UploadBuffer* m_materials = nullptr;
+
     const std::string m_psoName = "Opaque_PBR";
 
     Camera* m_camera = nullptr;

@@ -7,6 +7,7 @@
 #include "WindowsApp.h"
 
 #include "Scene/GltfViewer.h"
+#include "Scene/PbrTester.h"
 
 using namespace DirectxPlayground;
 
@@ -15,7 +16,7 @@ namespace
 RenderPipeline DirectXPipeline;
 }
 
-GltfViewer scene;
+PbrTester scene;
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int nCmdShow)
 {
