@@ -1,15 +1,5 @@
 #include "Lighting.hlsl"
 
-float3 BlinnPhong(float3 lightDir, float3 lightColor, float3 eyePos, float3 pos, float3 n)
-{
-    float3 v = normalize(pos - eyePos);
-    float3 h = normalize(-lightDir + v);
-    float d = max(0.0f, dot(n, -lightDir));
-    float s = pow(max(0.0f, dot(n, h)), 64);
-
-    return lightColor * (d + s) +float3(0.1f, 0.1f, 0.1f);
-}
-
 struct CbCamera
 {
     float4x4 ViewProjection;
