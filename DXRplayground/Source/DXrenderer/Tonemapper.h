@@ -41,7 +41,7 @@ private:
     DXGI_FORMAT m_rtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
     UploadBuffer* m_hdrRtBuffer = nullptr;
 
-    const float m_clearColor[4] = { 0.0f, 0.4f, 0.9f, 1.0f };
+    const float m_clearColor[4] = { 0.001f, 0.001f, 0.001f, 1.0f };
 };
 
 inline DXGI_FORMAT Tonemapper::GetHDRTargetFormat() const

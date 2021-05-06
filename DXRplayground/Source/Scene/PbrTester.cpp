@@ -40,7 +40,7 @@ void PbrTester::InitResources(RenderContext& context)
     m_materials = new UploadBuffer(*context.Device, sizeof(InstanceMaterials), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera, 1.0f, 12.0f);
     m_lightManager = new LightManager(context);
-    Light l = { { 23.47f, 21.31f, 20.79f, 1.0f}, { 5.0f, 5.0f, 5.0f } };
+    Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 5.0f, 5.0f, 5.0f } };
     m_lightManager->AddLight(l);
     l.Direction = { -5.0f, 5.0f, 5.0f };
     m_lightManager->AddLight(l);
@@ -50,16 +50,15 @@ void PbrTester::InitResources(RenderContext& context)
     m_lightManager->AddLight(l);
 
     InstanceBuffers transforms;
-    InstanceMaterials materials;
     for (UINT i = 0; i < 10; ++i)
     {
         for (UINT j = 0; j < 10; ++j)
         {
             UINT index = i * 10 + j;
-            materials.Materials[index].Albedo = { 1.0f, 0.0f, 0.0f, 1.0f };
-            materials.Materials[index].Metallic = 0.1f * i;
-            materials.Materials[index].Roughness = 0.1f * j;
-            materials.Materials[index].AO = 1.0f;
+            m_instanceMaterials.Materials[index].Albedo = { 1.0f, 0.0f, 0.0f, 1.0f };
+            m_instanceMaterials.Materials[index].Metallic = 0.1f * i;
+            m_instanceMaterials.Materials[index].Roughness = 0.1f * j;
+            m_instanceMaterials.Materials[index].AO = 1.0f;
 
             float x = -6.25f + j * 1.25f;
             float y = -6.25f + i * 1.25f;
@@ -71,7 +70,7 @@ void PbrTester::InitResources(RenderContext& context)
         }
     }
     m_objectCbs->UploadData(0, transforms.ToWorld);
-    m_materials->UploadData(0, materials.Materials);
+    m_materials->UploadData(0, m_instanceMaterials.Materials);
 
     LoadGeometry(context);
     CreateRootSignature(context);
@@ -93,6 +92,7 @@ void PbrTester::Render(RenderContext& context)
     XMFLOAT4 camPos = m_camera->GetPosition();
     m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
     m_cameraCb->UploadData(frameIndex, m_cameraData);
+    m_materials->UploadData(frameIndex, m_instanceMaterials.Materials);
 
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
@@ -121,7 +121,7 @@ void PbrTester::Render(RenderContext& context)
     context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), m_cameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_objectCbs->GetFrameDataGpuAddress(0));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), m_materials->GetFrameDataGpuAddress(0));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), m_materials->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), m_lightManager->GetLightsBufferGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
@@ -131,7 +131,7 @@ void PbrTester::Render(RenderContext& context)
         context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
 
         context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), m_renderObjectsNum, 0, 0, 0);
+        context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), m_instanceCount, 0, 0, 0);
     }
     m_tonemapper->Render(context);
 
@@ -169,11 +169,13 @@ void PbrTester::UpdateLights(RenderContext& context)
     Light* lights = m_lightManager->GetLights();
     ImGui::Begin("Lights");
     //for (UINT i = 0; i < 4; ++i)
-    {
-        ImGui::InputFloat4("Color", reinterpret_cast<float*>(&lights[0].Color));
-        ImGui::InputFloat3("Direction", reinterpret_cast<float*>(&lights[0].Direction));
-        ImGui::Text("");
-    }
+    //{
+    //    ImGui::InputFloat4("Color", reinterpret_cast<float*>(&lights[0].Color));
+    //    ImGui::InputFloat3("Direction", reinterpret_cast<float*>(&lights[0].Direction));
+    //    ImGui::Text("");
+    //}
+    //ImGui::SliderFloat("roughness", &m_instanceMaterials.Materials[0].Roughness, 0.0f, 1.0f);
+    //ImGui::SliderFloat("metallness", &m_instanceMaterials.Materials[0].Metallic, 0.0f, 1.0f);
     ImGui::End();
 
     m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());

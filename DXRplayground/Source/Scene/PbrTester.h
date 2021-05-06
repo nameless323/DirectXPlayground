@@ -27,10 +27,10 @@ public:
     void Render(RenderContext& context) override;
 
 private:
-    inline static constexpr UINT m_renderObjectsNum = 100;
+    inline static constexpr UINT m_instanceCount = 100;
     struct InstanceBuffers
     {
-        XMFLOAT4X4 ToWorld[m_renderObjectsNum];
+        XMFLOAT4X4 ToWorld[m_instanceCount];
     };
     struct Material
     {
@@ -42,7 +42,7 @@ private:
     };
     struct InstanceMaterials
     {
-        Material Materials[m_renderObjectsNum];
+        Material Materials[m_instanceCount];
     };
 
     void LoadGeometry(RenderContext& context);
@@ -63,5 +63,7 @@ private:
     Tonemapper* m_tonemapper = nullptr;
     LightManager* m_lightManager = nullptr;
     CameraShaderData m_cameraData{};
+
+    InstanceMaterials m_instanceMaterials;
 };
 }
