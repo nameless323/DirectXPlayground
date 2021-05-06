@@ -65,13 +65,13 @@ struct vOut
 vOut vs(vIn i, uint ind : SV_InstanceID)
 {
     vOut o;
-    float4 wPos = mul(float4(i.pos.xyz * 0.5f, 1.0f), cbObject.ToWorld[ind]);
+    float4 wPos = mul(float4(i.pos.xyz, 1.0f), cbObject.ToWorld[0]);
     o.wpos = wPos.xyz;
     o.pos = mul(wPos, cbCamera.ViewProjection);
-    o.norm = mul(float4(normalize(i.pos.xyz), 0.0f), cbObject.ToWorld[ind]).xyz;
+    o.norm = mul(float4(normalize(i.pos.xyz), 0.0f), cbObject.ToWorld[0]).xyz;
     o.tangent = i.tangent;
     o.uv = i.uv;
-    o.instanceID = ind;
+    o.instanceID = 0;
     return o;
 }
 
@@ -88,8 +88,8 @@ float4 ps(vOut pIn) : SV_Target
 
     float3 Lo = float3(0.0f, 0.0f, 0.0f);
     int i = 0;
-    for (uint i = 0; i < 4; ++i)
-    {
+    //for (uint i = 0; i < 4; ++i)
+    //{
         float3 lightPos = cbLight.Lights[i].Position;
         float3 L = normalize(lightPos - wpos);
         float3 H = normalize(L + V);
@@ -99,7 +99,7 @@ float4 ps(vOut pIn) : SV_Target
         float3 radiance = cbLight.Lights[i].Color.xyz * atten;
 
         float metalness = cbMaterial.Materials[instanceID].Metallic;
-        float3 f0 = NormalIncidenceFresnel(cbLight.Lights[i].Color.xyz, metalness);
+        float3 f0 = NormalIncidenceFresnel(cbMaterial.Materials[instanceID].Albedo.xyz, metalness);
         // float cosTheta = max(dot(H, V), 0.0f);
         float3 F = FresnelSchlick(H, V, f0);
         float roughness = cbMaterial.Materials[instanceID].Roughness;
@@ -118,7 +118,7 @@ float4 ps(vOut pIn) : SV_Target
         float NdotL = max(dot(normal, L), 0.0f);
         Lo += (kd * cbMaterial.Materials[instanceID].Albedo.xyz / PI + spec) * radiance * NdotL;
 
-    }
+    //}
     float3 ambient = float3(0.03f, 0.03f, 0.03f) * cbMaterial.Materials[instanceID].Albedo.xyz * cbMaterial.Materials[instanceID].AO;
     float3 color = ambient + Lo;
 

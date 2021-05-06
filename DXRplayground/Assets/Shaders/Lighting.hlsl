@@ -27,7 +27,8 @@ float3 BlinnPhong(float3 lightDir, float3 lightColor, float3 eyePos, float3 pos,
 // n - normal, h - halfvector, roughness - roughness
 float GGXDistribution(float3 n, float3 h, float roughness)
 {
-    float asqr = roughness * roughness;
+    float a = roughness * roughness;
+    float asqr = a * a;
     float NdotH = max(dot(n, h), 0.0f);
     float NdotHsqr = NdotH * NdotH;
 
@@ -53,7 +54,7 @@ float GeometrySmith(float3 n, float3 v, float3 l, float roughness)
     float NdotV = max(dot(n, v), 0.0f);
     float NdotL = max(dot(n, l), 0.0f);
     float ggx1 = GGXGeometrySchlick(NdotV, roughness);
-    float ggx2 = GGXGeometrySchlick(NdotV, roughness);
+    float ggx2 = GGXGeometrySchlick(NdotL, roughness);
 
     return ggx1 * ggx2;
 }
@@ -66,12 +67,12 @@ float3 NormalIncidenceFresnel(float3 color, float metalness)
 
 float3 FresnelSchlick(float HdotV, float3 f0)
 {
-    return f0 + (1.0f - f0) * pow(max(1.0f - HdotV, 0.0f), 5);
+    return f0 + (1.0f - f0) * pow(max(1.0f - HdotV, 0.0f), 5.0f);
 }
 
 float3 FresnelSchlick(float3 h, float3 v, float3 f0)
 {
-    float HdotV = 1.0f - max(dot(h, v), 0.0f);
+    float HdotV = dot(h, v);
     return FresnelSchlick(HdotV, f0);
 }
 
