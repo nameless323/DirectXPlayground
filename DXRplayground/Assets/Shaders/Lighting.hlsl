@@ -52,13 +52,13 @@ float GeometrySmith(float3 n, float3 v, float3 l, float roughness)
 {
     float NdotV = max(dot(n, v), 0.0f);
     float NdotL = max(dot(n, l), 0.0f);
-    float ggx1 = GGXGeometrySchlick(NdotV, k);
-    float ggx2 = GGXGeometrySchlick(NdotV, k);
+    float ggx1 = GGXGeometrySchlick(NdotV, roughness);
+    float ggx2 = GGXGeometrySchlick(NdotV, roughness);
 
     return ggx1 * ggx2;
 }
 
-float NormalIncidenceFresnel(float3 color, float metalness)
+float3 NormalIncidenceFresnel(float3 color, float metalness)
 {
     float3 f0 = float3(0.04f, 0.04f, 0.04f); // Approximation for non dielectrics
     return lerp(f0, color, metalness);
@@ -69,9 +69,9 @@ float3 FresnelSchlick(float HdotV, float3 f0)
     return f0 + (1.0f - f0) * pow(max(1.0f - HdotV, 0.0f), 5);
 }
 
-float3 FresnelSchlick(float h, float v, float3 f0)
+float3 FresnelSchlick(float3 h, float3 v, float3 f0)
 {
-    float HdotV = 1.0f - dot(h, v);
+    float HdotV = 1.0f - max(dot(h, v), 0.0f);
     return FresnelSchlick(HdotV, f0);
 }
 

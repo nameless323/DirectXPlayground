@@ -34,7 +34,11 @@ private:
     };
     struct Material
     {
-        XMFLOAT4 DiffuseColor;
+        XMFLOAT4 Albedo{};
+        float Metallic{};
+        float Roughness{};
+        float AO{};
+        float Padding{};
     };
     struct InstanceMaterials
     {
@@ -58,7 +62,6 @@ private:
     CameraController* m_cameraController = nullptr;
     Tonemapper* m_tonemapper = nullptr;
     LightManager* m_lightManager = nullptr;
-    UINT m_directionalLightInd = 0;
     CameraShaderData m_cameraData{};
 };
 }

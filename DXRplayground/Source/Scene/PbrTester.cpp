@@ -40,8 +40,14 @@ void PbrTester::InitResources(RenderContext& context)
     m_materials = new UploadBuffer(*context.Device, sizeof(InstanceMaterials), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera, 1.0f, 12.0f);
     m_lightManager = new LightManager(context);
-    Light l = { { 1.0f, 1.0f, 1.0f, 1.0f}, { 0.70710678f, -0.70710678f, 0.0f } };
-    m_directionalLightInd = m_lightManager->AddLight(l);
+    Light l = { { 23.47f, 21.31f, 20.79f, 1.0f}, { 5.0f, 5.0f, 5.0f } };
+    m_lightManager->AddLight(l);
+    l.Direction = { -5.0f, 5.0f, 5.0f };
+    m_lightManager->AddLight(l);
+    l.Direction = { 5.0f, -5.0f, 5.0f };
+    m_lightManager->AddLight(l);
+    l.Direction = { -5.0f, -5.0f, 5.0f };
+    m_lightManager->AddLight(l);
 
     InstanceBuffers transforms;
     InstanceMaterials materials;
@@ -50,7 +56,10 @@ void PbrTester::InitResources(RenderContext& context)
         for (UINT j = 0; j < 10; ++j)
         {
             UINT index = i * 10 + j;
-            materials.Materials[index].DiffuseColor = { 0.1f * j, 0.1f * i, 0.0f, 1.0f };
+            materials.Materials[index].Albedo = { 1.0f, 0.0f, 0.0f, 1.0f };
+            materials.Materials[index].Metallic = 0.1f * i;
+            materials.Materials[index].Roughness = 0.1f * j;
+            materials.Materials[index].AO = 1.0f;
 
             float x = -6.25f + j * 1.25f;
             float y = -6.25f + i * 1.25f;
@@ -157,10 +166,14 @@ void PbrTester::CreatePSOs(RenderContext& context)
 
 void PbrTester::UpdateLights(RenderContext& context)
 {
-    Light& dirLight = m_lightManager->GetLightRef(m_directionalLightInd);
+    Light* lights = m_lightManager->GetLights();
     ImGui::Begin("Lights");
-    ImGui::InputFloat4("Color", reinterpret_cast<float*>(&dirLight.Color));
-    ImGui::InputFloat3("Direction", reinterpret_cast<float*>(&dirLight.Direction));
+    //for (UINT i = 0; i < 4; ++i)
+    {
+        ImGui::InputFloat4("Color", reinterpret_cast<float*>(&lights[0].Color));
+        ImGui::InputFloat3("Direction", reinterpret_cast<float*>(&lights[0].Direction));
+        ImGui::Text("");
+    }
     ImGui::End();
 
     m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());

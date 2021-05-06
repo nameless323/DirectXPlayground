@@ -6,7 +6,8 @@ namespace DirectxPlayground
 {
 struct Light
 {
-    DirectX::XMFLOAT4 Color;
-    DirectX::XMFLOAT3 Direction;
+    DirectX::XMFLOAT4 Color{};
+    DirectX::XMFLOAT3 Direction{};
+    float Padding;
 };
 }

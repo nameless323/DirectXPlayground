@@ -16,6 +16,7 @@ struct Material
     float Metallic;
     float Roughness;
     float AO;
+    float Padding;
 };
 struct CbMaterial
 {
@@ -25,6 +26,7 @@ struct Light
 {
     float4 Color;
     float3 Position;
+    float Padding;
 };
 struct CbLight
 {
@@ -73,17 +75,19 @@ vOut vs(vIn i, uint ind : SV_InstanceID)
     return o;
 }
 
-float4 ps(vOut i) : SV_Target
+float4 ps(vOut pIn) : SV_Target
 {
     /*float3 tangent = normalize(i.tangent.xyz);
     float3 bitangent = cross(normal, tangent) * i.tangent.w;
     float3x3 tbn = float3x3(tangent, bitangent, normal);*/
 
-    float3 normal = normalize(i.norm);
-    float3 wpos = i.wpos;
-    float V = normalize(cbCamera.Position - wpos);
+    float instanceID = pIn.instanceID;
+    float3 normal = normalize(pIn.norm);
+    float3 wpos = pIn.wpos;
+    float3 V = normalize(cbCamera.Position - wpos);
 
     float3 Lo = float3(0.0f, 0.0f, 0.0f);
+    int i = 0;
     for (uint i = 0; i < 4; ++i)
     {
         float3 lightPos = cbLight.Lights[i].Position;
@@ -92,12 +96,13 @@ float4 ps(vOut i) : SV_Target
 
         float d = length(lightPos - wpos);
         float atten = 1.0f / (d * d);
-        float3 radiance = cbLight.Lights[i].Color * atten;
+        float3 radiance = cbLight.Lights[i].Color.xyz * atten;
 
-        float f0 = NormalIncidenceFresnel(cbLight.Lights[i].Color, cbMaterial.Materials[i].Metallic);
+        float metalness = cbMaterial.Materials[instanceID].Metallic;
+        float3 f0 = NormalIncidenceFresnel(cbLight.Lights[i].Color.xyz, metalness);
         // float cosTheta = max(dot(H, V), 0.0f);
         float3 F = FresnelSchlick(H, V, f0);
-        float roughness = cbMaterial.Materials[i].Roughness;
+        float roughness = cbMaterial.Materials[instanceID].Roughness;
 
         float NDF = GGXDistribution(normal, H, roughness);
         float G = GeometrySmith(normal, V, L, roughness);
@@ -108,13 +113,14 @@ float4 ps(vOut i) : SV_Target
 
         float3 ks = F;
         float3 kd = float3(1.0f, 1.0f, 1.0f) - ks;
-        kd *= 1.0f - cbMaterial.Materials[i].Metallic;
+        kd *= 1.0f - metalness;
 
         float NdotL = max(dot(normal, L), 0.0f);
-        Lo += (kd * cbMaterial.Materials[i].Albedo / PI + spec) * radiance * NdotL;
+        Lo += (kd * cbMaterial.Materials[instanceID].Albedo.xyz / PI + spec) * radiance * NdotL;
+
     }
-    float3 ambient = float3(0.03f, 0.03f, 0.03f) * cbMaterial.Materials[i].Albedo * cbMaterial.Materials[i].AO;
+    float3 ambient = float3(0.03f, 0.03f, 0.03f) * cbMaterial.Materials[instanceID].Albedo.xyz * cbMaterial.Materials[instanceID].AO;
     float3 color = ambient + Lo;
 
-    return cbMaterial.Materials[i.instanceID].DiffuseColor;//float4(normal * 0.5f + 0.5f, 1.0f);
+    return float4(color, 1.0f);
 }
