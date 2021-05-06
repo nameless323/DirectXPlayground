@@ -75,7 +75,7 @@ inline XMFLOAT4 Camera::GetUp() const
 
 inline XMFLOAT4 Camera::GetPosition() const
 {
-    return XMFLOAT4{ m_toWorld(3, 0), m_toWorld(3, 1), m_toWorld(3, 1), 1.0f };
+    return XMFLOAT4{ m_toWorld(3, 0), m_toWorld(3, 1), m_toWorld(3, 2), 1.0f };
 }
 
 inline void Camera::UpdateViewProjection()
