@@ -116,7 +116,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;DLL_EXPORTS;ASSETS_DIR_W=LR"($(ProjectDir)Assets\)";ASSETS_DIR=R"($(ProjectDir)Assets\)";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;DLL_EXPORTS;ASSETS_DIR_W=LR"($(ProjectDir)Assets\)";ASSETS_DIR=R"($(ProjectDir)Assets\)";NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
@@ -196,6 +196,7 @@
     <ClInclude Include="Source\External\IMGUI\imstb_textedit.h" />
     <ClInclude Include="Source\External\IMGUI\imstb_truetype.h" />
     <ClInclude Include="Source\External\lodepng\lodepng.h" />
+    <ClInclude Include="Source\External\TinyEXR\tinyexr.h" />
     <ClInclude Include="Source\External\TinyGLTF\json.hpp" />
     <ClInclude Include="Source\External\TinyGLTF\stb_image.h" />
     <ClInclude Include="Source\External\TinyGLTF\stb_image_write.h" />

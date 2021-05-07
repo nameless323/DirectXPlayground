@@ -1,10 +1,15 @@
 #include "TextureManager.h"
 
+#include <filesystem>
 #include <vector>
 #include <sstream>
 
 #include "External/Dx12Helpers/d3dx12.h"
 #include "External/lodepng/lodepng.h"
+
+#define TINYEXR_IMPLEMENTATION
+#include "External/TinyEXR/tinyexr.h"
+
 #include "Utils/Logger.h"
 
 #include "DXhelpers.h"

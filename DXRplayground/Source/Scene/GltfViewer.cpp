@@ -38,7 +38,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
     m_lightManager = new LightManager(context);
-    Light l = { { 1.0f, 1.0f, 1.0f, 1.0f}, { 0.70710678f, -0.70710678f, 0.0f } };
+    Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 
     LoadGeometry(context);
@@ -133,7 +133,7 @@ void GltfViewer::CreatePSOs(RenderContext& context)
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
     desc.RTVFormats[0] = m_tonemapper->GetHDRTargetFormat();
 
-    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//BlinnPhong.hlsl");
+    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
     context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
 }
 

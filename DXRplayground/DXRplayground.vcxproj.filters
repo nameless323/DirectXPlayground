@@ -206,5 +206,8 @@
     <ClInclude Include="Source\Scene\PbrTester.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\External\TinyEXR\tinyexr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
