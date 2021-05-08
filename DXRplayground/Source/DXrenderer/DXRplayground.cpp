@@ -18,7 +18,7 @@ RenderPipeline DirectXPipeline;
 
 GltfViewer scene;
 
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance, PSTR cmdLine, int nCmdShow)
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE prevInstance, _In_ PSTR cmdLine, _In_ int nCmdShow)
 {
     WindowsApp::Init(hInstance, nCmdShow, L"DirectX Playground");
     DirectXPipeline.Init(WindowsApp::GetHWND(), 1920, 1080, &scene);
