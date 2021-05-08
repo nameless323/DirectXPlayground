@@ -25,15 +25,61 @@ TextureManager::TextureManager(RenderContext& ctx)
 
 RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename)
 {
-    std::vector<unsigned char> bufferInMemory;
+
+    UINT f = sizeof(float);
+
     std::vector<unsigned char> buffer;
 
+    std::wstring extension{ std::filesystem::path(filename.c_str()).extension().c_str() };
+
     UINT w = 0, h = 0;
-    lodepng::load_file(bufferInMemory, filename);
-    UINT error = lodepng::decode(buffer, w, h, bufferInMemory);
-    if (error)
+    DXGI_FORMAT textureFormat{};
+    size_t pixelSize = 0;
+
+    if (extension == L".png" || extension == L".PNG") // let's hope there won't be "pNg" or "PnG" etc
     {
-        LOG("PNG decoding error ", error, " : ", lodepng_error_text(error), "\n");
+        std::vector<unsigned char> bufferInMemory;
+        lodepng::load_file(bufferInMemory, filename);
+        UINT error = lodepng::decode(buffer, w, h, bufferInMemory);
+        if (error)
+        {
+            LOG("PNG decoding error ", error, " : ", lodepng_error_text(error), "\n");
+        }
+        textureFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+        pixelSize = 4;
+    }
+    else if (extension == L".exr" || extension == L".EXR")
+    {
+        int width = 0, height = 0;
+        float* out = nullptr;
+        const char* err = nullptr;
+        int ret = LoadEXR(&out, &width, &height, filename.c_str(), &err);
+        if (ret != TINYEXR_SUCCESS)
+        {
+            if (err != nullptr)
+            {
+                LOG("EXR decoding error ", err);
+                FreeEXRErrorMessage(err);
+            }
+        }
+        else
+        {
+            w = static_cast<UINT>(width);
+            h = static_cast<UINT>(height);
+
+            size_t imageSize = size_t(w) * size_t(h) * sizeof(float) * 4U;
+            buffer.resize(imageSize);
+            memcpy(buffer.data(), out, imageSize);
+
+            textureFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+            pixelSize = 16;
+
+            free(out);
+        }
+    }
+    else
+    {
+        assert("Unknown image format for parsing" && false);
     }
 
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;
@@ -41,7 +87,7 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.MipLevels = 1;
-    texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    texDesc.Format = textureFormat;
     texDesc.Width = w;
     texDesc.Height = h;
     texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
@@ -77,7 +123,7 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
 
     D3D12_SUBRESOURCE_DATA texData = {};
     texData.pData = buffer.data();
-    texData.RowPitch = w * 4;
+    texData.RowPitch = size_t(w) * pixelSize;
     texData.SlicePitch = texData.RowPitch * h;
 
     UpdateSubresources(ctx.CommandList, resource.Get(), uploadResource.Get(), 0, 0, 1, &texData);
