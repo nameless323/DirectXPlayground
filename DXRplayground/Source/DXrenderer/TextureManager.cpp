@@ -34,48 +34,14 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
 
     UINT w = 0, h = 0;
     DXGI_FORMAT textureFormat{};
-    size_t pixelSize = 0;
 
     if (extension == L".png" || extension == L".PNG") // let's hope there won't be "pNg" or "PnG" etc
     {
-        std::vector<unsigned char> bufferInMemory;
-        lodepng::load_file(bufferInMemory, filename);
-        UINT error = lodepng::decode(buffer, w, h, bufferInMemory);
-        if (error)
-        {
-            LOG("PNG decoding error ", error, " : ", lodepng_error_text(error), "\n");
-        }
-        textureFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-        pixelSize = 4;
+        bool success = ParsePNG(filename, buffer, w, h, textureFormat);
     }
     else if (extension == L".exr" || extension == L".EXR")
     {
-        int width = 0, height = 0;
-        float* out = nullptr;
-        const char* err = nullptr;
-        int ret = LoadEXR(&out, &width, &height, filename.c_str(), &err);
-        if (ret != TINYEXR_SUCCESS)
-        {
-            if (err != nullptr)
-            {
-                LOG("EXR decoding error ", err);
-                FreeEXRErrorMessage(err);
-            }
-        }
-        else
-        {
-            w = static_cast<UINT>(width);
-            h = static_cast<UINT>(height);
-
-            size_t imageSize = size_t(w) * size_t(h) * sizeof(float) * 4U;
-            buffer.resize(imageSize);
-            memcpy(buffer.data(), out, imageSize);
-
-            textureFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-            pixelSize = 16;
-
-            free(out);
-        }
+        bool success = ParseEXR(filename, buffer, w, h, textureFormat);
     }
     else
     {
@@ -123,7 +89,7 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
 
     D3D12_SUBRESOURCE_DATA texData = {};
     texData.pData = buffer.data();
-    texData.RowPitch = size_t(w) * pixelSize;
+    texData.RowPitch = size_t(w) * GetPixelSize(textureFormat);
     texData.SlicePitch = texData.RowPitch * h;
 
     UpdateSubresources(ctx.CommandList, resource.Get(), uploadResource.Get(), 0, 0, 1, &texData);
@@ -151,6 +117,51 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
 
     return res;
+}
+
+bool TextureManager::ParsePNG(const std::string& filename, std::vector<unsigned char>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
+{
+    std::vector<unsigned char> bufferInMemory;
+    lodepng::load_file(bufferInMemory, filename);
+    UINT error = lodepng::decode(buffer, w, h, bufferInMemory);
+    if (error)
+    {
+        LOG("PNG decoding error ", error, " : ", lodepng_error_text(error), "\n");
+        return false;
+    }
+    textureFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    return true;
+}
+
+bool TextureManager::ParseEXR(const std::string& filename, std::vector<unsigned char>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
+{
+    int width = 0, height = 0;
+    float* out = nullptr;
+    const char* err = nullptr;
+    int ret = LoadEXR(&out, &width, &height, filename.c_str(), &err);
+    if (ret != TINYEXR_SUCCESS)
+    {
+        if (err != nullptr)
+        {
+            LOG("EXR decoding error ", err);
+            FreeEXRErrorMessage(err);
+        }
+        return false;
+    }
+    else
+    {
+        w = static_cast<UINT>(width);
+        h = static_cast<UINT>(height);
+
+        size_t imageSize = size_t(w) * size_t(h) * sizeof(float) * 4U;
+        buffer.resize(imageSize);
+        memcpy(buffer.data(), out, imageSize);
+
+        textureFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+        free(out);
+    }
+    return true;
 }
 
 RtvSrvResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue /*= nullptr*/, bool createSRV /*= true*/)
