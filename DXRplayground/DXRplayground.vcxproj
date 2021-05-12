@@ -196,6 +196,9 @@
     <ClInclude Include="Source\External\IMGUI\imstb_textedit.h" />
     <ClInclude Include="Source\External\IMGUI\imstb_truetype.h" />
     <ClInclude Include="Source\External\lodepng\lodepng.h" />
+    <ClInclude Include="Source\External\stb\stb_image.h" />
+    <ClInclude Include="Source\External\stb\stb_image_resize.h" />
+    <ClInclude Include="Source\External\stb\stb_image_write.h" />
     <ClInclude Include="Source\External\TinyEXR\tinyexr.h" />
     <ClInclude Include="Source\External\TinyGLTF\json.hpp" />
     <ClInclude Include="Source\External\TinyGLTF\stb_image.h" />

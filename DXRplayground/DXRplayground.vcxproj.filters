@@ -209,5 +209,14 @@
     <ClInclude Include="Source\External\TinyEXR\tinyexr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\External\stb\stb_image.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\External\stb\stb_image_resize.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\External\stb\stb_image_write.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

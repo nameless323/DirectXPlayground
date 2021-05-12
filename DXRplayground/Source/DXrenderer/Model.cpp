@@ -8,10 +8,9 @@
 #include <filesystem>
 
 #define TINYGLTF_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #define TINYGLTF_NOEXCEPTION
 #define JSON_NOEXCEPTION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "External/TinyGLTF/tiny_gltf.h"
 
 namespace DirectxPlayground

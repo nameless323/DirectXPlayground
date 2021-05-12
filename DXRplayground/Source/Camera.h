@@ -10,6 +10,7 @@ struct CameraShaderData
 {
     XMFLOAT4X4 ViewProj;
     XMFLOAT3 Position;
+    float Padding;
 };
 
 class Camera

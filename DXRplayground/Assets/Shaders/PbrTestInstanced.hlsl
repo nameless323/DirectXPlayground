@@ -4,6 +4,7 @@ struct CbCamera
 {
     float4x4 ViewProjection;
     float3 Position;
+    float Padding;
 };
 struct CbObject
 {
@@ -68,7 +69,7 @@ vOut vs(vIn i, uint ind : SV_InstanceID)
     float4 wPos = mul(float4(i.pos.xyz * 0.5f, 1.0f), cbObject.ToWorld[ind]);
     o.wpos = wPos.xyz;
     o.pos = mul(wPos, cbCamera.ViewProjection);
-    o.norm = mul(float4(normalize(i.pos.xyz), 0.0f), cbObject.ToWorld[ind]).xyz;
+    o.norm = mul(float4(normalize(i.norm), 0.0f), cbObject.ToWorld[ind]).xyz;
     o.tangent = i.tangent;
     o.uv = i.uv;
     o.instanceID = ind;

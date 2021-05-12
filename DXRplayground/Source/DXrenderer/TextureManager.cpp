@@ -10,6 +10,9 @@
 #define TINYEXR_IMPLEMENTATION
 #include "External/TinyEXR/tinyexr.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "External/stb/stb_image.h"
+
 #include "Utils/Logger.h"
 
 #include "DXhelpers.h"
@@ -28,7 +31,7 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
 
     UINT f = sizeof(float);
 
-    std::vector<unsigned char> buffer;
+    std::vector<byte> buffer;
 
     std::wstring extension{ std::filesystem::path(filename.c_str()).extension().c_str() };
 
@@ -42,6 +45,10 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
     else if (extension == L".exr" || extension == L".EXR")
     {
         bool success = ParseEXR(filename, buffer, w, h, textureFormat);
+    }
+    else if (extension == L".hdr" || extension == L".HDR")
+    {
+        bool success = ParseHDR(filename, buffer, w, h, textureFormat);
     }
     else
     {
@@ -76,7 +83,7 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
 
     const UINT64 uploadBufferSize = GetRequiredIntermediateSize(resource.Get(), 0, 1);
 
-    size_t texSize = buffer.size() * sizeof(unsigned char);
+    size_t texSize = buffer.size() * sizeof(byte);
     CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
     CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
     ThrowIfFailed(ctx.Device->CreateCommittedResource(
@@ -119,9 +126,9 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
     return res;
 }
 
-bool TextureManager::ParsePNG(const std::string& filename, std::vector<unsigned char>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
+bool TextureManager::ParsePNG(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
 {
-    std::vector<unsigned char> bufferInMemory;
+    std::vector<byte> bufferInMemory;
     lodepng::load_file(bufferInMemory, filename);
     UINT error = lodepng::decode(buffer, w, h, bufferInMemory);
     if (error)
@@ -133,7 +140,7 @@ bool TextureManager::ParsePNG(const std::string& filename, std::vector<unsigned 
     return true;
 }
 
-bool TextureManager::ParseEXR(const std::string& filename, std::vector<unsigned char>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
+bool TextureManager::ParseEXR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
 {
     int width = 0, height = 0;
     float* out = nullptr;
@@ -161,6 +168,36 @@ bool TextureManager::ParseEXR(const std::string& filename, std::vector<unsigned 
 
         free(out);
     }
+    return true;
+}
+
+bool TextureManager::ParseHDR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
+{
+    int width = 0;
+    int height = 0;
+    int nComponents = 0;
+    float* data = stbi_loadf(filename.c_str(), &width, &height, &nComponents, 0);
+    if (data == nullptr)
+    {
+        LOG("HDR decoding error");
+        return false;
+    }
+    if (nComponents != 3 && nComponents != 4)
+    {
+        LOG("HDR decoding error. Invalid number of color channels in the file");
+        return false;
+    }
+    w = static_cast<UINT>(width);
+    h = static_cast<UINT>(height);
+
+    size_t imageSize = size_t(w) * size_t(h) * sizeof(float) * size_t(nComponents);
+    buffer.resize(imageSize);
+    memcpy(buffer.data(), data, imageSize);
+
+    textureFormat = nComponents == 3 ? DXGI_FORMAT_R32G32B32_FLOAT : DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    stbi_image_free(data);
+
     return true;
 }
 

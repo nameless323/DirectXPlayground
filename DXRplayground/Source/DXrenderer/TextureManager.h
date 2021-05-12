@@ -35,8 +35,9 @@ private:
     void CreateSRVHeap(RenderContext& ctx);
     void CreateRTVHeap(RenderContext& ctx);
 
-    bool ParsePNG(const std::string& filename, std::vector<unsigned char>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
-    bool ParseEXR(const std::string& filename, std::vector<unsigned char>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
+    bool ParsePNG(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
+    bool ParseEXR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
+    bool ParseHDR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
 
     std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_resources;
     std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_uploadResources;
