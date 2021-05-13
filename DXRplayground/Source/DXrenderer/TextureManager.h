@@ -12,10 +12,11 @@ struct RenderContext;
 
 constexpr UINT InvalidOffset = 0xFFFFFFFF;
 
-struct RtvSrvResourceIdx
+struct RtvSrvUavResourceIdx
 {
     UINT RTVOffset = InvalidOffset;
     UINT SRVOffset = InvalidOffset;
+    UINT UAVOffset = InvalidOffset;
     UINT ResourceIdx = InvalidOffset;
 };
 
@@ -23,10 +24,10 @@ class TextureManager
 {
 public:
     TextureManager(RenderContext& ctx);
-    RtvSrvResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename, bool allowUAV = false);
-    RtvSrvResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true, bool allowUAV = false);
+    RtvSrvUavResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename, bool allowUAV = false);
+    RtvSrvUavResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true, bool allowUAV = false);
 
-    RtvSrvResourceIdx CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
+    RtvSrvUavResourceIdx CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
 
     ID3D12DescriptorHeap* GetDescriptorHeap() const;
     D3D12_CPU_DESCRIPTOR_HANDLE GetRtHandle(RenderContext& ctx, UINT index) const;
@@ -36,6 +37,7 @@ public:
 private:
     void CreateSRVHeap(RenderContext& ctx);
     void CreateRTVHeap(RenderContext& ctx);
+    void CreateUAVHeap(RenderContext& ctx);
 
     bool ParsePNG(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
     bool ParseEXR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
@@ -45,9 +47,13 @@ private:
     std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_uploadResources;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvCubeHeap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap = nullptr;
 
     UINT m_currentTexCount = 0;
+    UINT m_currentCubemapsCount = 0;
     UINT m_currentRTCount = 0;
+    UINT m_currentUAVCount = 0;
 };
 
 inline ID3D12DescriptorHeap* TextureManager::GetDescriptorHeap() const

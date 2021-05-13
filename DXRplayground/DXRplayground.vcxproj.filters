@@ -218,5 +218,8 @@
     <ClInclude Include="Source\External\stb\stb_image_write.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\DXrenderer\EnvironmentMap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

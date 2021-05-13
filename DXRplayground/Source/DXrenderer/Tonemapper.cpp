@@ -87,7 +87,7 @@ void Tonemapper::CreateRenderTarget(RenderContext& ctx)
     clearValue.Color[3] = m_clearColor[3];
     clearValue.Format = m_rtFormat;
 
-    RtvSrvResourceIdx p = ctx.TexManager->CreateRT(ctx, desc, L"HDRTexture", &clearValue);
+    RtvSrvUavResourceIdx p = ctx.TexManager->CreateRT(ctx, desc, L"HDRTexture", &clearValue);
     m_rtvOffset = p.RTVOffset;
     m_resourceIdx = p.ResourceIdx;
     m_tonemapperData.HdrTexIndex = p.SRVOffset;
