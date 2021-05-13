@@ -23,8 +23,10 @@ class TextureManager
 {
 public:
     TextureManager(RenderContext& ctx);
-    RtvSrvResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename);
-    RtvSrvResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true);
+    RtvSrvResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename, bool allowUAV = false);
+    RtvSrvResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true, bool allowUAV = false);
+
+    RtvSrvResourceIdx CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
 
     ID3D12DescriptorHeap* GetDescriptorHeap() const;
     D3D12_CPU_DESCRIPTOR_HANDLE GetRtHandle(RenderContext& ctx, UINT index) const;

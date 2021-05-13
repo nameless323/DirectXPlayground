@@ -26,11 +26,8 @@ TextureManager::TextureManager(RenderContext& ctx)
     CreateRTVHeap(ctx);
 }
 
-RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename)
+RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename, bool allowUAV /*= false*/)
 {
-
-    UINT f = sizeof(float);
-
     std::vector<byte> buffer;
 
     std::wstring extension{ std::filesystem::path(filename.c_str()).extension().c_str() };
@@ -126,6 +123,62 @@ RtvSrvResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::s
     return res;
 }
 
+
+DirectxPlayground::RtvSrvResourceIdx TextureManager::CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV /*= false*/, const byte* data /*= nullptr*/)
+{
+    Microsoft::WRL::ComPtr<ID3D12Resource> resource;
+    Microsoft::WRL::ComPtr<ID3D12Resource> uploadResource;
+
+    D3D12_RESOURCE_FLAGS resourceFlags = allowUAV ? D3D12_RESOURCE_FLAG_NONE : D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+
+    D3D12_RESOURCE_DESC texDesc = {};
+    texDesc.MipLevels = 1;
+    texDesc.Format = format;
+    texDesc.Width = w;
+    texDesc.Height = h;
+    texDesc.Flags = resourceFlags;
+    texDesc.DepthOrArraySize = 6;
+    texDesc.SampleDesc.Count = 1;
+    texDesc.SampleDesc.Quality = 0;
+    texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+    ThrowIfFailed(ctx.Device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+        D3D12_HEAP_FLAG_NONE,
+        &texDesc,
+        D3D12_RESOURCE_STATE_COMMON,
+        nullptr,
+        IID_PPV_ARGS(&resource)));
+
+#if defined(_DEBUG)
+    SetDXobjectName(resource.Get(), L"cubemap");
+#endif
+
+    CD3DX12_RESOURCE_BARRIER toDest = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    ctx.CommandList->ResourceBarrier(1, &toDest);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
+    viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    viewDesc.Format = resource->GetDesc().Format;
+    viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    viewDesc.Texture2D.MipLevels = resource->GetDesc().MipLevels;
+    viewDesc.Texture2D.MostDetailedMip = 0;
+    viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+    handle.Offset(m_currentTexCount * ctx.CbvSrvUavDescriptorSize);
+    ctx.Device->CreateShaderResourceView(resource.Get(), &viewDesc, handle);
+
+    m_resources.push_back(resource);
+    m_uploadResources.push_back(uploadResource);
+
+    RtvSrvResourceIdx res{};
+    res.SRVOffset = m_currentTexCount++;
+    res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
+
+    return res;
+}
+
+
 bool TextureManager::ParsePNG(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
 {
     std::vector<byte> bufferInMemory;
@@ -201,7 +254,7 @@ bool TextureManager::ParseHDR(const std::string& filename, std::vector<byte>& bu
     return true;
 }
 
-RtvSrvResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue /*= nullptr*/, bool createSRV /*= true*/)
+RtvSrvResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue /*= nullptr*/, bool createSRV /*= true*/, bool allowUAV /*= false*/)
 {
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;
 
