@@ -16,6 +16,7 @@ namespace DirectxPlayground
 PsoManager::PsoManager()
 {
     m_psos.reserve(m_maxPso);
+    m_computePsos.reserve(m_maxPso);
     std::wstring shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Fallback.hlsl");
     bool vsSucceeded = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1", m_vsFallback);
     bool psSucceeded = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1", m_psFallback);
@@ -67,6 +68,7 @@ void PsoManager::Shutdown()
 void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc)
 {
     assert(m_psoMap.find(name) == m_psoMap.end() && "PSO with the same name has already been created");
+    assert(m_computePsoMap.find(name) == m_computePsoMap.end() && "PSO with the same name has already been created");
     assert(m_psos.size() < (m_maxPso - 1) && "PSO max size reached, it will lead to reallocation and to breaking all pointers saved in m_psoMap and m_shadersPsos");
 
     m_psos.emplace_back();
@@ -81,7 +83,18 @@ void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstrin
 
 void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc)
 {
+    assert(m_psoMap.find(name) == m_psoMap.end() && "PSO with the same name has already been created");
+    assert(m_computePsoMap.find(name) == m_computePsoMap.end() && "PSO with the same name has already been created");
+    assert(m_computePsos.size() < (m_maxPso - 1) && "PSO max size reached, it will lead to reallocation and to breaking all pointers saved in m_psoMap and m_shadersPsos");
 
+    m_computePsos.emplace_back();
+    ComputePsoDesc* currPsoDesc = &m_computePsos.back();
+
+    CompilePsoWithShader(context, IID_PPV_ARGS(&currPsoDesc->CompiledPso), shaderPath, desc);
+
+    currPsoDesc->Desc = std::move(desc);
+    m_computePsoMap[std::move(name)] = currPsoDesc;
+    m_computeShadersPsos[std::move(shaderPath)].push_back(currPsoDesc);
 }
 
 ID3D12PipelineState* PsoManager::GetPso(const std::string& name)

@@ -46,7 +46,7 @@ private:
     std::map<std::string, PsoDesc*> m_psoMap;
     std::map<std::filesystem::path, std::vector<PsoDesc*>> m_shadersPsos;
 
-    std::vector<PsoDesc> m_computePsos;
+    std::vector<ComputePsoDesc> m_computePsos;
     std::map<std::string, ComputePsoDesc*> m_computePsoMap;
     std::map<std::filesystem::path, std::vector<ComputePsoDesc*>> m_computeShadersPsos;
 
