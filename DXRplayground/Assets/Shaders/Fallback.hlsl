@@ -33,3 +33,8 @@ float4 ps(vOut i) : SV_Target
 {
     return float4(1, 0, 1, 1);
 }
+
+[numthreads(1, 1, 1)]
+void cs()
+{
+}

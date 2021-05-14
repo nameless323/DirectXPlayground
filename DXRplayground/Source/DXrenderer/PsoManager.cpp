@@ -19,7 +19,9 @@ PsoManager::PsoManager()
     std::wstring shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Fallback.hlsl");
     bool vsSucceeded = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1", m_vsFallback);
     bool psSucceeded = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1", m_psFallback);
-    assert(vsSucceeded && psSucceeded && "Fallback compilation failed");
+    bool csSucceeded = Shader::CompileFromFile(shaderPath, "cs", "cs_5_1", m_csFallback);
+
+    assert(vsSucceeded && psSucceeded && csSucceeded && "Fallback compilation failed");
 
     std::wstring s = LR"()";
     m_shaderWatcher = new FileWatcher(ASSETS_DIR_W + std::wstring(L"Shaders")); // Will be deleted in DirectoryModificationCallback in FileWatcher. In if (errorCode == ERROR_OPERATION_ABORTED)
@@ -37,10 +39,17 @@ void PsoManager::BeginFrame(RenderContext& context)
             continue;
         processedFiles.insert(std::filesystem::path{ path });
 
-        auto psoVectorIt = m_shadersPsos.find(path);
-        if (psoVectorIt != m_shadersPsos.end())
+        if (auto psoVectorIt = m_shadersPsos.find(path); psoVectorIt != m_shadersPsos.end())
         {
             std::vector<PsoDesc*>& psoVector = psoVectorIt->second;
+            for (auto psoDesc : psoVector)
+            {
+                CompilePsoWithShader(context, IID_PPV_ARGS(&psoDesc->CompiledPso), path, psoDesc->Desc);
+            }
+        }
+        if (auto psoVectorIt = m_computeShadersPsos.find(path); psoVectorIt != m_computeShadersPsos.end())
+        {
+            std::vector<ComputePsoDesc*>& psoVector = psoVectorIt->second;
             for (auto psoDesc : psoVector)
             {
                 CompilePsoWithShader(context, IID_PPV_ARGS(&psoDesc->CompiledPso), path, psoDesc->Desc);
@@ -70,10 +79,20 @@ void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstrin
     m_shadersPsos[std::move(shaderPath)].push_back(currPsoDesc);
 }
 
+void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc)
+{
+
+}
+
 ID3D12PipelineState* PsoManager::GetPso(const std::string& name)
 {
-    assert(m_psoMap.find(name) != m_psoMap.end() && "no pso with the required name has been created");
-    return m_psoMap[name]->CompiledPso.Get();
+    if (auto graphicsPso = m_psoMap.find(name); graphicsPso != m_psoMap.end())
+        return graphicsPso->second->CompiledPso.Get();
+    if (auto computePso = m_computePsoMap.find(name); computePso != m_computePsoMap.end())
+        return computePso->second->CompiledPso.Get();
+
+    assert(false && "no pso with the required name has been created");
+    return nullptr;
 }
 
 void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc)
@@ -85,6 +104,14 @@ void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, vo
     desc.VS = vsSucceeded ? vs.GetBytecode() : m_vsFallback.GetBytecode();
     desc.PS = psSucceeded ? ps.GetBytecode() : m_psFallback.GetBytecode();
     ThrowIfFailed(context.Device->CreateGraphicsPipelineState(&desc, psoRiid, psoPpv));
+}
+
+void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
+{
+    Shader cs;
+    bool succeeded = Shader::CompileFromFile(shaderPath, "vs", "cs_5_1", cs);
+    desc.CS = succeeded ? cs.GetBytecode() : m_csFallback.GetBytecode();
+    ThrowIfFailed(context.Device->CreateComputePipelineState(&desc, psoRiid, psoPpv));
 }
 
 }
