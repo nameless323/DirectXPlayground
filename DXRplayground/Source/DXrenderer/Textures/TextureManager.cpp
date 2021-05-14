@@ -15,7 +15,7 @@
 
 #include "Utils/Logger.h"
 
-#include "DXhelpers.h"
+#include "DXrenderer/DXhelpers.h"
 
 namespace DirectxPlayground
 {
@@ -174,6 +174,21 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderCont
     RtvSrvUavResourceIdx res{};
     res.SRVOffset = m_currentCubemapsCount++;
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
+
+    if (allowUAV)
+    {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+        uavDesc.Format = resource->GetDesc().Format;
+        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+        uavDesc.Texture2DArray.ArraySize = 6;
+        uavDesc.Texture2DArray.FirstArraySlice = 0;
+        uavDesc.Texture2DArray.MipSlice = 0;
+
+        CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_uavHeap->GetCPUDescriptorHandleForHeapStart());
+        handle.Offset(m_currentUAVCount * ctx.CbvSrvUavDescriptorSize);
+        ctx.Device->CreateUnorderedAccessView(resource.Get(), nullptr, &uavDesc, handle);
+        res.UAVOffset = m_currentUAVCount++;
+    }
 
     return res;
 }

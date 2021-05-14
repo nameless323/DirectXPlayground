@@ -6,7 +6,7 @@
 #include "DXrenderer/RenderContext.h"
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/Swapchain.h"
-#include "DXrenderer/TextureManager.h"
+#include "DXrenderer/Textures/TextureManager.h"
 #include "DXrenderer/PsoManager.h"
 #include "Model.h"
 

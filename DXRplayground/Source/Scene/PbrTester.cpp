@@ -7,7 +7,7 @@
 #include "DXrenderer/Model.h"
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/PsoManager.h"
-#include "DXrenderer/TextureManager.h"
+#include "DXrenderer/Textures/TextureManager.h"
 #include "DXrenderer/Tonemapper.h"
 #include "DXrenderer/LightManager.h"
 

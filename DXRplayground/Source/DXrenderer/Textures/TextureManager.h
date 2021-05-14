@@ -30,6 +30,9 @@ public:
     RtvSrvUavResourceIdx CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
 
     ID3D12DescriptorHeap* GetDescriptorHeap() const;
+    ID3D12DescriptorHeap* GetCubemapHeap() const;
+    ID3D12DescriptorHeap* GetCubemapUAVHeap() const;
+
     D3D12_CPU_DESCRIPTOR_HANDLE GetRtHandle(RenderContext& ctx, UINT index) const;
 
     ID3D12Resource* GetResource(UINT index) const;
@@ -59,6 +62,16 @@ private:
 inline ID3D12DescriptorHeap* TextureManager::GetDescriptorHeap() const
 {
     return m_srvHeap.Get();
+}
+
+inline ID3D12DescriptorHeap* TextureManager::GetCubemapHeap() const
+{
+    return m_srvCubeHeap.Get();
+}
+
+inline ID3D12DescriptorHeap* TextureManager::GetCubemapUAVHeap() const
+{
+    return m_uavHeap.Get();
 }
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE TextureManager::GetRtHandle(RenderContext& ctx, UINT index) const

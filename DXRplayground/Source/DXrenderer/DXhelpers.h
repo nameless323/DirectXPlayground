@@ -111,6 +111,17 @@ inline HRESULT CreateCommonRootSignature(ID3D12Device* device, REFIID riid, void
     cbParams.emplace_back();
     cbParams.back().InitAsDescriptorTable(1, &texRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
+    D3D12_DESCRIPTOR_RANGE1 cubeUavRange{};
+    cubeUavRange.NumDescriptors = RenderContext::MaxCubemapsUAV;
+    cubeUavRange.BaseShaderRegister = 0;
+    cubeUavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+    cubeUavRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+    cubeUavRange.RegisterSpace = 0;
+    cubeUavRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+
+    cbParams.emplace_back();
+    cbParams.back().InitAsDescriptorTable(1, &cubeUavRange, D3D12_SHADER_VISIBILITY_ALL);
+
     CD3DX12_STATIC_SAMPLER_DESC linearClamp(
         0,
         D3D12_FILTER_MIN_MAG_MIP_LINEAR,

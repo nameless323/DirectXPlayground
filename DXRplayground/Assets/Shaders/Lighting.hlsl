@@ -67,7 +67,7 @@ float3 NormalIncidenceFresnel(float3 color, float metalness)
 
 float3 FresnelSchlick(float HdotV, float3 f0)
 {
-    return f0 + (1.0f - f0) * pow(max(1.0f - HdotV, 0.0f), 5.0f);
+    return f0 + (float3(1.0f, 1.0f, 1.0f) - f0) * pow(max(1.0f - HdotV, 0.0f), 5.0f);
 }
 
 float3 FresnelSchlick(float3 h, float3 v, float3 f0)

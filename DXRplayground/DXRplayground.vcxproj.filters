@@ -66,7 +66,7 @@
     <ClCompile Include="Source\External\lodepng\lodepng.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Source\DXrenderer\TextureManager.cpp">
+    <ClCompile Include="Source\DXrenderer\Textures\TextureManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\DXrenderer\Model.cpp">
@@ -88,6 +88,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Source\Scene\PbrTester.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\DXrenderer\Textures\EnvironmentMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -173,7 +176,7 @@
     <ClInclude Include="Source\External\lodepng\lodepng.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\DXrenderer\TextureManager.h">
+    <ClInclude Include="Source\DXrenderer\Textures\TextureManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\DXrenderer\Model.h">
@@ -218,7 +221,7 @@
     <ClInclude Include="Source\External\stb\stb_image_write.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Source\DXrenderer\EnvironmentMap.h">
+    <ClInclude Include="Source\DXrenderer\Textures\EnvironmentMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

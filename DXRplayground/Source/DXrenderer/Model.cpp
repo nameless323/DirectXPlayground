@@ -1,7 +1,7 @@
 #include "DXrenderer/Model.h"
 
 #include "DXrenderer/RenderContext.h"
-#include "DXrenderer/TextureManager.h"
+#include "DXrenderer/Textures/TextureManager.h"
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "Utils/Logger.h"
 

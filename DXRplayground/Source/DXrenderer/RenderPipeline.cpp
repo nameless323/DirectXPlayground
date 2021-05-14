@@ -8,7 +8,7 @@
 #include "WindowsApp.h"
 
 #include "DXrenderer/DXhelpers.h"
-#include "DXrenderer/TextureManager.h"
+#include "DXrenderer/Textures/TextureManager.h"
 #include "DXrenderer/PsoManager.h"
 
 #include "Scene/Scene.h"
