@@ -18,9 +18,9 @@ PsoManager::PsoManager()
     m_psos.reserve(m_maxPso);
     m_computePsos.reserve(m_maxPso);
     std::wstring shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Fallback.hlsl");
-    bool vsSucceeded = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1", m_vsFallback);
-    bool psSucceeded = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1", m_psFallback);
-    bool csSucceeded = Shader::CompileFromFile(shaderPath, "cs", "cs_5_1", m_csFallback);
+    bool vsSucceeded = Shader::CompileFromFile(shaderPath, L"vs", L"vs_6_5", m_vsFallback);
+    bool psSucceeded = Shader::CompileFromFile(shaderPath, L"ps", L"ps_6_5", m_psFallback);
+    bool csSucceeded = Shader::CompileFromFile(shaderPath, L"cs", L"cs_6_5", m_csFallback);
 
     assert(vsSucceeded && psSucceeded && csSucceeded && "Fallback compilation failed");
 
@@ -111,9 +111,9 @@ ID3D12PipelineState* PsoManager::GetPso(const std::string& name)
 void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc)
 {
     Shader vs;
-    bool vsSucceeded = Shader::CompileFromFile(shaderPath, "vs", "vs_5_1", vs);
+    bool vsSucceeded = Shader::CompileFromFile(shaderPath, L"vs", L"vs_6_5", vs);
     Shader ps;
-    bool psSucceeded = Shader::CompileFromFile(shaderPath, "ps", "ps_5_1", ps);
+    bool psSucceeded = Shader::CompileFromFile(shaderPath, L"ps", L"ps_6_5", ps);
     desc.VS = vsSucceeded ? vs.GetBytecode() : m_vsFallback.GetBytecode();
     desc.PS = psSucceeded ? ps.GetBytecode() : m_psFallback.GetBytecode();
     ThrowIfFailed(context.Device->CreateGraphicsPipelineState(&desc, psoRiid, psoPpv));
@@ -122,7 +122,7 @@ void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, vo
 void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
 {
     Shader cs;
-    bool succeeded = Shader::CompileFromFile(shaderPath, "vs", "cs_5_1", cs);
+    bool succeeded = Shader::CompileFromFile(shaderPath, L"vs", L"cs_6_5", cs);
     desc.CS = succeeded ? cs.GetBytecode() : m_csFallback.GetBytecode();
     ThrowIfFailed(context.Device->CreateComputePipelineState(&desc, psoRiid, psoPpv));
 }

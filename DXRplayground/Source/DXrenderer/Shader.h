@@ -1,10 +1,10 @@
 #pragma once
 
-#include <d3dcompiler.h>
 #include <d3d12.h>
 #include <string>
 #include <wrl.h>
 
+#include "External/dxc/x64/dxcapi.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
@@ -12,30 +12,24 @@ namespace DirectxPlayground
 class Shader
 {
 public:
-    static bool Shader::CompileFromFile(const std::wstring& path, const std::string& entry, const std::string& shaderModel, Shader& outShader);
+    static void InitCompiler();
+    static bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader);
 
     const CD3DX12_SHADER_BYTECODE& GetBytecode() const;
-    char* GetErrorMsg() const;
     bool GetIsCompiled() const;
 
 private:
-    static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHADER_MACRO* defines, ID3DInclude* includes, LPCSTR entry, LPCSTR target, UINT flags1, UINT flags2);
-    static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, LPCSTR entry, LPCSTR target, UINT flags);
+    static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHADER_MACRO* defines, ID3DInclude* includes, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags);
+    static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags);
 
     CD3DX12_SHADER_BYTECODE m_bytecode;
-    Microsoft::WRL::ComPtr<ID3DBlob> m_shaderBlob;
-    Microsoft::WRL::ComPtr<ID3DBlob> m_error;
+    Microsoft::WRL::ComPtr<IDxcBlob> m_shaderBlob;
     bool m_compiled = false;
 };
 
 inline const CD3DX12_SHADER_BYTECODE& Shader::GetBytecode() const
 {
     return m_bytecode;
-}
-
-inline char* Shader::GetErrorMsg() const
-{
-    return reinterpret_cast<char*>(m_error->GetBufferPointer());
 }
 
 inline bool Shader::GetIsCompiled() const

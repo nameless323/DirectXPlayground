@@ -10,6 +10,7 @@
 #include "DXrenderer/DXhelpers.h"
 #include "DXrenderer/Textures/TextureManager.h"
 #include "DXrenderer/PsoManager.h"
+#include "DXrenderer/Shader.h"
 
 #include "Scene/Scene.h"
 
@@ -81,6 +82,8 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
     m_context.RtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     m_context.DsvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     m_context.SamplerDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
+    Shader::InitCompiler();
 
     m_textureManager = new TextureManager(m_context);
     m_context.TexManager = m_textureManager;
