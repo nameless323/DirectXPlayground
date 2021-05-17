@@ -80,12 +80,19 @@ inline std::array<D3D12_INPUT_ELEMENT_DESC, 4>& GetInputLayoutUV_N_T()
 
 constexpr UINT ConstantBuffersCountPerSpace = 8;
 constexpr UINT MaxSpacesForConstantBuffers = 2;
-constexpr UINT TextureTableIndex = ConstantBuffersCountPerSpace * MaxSpacesForConstantBuffers;
+constexpr UINT MaxUAV = 6;
+constexpr UINT MaxSpacesForUAV = 2;
+constexpr UINT TextureTableIndex = ConstantBuffersCountPerSpace * MaxSpacesForConstantBuffers + MaxUAV * MaxSpacesForUAV;
 
 inline UINT GetCBRootParamIndex(UINT index, UINT space = 0)
 {
     assert(space < 2 && index < ConstantBuffersCountPerSpace && "CB space is invalid");
     return index + space * ConstantBuffersCountPerSpace;
+}
+
+inline UINT GetUARootParamIndex(UINT index)
+{
+    return MaxSpacesForConstantBuffers * ConstantBuffersCountPerSpace;
 }
 
 inline HRESULT CreateCommonRootSignature(ID3D12Device* device, REFIID riid, void** ppv)
@@ -97,6 +104,15 @@ inline HRESULT CreateCommonRootSignature(ID3D12Device* device, REFIID riid, void
         {
             cbParams.emplace_back();
             cbParams.back().InitAsConstantBufferView(j, i);
+        }
+    }
+
+    for (UINT i = 0; i < MaxSpacesForUAV; ++i)
+    {
+        for (UINT j = 0; j < MaxUAV; ++j)
+        {
+            cbParams.emplace_back();
+            cbParams.back().InitAsUnorderedAccessView(i, j);
         }
     }
 
@@ -113,7 +129,7 @@ inline HRESULT CreateCommonRootSignature(ID3D12Device* device, REFIID riid, void
 
     D3D12_DESCRIPTOR_RANGE1 cubeUavRange{};
     cubeUavRange.NumDescriptors = RenderContext::MaxCubemapsUAV;
-    cubeUavRange.BaseShaderRegister = 0;
+    cubeUavRange.BaseShaderRegister = MaxUAV;
     cubeUavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
     cubeUavRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
     cubeUavRange.RegisterSpace = 0;
