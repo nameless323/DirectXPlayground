@@ -199,6 +199,13 @@ inline D3D12_GRAPHICS_PIPELINE_STATE_DESC GetDefaultOpaquePsoDescriptor(ID3D12Ro
     return desc;
 }
 
+inline D3D12_COMPUTE_PIPELINE_STATE_DESC GetDefaultComputePsoDescriptor(ID3D12RootSignature* rootSig)
+{
+    D3D12_COMPUTE_PIPELINE_STATE_DESC desc = {};
+    desc.pRootSignature = rootSig;
+    return desc;
+}
+
 inline UINT GetPixelSize(DXGI_FORMAT format)
 {
     static const std::map<DXGI_FORMAT, UINT> formats{ { DXGI_FORMAT_R8G8B8A8_UNORM, 4 }, { DXGI_FORMAT_R32G32B32A32_FLOAT, 16 }, { DXGI_FORMAT_R32G32B32_FLOAT, 12 } };
