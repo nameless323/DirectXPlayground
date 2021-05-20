@@ -12,6 +12,7 @@
 #include "DXrenderer/LightManager.h"
 
 #include "DXrenderer/Buffers/UploadBuffer.h"
+#include "DXrenderer/Textures/EnvironmentMap.h"
 
 #include "External/IMGUI/imgui.h"
 
@@ -27,6 +28,7 @@ GltfViewer::~GltfViewer()
     SafeDelete(m_gltfMesh);
     SafeDelete(m_tonemapper);
     SafeDelete(m_lightManager);
+    SafeDelete(m_envMap);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
@@ -38,6 +40,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
     m_lightManager = new LightManager(context);
+    m_envMap = new EnvironmentMap(context, "", 16, 16);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 
@@ -54,6 +57,7 @@ void GltfViewer::Render(RenderContext& context)
 {
     m_cameraController->Update();
     UpdateLights(context);
+    m_envMap->ConvertToCubemap(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
@@ -114,7 +118,7 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
     m_gltfMesh = new Model(context, path);
 }
 

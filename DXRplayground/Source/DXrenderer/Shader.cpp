@@ -61,10 +61,12 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
     {
         LOG_W("Error opening the shader file ", fileName, " \n");
     }
+    if (FAILED(hr))
+        return hr;
 
     Microsoft::WRL::ComPtr<IDxcOperationResult> result;
     hr = DxcCompiler->Compile(sourceBlob.Get(), fileName, entry, target, flags.data(), static_cast<UINT32>(flags.size()), NULL, 0, IncludeHandler.Get(), &result);
-    if (hr == S_OK)
+    if (!FAILED(hr))
         result->GetStatus(&hr);
 
     if (FAILED(hr))

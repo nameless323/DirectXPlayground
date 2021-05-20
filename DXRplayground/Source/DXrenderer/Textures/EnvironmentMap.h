@@ -5,6 +5,8 @@
 
 namespace DirectxPlayground
 {
+class UnorderedAccessBuffer;
+
 class EnvironmentMap
 {
 public:
@@ -15,6 +17,9 @@ public:
     bool IsConvertedToCubemap() const;
 
 private:
+    UnorderedAccessBuffer* m_buffer = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
+    const std::string m_psoName = "CubemapConvertor_PBR";
     bool m_converted = false;
 };
 

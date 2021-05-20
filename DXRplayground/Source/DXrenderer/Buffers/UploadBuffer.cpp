@@ -57,6 +57,10 @@ constexpr UINT UploadBuffer::GetConstantBufferByteSize(UINT byteSize)
     return (byteSize + 255) & ~255;
 }
 
+//////////////////////////////////////////////////////////////////////////
+/// UnorderedAccessBuffer
+//////////////////////////////////////////////////////////////////////////
+
 UnorderedAccessBuffer::UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Device& device, UINT dataSize, const byte* initialData /*= nullptr*/, bool isStagingBuffer /*= false*/)
     : m_bufferSize(dataSize)
     , m_isStaging(isStagingBuffer)
@@ -70,7 +74,7 @@ UnorderedAccessBuffer::UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandL
         &heapProps,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
-        D3D12_RESOURCE_STATE_COPY_DEST,
+        state,
         nullptr,
         IID_PPV_ARGS(&m_buffer)));
 

@@ -122,7 +122,7 @@ void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, vo
 void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
 {
     Shader cs;
-    bool succeeded = Shader::CompileFromFile(shaderPath, L"vs", L"cs_6_5", cs);
+    bool succeeded = Shader::CompileFromFile(shaderPath, L"cs", L"cs_6_5", cs);
     desc.CS = succeeded ? cs.GetBytecode() : m_csFallback.GetBytecode();
     ThrowIfFailed(context.Device->CreateComputePipelineState(&desc, psoRiid, psoPpv));
 }

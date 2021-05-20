@@ -16,6 +16,7 @@ class UploadBuffer;
 class TextureManager;
 class Tonemapper;
 class LightManager;
+class EnvironmentMap;
 
 class GltfViewer : public Scene
 {
@@ -41,6 +42,7 @@ private:
     CameraController* m_cameraController = nullptr;
     Tonemapper* m_tonemapper = nullptr;
     LightManager* m_lightManager = nullptr;
+    EnvironmentMap* m_envMap = nullptr;
     UINT m_directionalLightInd = 0;
     CameraShaderData m_cameraData{};
 };
