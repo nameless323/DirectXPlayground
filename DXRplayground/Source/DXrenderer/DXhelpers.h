@@ -83,6 +83,7 @@ constexpr UINT MaxSpacesForConstantBuffers = 2;
 constexpr UINT MaxUAV = 6;
 constexpr UINT MaxSpacesForUAV = 2;
 constexpr UINT TextureTableIndex = ConstantBuffersCountPerSpace * MaxSpacesForConstantBuffers + MaxUAV * MaxSpacesForUAV;
+constexpr UINT UAVCubemapTableIndex = TextureTableIndex + 1;
 
 inline UINT GetCBRootParamIndex(UINT index, UINT space = 0)
 {
@@ -112,7 +113,7 @@ inline HRESULT CreateCommonRootSignature(ID3D12Device* device, REFIID riid, void
         for (UINT j = 0; j < MaxUAV; ++j)
         {
             cbParams.emplace_back();
-            cbParams.back().InitAsUnorderedAccessView(i, j);
+            cbParams.back().InitAsUnorderedAccessView(j, i);
         }
     }
 
@@ -129,10 +130,10 @@ inline HRESULT CreateCommonRootSignature(ID3D12Device* device, REFIID riid, void
 
     D3D12_DESCRIPTOR_RANGE1 cubeUavRange{};
     cubeUavRange.NumDescriptors = RenderContext::MaxCubemapsUAV;
-    cubeUavRange.BaseShaderRegister = MaxUAV;
+    cubeUavRange.BaseShaderRegister = 0;
     cubeUavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
     cubeUavRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
-    cubeUavRange.RegisterSpace = 0;
+    cubeUavRange.RegisterSpace = 2;
     cubeUavRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 
     cbParams.emplace_back();
