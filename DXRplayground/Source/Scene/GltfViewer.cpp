@@ -40,7 +40,9 @@ void GltfViewer::InitResources(RenderContext& context)
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
     m_cameraController = new CameraController(m_camera);
     m_lightManager = new LightManager(context);
-    m_envMap = new EnvironmentMap(context, "", 16, 16);
+
+    auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
+    m_envMap = new EnvironmentMap(context, path, 512, 512);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 

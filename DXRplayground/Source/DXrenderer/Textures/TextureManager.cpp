@@ -129,7 +129,7 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderCont
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;
     Microsoft::WRL::ComPtr<ID3D12Resource> uploadResource;
 
-    D3D12_RESOURCE_FLAGS resourceFlags = allowUAV ? D3D12_RESOURCE_FLAG_NONE : D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    D3D12_RESOURCE_FLAGS resourceFlags = allowUAV ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.MipLevels = 1;
@@ -164,12 +164,10 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderCont
     viewDesc.Texture2D.MostDetailedMip = 0;
     viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvCubeHeap->GetCPUDescriptorHandleForHeapStart());
     handle.Offset(m_currentCubemapsCount * ctx.CbvSrvUavDescriptorSize);
     ctx.Device->CreateShaderResourceView(resource.Get(), &viewDesc, handle);
 
-    m_resources.push_back(resource);
-    m_uploadResources.push_back(uploadResource);
 
     RtvSrvUavResourceIdx res{};
     res.SRVOffset = m_currentCubemapsCount++;
@@ -188,7 +186,13 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderCont
         handle.Offset(m_currentUAVCount * ctx.CbvSrvUavDescriptorSize);
         ctx.Device->CreateUnorderedAccessView(resource.Get(), nullptr, &uavDesc, handle);
         res.UAVOffset = m_currentUAVCount++;
+
+        CD3DX12_RESOURCE_BARRIER toDest = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS); // todo: bullshit
+        ctx.CommandList->ResourceBarrier(1, &toDest);
     }
+
+    m_resources.push_back(resource);
+    m_uploadResources.push_back(uploadResource);
 
     return res;
 }

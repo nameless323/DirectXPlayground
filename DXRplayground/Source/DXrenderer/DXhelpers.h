@@ -126,7 +126,7 @@ inline HRESULT CreateCommonRootSignature(ID3D12Device* device, REFIID riid, void
     texRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 
     cbParams.emplace_back();
-    cbParams.back().InitAsDescriptorTable(1, &texRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    cbParams.back().InitAsDescriptorTable(1, &texRange, D3D12_SHADER_VISIBILITY_ALL);
 
     D3D12_DESCRIPTOR_RANGE1 cubeUavRange{};
     cubeUavRange.NumDescriptors = RenderContext::MaxCubemapsUAV;
