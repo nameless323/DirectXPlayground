@@ -151,7 +151,7 @@
     <ClCompile Include="Source\DXrenderer\Model.cpp" />
     <ClCompile Include="Source\DXrenderer\PsoManager.cpp" />
     <ClCompile Include="Source\DXrenderer\RenderPipeline.cpp" />
-    <ClCompile Include="Source\DXrenderer\DXRplayground.cpp" />
+    <ClCompile Include="Source\DXRplayground.cpp" />
     <ClCompile Include="Source\DXrenderer\Shader.cpp" />
     <ClCompile Include="Source\DXrenderer\Swapchain.cpp" />
     <ClCompile Include="Source\DXrenderer\Textures\TextureManager.cpp" />
@@ -166,6 +166,7 @@
     <ClCompile Include="Source\External\lodepng\lodepng.cpp" />
     <ClCompile Include="Source\Scene\GltfViewer.cpp" />
     <ClCompile Include="Source\Scene\PbrTester.cpp" />
+    <ClCompile Include="Source\Scene\RtTester.cpp" />
     <ClCompile Include="Source\Utils\FileWatcher.cpp" />
     <ClCompile Include="Source\Utils\Logger.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
@@ -208,6 +209,7 @@
     <ClInclude Include="Source\External\TinyGLTF\tiny_gltf.h" />
     <ClInclude Include="Source\Scene\GltfViewer.h" />
     <ClInclude Include="Source\Scene\PbrTester.h" />
+    <ClInclude Include="Source\Scene\RtTester.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
     <ClInclude Include="Source\Utils\FileWatcher.h" />
     <ClInclude Include="Source\Utils\Helpers.h" />
