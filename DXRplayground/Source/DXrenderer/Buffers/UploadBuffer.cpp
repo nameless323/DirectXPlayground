@@ -8,6 +8,7 @@ namespace DirectxPlayground
 
 UploadBuffer::UploadBuffer(ID3D12Device& device, UINT elementSize, bool isConstantBuffer, UINT framesCount)
     : m_isConstantBuffer(isConstantBuffer)
+    , m_framesCount(framesCount)
 {
     m_rawDataSize = static_cast<size_t>(elementSize);
     m_frameDataSize = m_isConstantBuffer ? GetConstantBufferByteSize(elementSize) : m_rawDataSize;
@@ -44,11 +45,13 @@ ID3D12Resource* UploadBuffer::GetResource() const
 
 void UploadBuffer::UploadData(UINT frameIndex, const byte* data)
 {
+    assert(frameIndex < m_framesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
     memcpy(m_data + frameIndex * m_frameDataSize, data, m_rawDataSize);
 }
 
 D3D12_GPU_VIRTUAL_ADDRESS UploadBuffer::GetFrameDataGpuAddress(UINT frame) const
 {
+    assert(frame < m_framesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
     return m_resource->GetGPUVirtualAddress() + frame * m_frameDataSize;
 }
 

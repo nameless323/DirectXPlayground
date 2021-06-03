@@ -27,18 +27,29 @@ public:
     void Render(RenderContext& context) override;
 
 private:
+    struct NonTexturedMaterial
+    {
+        XMFLOAT4 Albedo{};
+        float Metallic{};
+        float Roughness{};
+        float AO{};
+        float Padding{};
+    } m_floorMaterial;
+
     void LoadGeometry(RenderContext& context);
     void CreateRootSignature(RenderContext& context);
     void CreatePSOs(RenderContext& context);
-    void UpdateLights(RenderContext& context);
+    void UpdateGui(RenderContext& context);
 
     Model* m_gltfMesh = nullptr;
-    Model* m_plane = nullptr;
+    Model* m_floor = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
     UploadBuffer* m_cameraCb = nullptr;
     UploadBuffer* m_objectCb = nullptr;
+    UploadBuffer* m_floorTransformCb = nullptr;
+    UploadBuffer* m_floorMaterialCb = nullptr;
     const std::string m_psoName = "Opaque_PBR";
-    const std::string m_planePsoName = "Opaque_Non_Textured_PBR";
+    const std::string m_floorPsoName = "Opaque_Non_Textured_PBR";
 
     Camera* m_camera = nullptr;
     CameraController* m_cameraController = nullptr;

@@ -29,7 +29,9 @@ RtTester::~RtTester()
     SafeDelete(m_tonemapper);
     SafeDelete(m_lightManager);
     SafeDelete(m_envMap);
-    SafeDelete(m_plane);
+    SafeDelete(m_floor);
+    SafeDelete(m_floorMaterialCb);
+    SafeDelete(m_floorTransformCb);
 }
 
 void RtTester::InitResources(RenderContext& context)
@@ -38,13 +40,31 @@ void RtTester::InitResources(RenderContext& context)
 
     m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
-    m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
+    m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, 1);
+
+    XMFLOAT4X4 toWorld;
+    XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
+    m_objectCb->UploadData(0, toWorld);
+
+    m_floorTransformCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
+    XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 0.0f)));
+    for (UINT i = 0; i < context.FramesCount; ++i)
+        m_floorTransformCb->UploadData(i, toWorld);
+
+    m_floorMaterialCb = new UploadBuffer(*context.Device, sizeof(NonTexturedMaterial), true, context.FramesCount);
+    m_floorMaterial.Albedo = { 0.8f, 0.8f, 0.8f, 1.0f };
+    m_floorMaterial.AO = 1.0f;
+    m_floorMaterial.Metallic = 0.0f;
+    m_floorMaterial.Roughness = 1.0f;
+    for (UINT i = 0; i < context.FramesCount; ++i)
+        m_floorMaterialCb->UploadData(i, m_floorMaterial);
+
     m_cameraController = new CameraController(m_camera);
     m_lightManager = new LightManager(context);
 
     auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
     m_envMap = new EnvironmentMap(context, path, 512, 512);
-    Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
+    Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 5.70710678118f, 0.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 
     LoadGeometry(context);
@@ -59,18 +79,15 @@ void RtTester::InitResources(RenderContext& context)
 void RtTester::Render(RenderContext& context)
 {
     m_cameraController->Update();
-    UpdateLights(context);
+    UpdateGui(context);
     m_envMap->ConvertToCubemap(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
-    XMFLOAT4X4 toWorld;
-    XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
     m_cameraData.ViewProj = TransposeMatrix(m_camera->GetViewProjection());
     XMFLOAT4 camPos = m_camera->GetPosition();
     m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
     m_cameraCb->UploadData(frameIndex, m_cameraData);
-    m_objectCb->UploadData(frameIndex, toWorld);
     m_gltfMesh->UpdateMeshes(frameIndex);
 
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -99,7 +116,7 @@ void RtTester::Render(RenderContext& context)
     ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
     context.CommandList->SetDescriptorHeaps(1, descHeap);
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), m_cameraCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_objectCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_objectCb->GetFrameDataGpuAddress(0));
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), m_lightManager->GetLightsBufferGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
@@ -113,6 +130,14 @@ void RtTester::Render(RenderContext& context)
         context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
     }
+
+    context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_floorPsoName));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_floorTransformCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), m_floorMaterialCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->IASetVertexBuffers(0, 1, &m_floor->GetVertexBufferView());
+    context.CommandList->IASetIndexBuffer(&m_floor->GetIndexBufferView());
+    context.CommandList->DrawIndexedInstanced(m_floor->GetIndexCount(), 1, 0, 0, 0);
+
     m_tonemapper->Render(context);
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -130,8 +155,12 @@ void RtTester::LoadGeometry(RenderContext& context)
     verts[1].Pos = { 100.0f, 0.0f, 100.0f };
     verts[2].Pos = { 100.0f, 0.0f, -100.0f };
     verts[3].Pos = { -100.0f, 0.0f, -100.0f };
+    verts[0].Norm = { 0.0f, 1.0f, 0.0f };
+    verts[1].Norm = { 0.0f, 1.0f, 0.0f };
+    verts[2].Norm = { 0.0f, 1.0f, 0.0f };
+    verts[3].Norm = { 0.0f, 1.0f, 0.0f };
     std::vector<UINT> ind = { 0, 1, 2, 0, 2, 3 };
-    m_plane = new Model(context, verts, ind);
+    m_floor = new Model(context, verts, ind);
 }
 
 void RtTester::CreateRootSignature(RenderContext& context)
@@ -151,9 +180,12 @@ void RtTester::CreatePSOs(RenderContext& context)
 
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
     context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
+
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonTexturedNonInstanced.hlsl");
+    context.PsoManager->CreatePso(context, m_floorPsoName, shaderPath, desc);
 }
 
-void RtTester::UpdateLights(RenderContext& context)
+void RtTester::UpdateGui(RenderContext& context)
 {
     Light& dirLight = m_lightManager->GetLightRef(m_directionalLightInd);
     ImGui::Begin("Lights");

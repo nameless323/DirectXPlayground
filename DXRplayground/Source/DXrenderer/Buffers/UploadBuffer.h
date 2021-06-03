@@ -29,6 +29,7 @@ private:
     size_t m_frameDataSize = 0;
     size_t m_rawDataSize = 0;
     size_t m_bufferSize = 0;
+    UINT m_framesCount = 0;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
     byte* m_data = nullptr;
 
@@ -38,6 +39,7 @@ private:
 template <typename T>
 void UploadBuffer::UploadData(UINT frameIndex, T& data)
 {
+    assert(frameIndex < m_framesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
     UploadData(frameIndex, reinterpret_cast<byte*>(&data));
 }
 

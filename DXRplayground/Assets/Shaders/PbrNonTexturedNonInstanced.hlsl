@@ -64,7 +64,7 @@ vOut vs(vIn i, uint ind : SV_InstanceID)
     float4 wPos = mul(float4(i.pos.xyz, 1.0f), cbObject.ToWorld);
     o.wpos = wPos.xyz;
     o.pos = mul(wPos, cbCamera.ViewProjection);
-    o.norm = i.norm;
+    o.norm = mul(float4(i.norm.xyz, 0.0f), cbObject.ToWorld);
     o.tangent = i.tangent;
     o.uv = i.uv;
     return o;
@@ -75,17 +75,8 @@ float4 ps(vOut pIn) : SV_Target
     float4 albedo = cbMaterial.Albedo;
     float metallness = cbMaterial.Metallness;
     float roughness = cbMaterial.Roughness;
-
-    float2 metalnessRoughness = Textures[cbMaterial.MetallicRoughnessTexture].Sample(LinearWrapSampler, pIn.uv).xy;
+    float3 N = normalize(pIn.norm);
     float AO = cbMaterial.AO;
-
-    float3 normal = normalize(pIn.norm);
-    float3 tangent = normalize(pIn.tangent.xyz);
-    float3 bitangent = cross(normal, tangent) * pIn.tangent.w;
-    float3x3 tbn = float3x3(tangent, bitangent, normal);
-
-    float3 bumpNorm = Textures[cbMaterial.NormalTexture].Sample(LinearWrapSampler, pIn.uv).xyz * 2.0f - 1.0f;
-    float3 N = normalize(mul(bumpNorm, tbn));
 
     float3 wpos = pIn.wpos;
     float3 V = normalize(cbCamera.Position - wpos);
@@ -105,20 +96,19 @@ float4 ps(vOut pIn) : SV_Target
         // float cosTheta = max(dot(H, V), 0.0f);
         float3 F = FresnelSchlick(H, V, f0);
 
-        float NDF = GGXDistribution(normal, H, roughness);
-        float G = GeometrySmith(normal, V, L, roughness);
+        float NDF = GGXDistribution(N, H, roughness);
+        float G = GeometrySmith(N, V, L, roughness);
 
         float3 numer = NDF * G * F;
-        float denumer = 4.0f * max(dot(normal, V), 0.0f) * max(dot(normal, L), 0.0f);
+        float denumer = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f);
         float3 spec = numer / max(denumer, 0.0001f);
 
         float3 ks = F;
         float3 kd = float3(1.0f, 1.0f, 1.0f) - ks;
         kd *= 1.0f - metallness;
 
-        float NdotL = max(dot(normal, L), 0.0f);
+        float NdotL = max(dot(N, L), 0.0f);
         Lo += (kd * albedo.xyz / PI + spec) * radiance * NdotL;
-
     }
     float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo.xyz * AO;
     float3 color = ambient + Lo;
