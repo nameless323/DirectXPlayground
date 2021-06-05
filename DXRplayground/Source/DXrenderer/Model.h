@@ -63,7 +63,11 @@ public:
 
         UINT GetIndexCount() const
         {
-            return m_indexCount;
+            return UINT(m_indices.size());
+        }
+        UINT GetVertexCount() const
+        {
+            return UINT(m_vertices.size());
         }
 
         const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const
@@ -73,6 +77,14 @@ public:
         const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const
         {
             return m_indexBuffer->GetIndexBufferView();
+        }
+        D3D12_GPU_VIRTUAL_ADDRESS GetVertexBufferGpuAddress() const
+        {
+            return m_vertexBuffer->GetVertexBuffer()->GetGPUVirtualAddress();
+        }
+        D3D12_GPU_VIRTUAL_ADDRESS GetIndexBufferGpuAddress() const
+        {
+            return m_indexBuffer->GetIndexBuffer()->GetGPUVirtualAddress();
         }
 
         D3D12_GPU_VIRTUAL_ADDRESS GetMaterialBufferGpuAddress(UINT frame) const

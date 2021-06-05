@@ -19,6 +19,8 @@
 namespace DirectxPlayground
 {
 
+using Microsoft::WRL::ComPtr;
+
 RtTester::~RtTester()
 {
     SafeDelete(m_cameraCb);
@@ -74,6 +76,8 @@ void RtTester::InitResources(RenderContext& context)
     m_tonemapper->InitResources(context, m_commonRootSig.Get());
 
     CreatePSOs(context);
+
+    InitRaytracingPipeline(context);
 }
 
 void RtTester::Render(RenderContext& context)
@@ -206,6 +210,91 @@ void RtTester::UpdateGui(RenderContext& context)
     ImGui::End();
 
     m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
+}
+
+void RtTester::InitRaytracingPipeline(RenderContext& context)
+{
+    CreateRtRootSigs(context);
+}
+
+void RtTester::CreateRtRootSigs(RenderContext& context)
+{
+    std::vector<CD3DX12_ROOT_PARAMETER> params{};
+    params.push_back({});
+    params.back().InitAsShaderResourceView(0); // Acceleration structure
+
+    params.push_back({});
+    params.back().InitAsUnorderedAccessView(0); // Output rt
+
+    params.push_back({});
+    params.back().InitAsConstantBufferView(0); // Scene cb (camera etc)
+
+    CD3DX12_ROOT_SIGNATURE_DESC globalRootSigDesc{ UINT(params.size()), params.data() };
+    ComPtr<ID3DBlob> blob;
+    ComPtr<ID3DBlob> error;
+
+    ThrowIfFailed(D3D12SerializeRootSignature(&globalRootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, &error), error ? static_cast<wchar_t*>(error->GetBufferPointer()) : nullptr);
+    ThrowIfFailed(context.Device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&m_rtGlobalRootSig)));
+
+    // think about local root sig
+}
+
+void RtTester::CreateRtPSO(RenderContext& context)
+{
+    CD3DX12_STATE_OBJECT_DESC rtPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
+
+    CD3DX12_DXIL_LIBRARY_SUBOBJECT* lib = rtPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+
+    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Raytracing.hlsl");
+
+    bool success = Shader::CompileFromFile(shaderPath, L"", L"lib_6_3", m_rayGenShader);
+    //success = Shader::CompileFromFile(shaderPath, L"ClosestHit", L"lib_6_3", m_closestHitShader);
+    //success = Shader::CompileFromFile(shaderPath, L"Miss", L"lib_6_3", m_missShader);
+
+    lib->SetDXILLibrary(&m_rayGenShader.GetBytecode());
+
+    lib->DefineExport(L"Raygen");
+    lib->DefineExport(L"ClosestHit");
+    lib->DefineExport(L"Miss");
+
+    CD3DX12_HIT_GROUP_SUBOBJECT* hitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+    hitGroup->SetClosestHitShaderImport(L"ClosestHit");
+    hitGroup->SetHitGroupExport(L"TriangleHitGroup");
+    hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
+    CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT* shaderConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+    UINT payloadSize = sizeof(XMFLOAT4); // float4 color
+    UINT attribSize = sizeof(XMFLOAT2); //float2 barycentrics. default for trigs
+    shaderConfig->Config(payloadSize, attribSize);
+
+    CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT* globalRootSig = rtPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+    globalRootSig->SetRootSignature(m_rtGlobalRootSig.Get());
+
+    CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT* pipelineConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+    UINT maxRecursionDepth = 1;
+    pipelineConfig->Config(maxRecursionDepth);
+
+    ThrowIfFailed(context.Device->CreateStateObject(rtPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create raytracing state object.\n");
+}
+
+void RtTester::BuildAccelerationStructures(RenderContext& context)
+{
+    D3D12_RAYTRACING_GEOMETRY_DESC geomDesc{};
+    geomDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
+    geomDesc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
+    geomDesc.Triangles.Transform3x4 = 0;
+    geomDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
+    geomDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
+
+    std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geomDescs;
+
+    for (const auto mesh : m_gltfMesh->GetMeshes())
+    {
+        geomDesc.Triangles.IndexBuffer = mesh->GetIndexBufferGpuAddress();
+        geomDesc.Triangles.IndexCount = mesh->GetIndexCount();
+        geomDesc.Triangles.VertexCount = mesh->GetVertexCount();
+    }
+
 }
 
 }

@@ -8,6 +8,7 @@
 #include <DirectXMath.h>
 #include "External/Dx12Helpers/d3dx12.h"
 #include "DXrenderer/RenderContext.h"
+#include "Utils/Logger.h"
 
 namespace DirectxPlayground
 {
@@ -34,6 +35,15 @@ inline void ThrowIfFailed(HRESULT hr)
 {
     if (FAILED(hr))
     {
+        throw ComException(hr);
+    }
+}
+
+inline void ThrowIfFailed(HRESULT hr, const wchar_t* msg)
+{
+    if (FAILED(hr))
+    {
+        LOG_W(msg);
         throw ComException(hr);
     }
 }

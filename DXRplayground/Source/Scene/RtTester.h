@@ -4,6 +4,8 @@
 #include "Scene/Scene.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
+#include "DXrenderer/Shader.h"
+
 #include "CameraController.h"
 #include "Camera.h"
 
@@ -41,6 +43,14 @@ private:
     void CreatePSOs(RenderContext& context);
     void UpdateGui(RenderContext& context);
 
+    // rt
+
+    void InitRaytracingPipeline(RenderContext& context);
+    void CreateRtRootSigs(RenderContext& context);
+    void CreateRtPSO(RenderContext& context);
+    void BuildAccelerationStructures(RenderContext& context);
+    //
+
     Model* m_gltfMesh = nullptr;
     Model* m_floor = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
@@ -62,5 +72,14 @@ private:
     bool m_drawFloor = false;
     bool m_drawHelmet = true;
     bool m_useRasterizer = true;
+
+    // rt
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtGlobalRootSig;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtLocalRootSig;
+    Microsoft::WRL::ComPtr<ID3D12StateObject> m_dxrStateObject;
+    Shader m_rayGenShader;
+    Shader m_closestHitShader;
+    Shader m_missShader;
+    //
 };
 }

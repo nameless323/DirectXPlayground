@@ -24,7 +24,7 @@ struct RenderContext
     UINT Height = 0;
 
     ID3D12GraphicsCommandList* CommandList = nullptr;
-    ID3D12Device* Device = nullptr;
+    ID3D12Device5* Device = nullptr;
     Swapchain* SwapChain = nullptr;
     TextureManager* TexManager = nullptr;
     PsoManager* PsoManager = nullptr;

@@ -13,9 +13,10 @@ class Shader
 {
 public:
     static void InitCompiler();
-    static bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader);
+    static bool CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader);
 
     const CD3DX12_SHADER_BYTECODE& GetBytecode() const;
+    CD3DX12_SHADER_BYTECODE& GetBytecode();
     bool GetIsCompiled() const;
 
 private:
@@ -28,6 +29,11 @@ private:
 };
 
 inline const CD3DX12_SHADER_BYTECODE& Shader::GetBytecode() const
+{
+    return m_bytecode;
+}
+
+inline CD3DX12_SHADER_BYTECODE& Shader::GetBytecode()
 {
     return m_bytecode;
 }
