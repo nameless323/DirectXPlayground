@@ -58,5 +58,9 @@ private:
     EnvironmentMap* m_envMap = nullptr;
     UINT m_directionalLightInd = 0;
     CameraShaderData m_cameraData{};
+
+    bool m_drawFloor = false;
+    bool m_drawHelmet = true;
+    bool m_useRasterizer = true;
 };
 }

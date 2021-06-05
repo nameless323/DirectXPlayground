@@ -120,23 +120,29 @@ void RtTester::Render(RenderContext& context)
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), m_lightManager->GetLightsBufferGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
-    for (const auto mesh : m_gltfMesh->GetMeshes())
+    if (m_drawHelmet)
     {
-        context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
+        for (const auto mesh : m_gltfMesh->GetMeshes())
+        {
+            context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
 
-        context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
-        context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
+            context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
+            context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
 
-        context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+            context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+        }
     }
 
-    context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_floorPsoName));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_floorTransformCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), m_floorMaterialCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->IASetVertexBuffers(0, 1, &m_floor->GetVertexBufferView());
-    context.CommandList->IASetIndexBuffer(&m_floor->GetIndexBufferView());
-    context.CommandList->DrawIndexedInstanced(m_floor->GetIndexCount(), 1, 0, 0, 0);
+    if (m_drawFloor)
+    {
+        context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_floorPsoName));
+        context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_floorTransformCb->GetFrameDataGpuAddress(frameIndex));
+        context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), m_floorMaterialCb->GetFrameDataGpuAddress(frameIndex));
+        context.CommandList->IASetVertexBuffers(0, 1, &m_floor->GetVertexBufferView());
+        context.CommandList->IASetIndexBuffer(&m_floor->GetIndexBufferView());
+        context.CommandList->DrawIndexedInstanced(m_floor->GetIndexCount(), 1, 0, 0, 0);
+    }
 
     m_tonemapper->Render(context);
 
@@ -188,9 +194,15 @@ void RtTester::CreatePSOs(RenderContext& context)
 void RtTester::UpdateGui(RenderContext& context)
 {
     Light& dirLight = m_lightManager->GetLightRef(m_directionalLightInd);
-    ImGui::Begin("Lights");
+    ImGui::Begin("SceneControls");
+    ImGui::Text("Lights");
     ImGui::InputFloat4("Color", reinterpret_cast<float*>(&dirLight.Color));
     ImGui::InputFloat3("Direction", reinterpret_cast<float*>(&dirLight.Direction));
+    ImGui::Text("");
+    ImGui::Text("Rasterizer");
+    ImGui::Checkbox("Use Rasterizer", &m_useRasterizer);
+    ImGui::Checkbox("Draw Helmet", &m_drawHelmet);
+    ImGui::Checkbox("Draw Floor", &m_drawFloor);
     ImGui::End();
 
     m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
