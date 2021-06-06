@@ -272,6 +272,9 @@ void RtTester::UpdateGui(RenderContext& context)
 void RtTester::InitRaytracingPipeline(RenderContext& context)
 {
     CreateRtRootSigs(context);
+    //BuildAccelerationStructures(context);
+    CreateRtPSO(context);
+    //BuildShaderTables(context);
 }
 
 void RtTester::CreateRtRootSigs(RenderContext& context)
@@ -280,8 +283,11 @@ void RtTester::CreateRtRootSigs(RenderContext& context)
     params.push_back({});
     params.back().InitAsShaderResourceView(0); // Acceleration structure
 
+    CD3DX12_DESCRIPTOR_RANGE uavDesc;
+    uavDesc.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0);
+
     params.push_back({});
-    params.back().InitAsUnorderedAccessView(0); // Output rt
+    params.back().InitAsDescriptorTable(1, &uavDesc); // Output rt
 
     params.push_back({});
     params.back().InitAsConstantBufferView(0); // Scene cb (camera etc)
@@ -305,6 +311,7 @@ void RtTester::CreateRtPSO(RenderContext& context)
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Raytracing.hlsl");
 
     bool success = Shader::CompileFromFile(shaderPath, L"", L"lib_6_3", m_rayGenShader);
+    assert(success);
     //success = Shader::CompileFromFile(shaderPath, L"ClosestHit", L"lib_6_3", m_closestHitShader);
     //success = Shader::CompileFromFile(shaderPath, L"Miss", L"lib_6_3", m_missShader);
 
