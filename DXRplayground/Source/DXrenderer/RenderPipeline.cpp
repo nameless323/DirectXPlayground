@@ -67,12 +67,12 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
     m_swapChain.Init(m_isTearingSupported, hwnd, m_context, m_factory.Get(), m_device.Get(), m_commandQueue.Get());
     m_context.SwapChain = &m_swapChain;
 
-    for (int i = 0; i < RenderContext::FramesCount; ++i)
+    for (int i = 0; i < RenderContext::AllocatorsCount; ++i)
     {
         ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
         NAME_D3D12_OBJECT(m_commandAllocators[i]);
     }
-    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[0].Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
+    ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[m_currentAllocatorIdx].Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
     NAME_D3D12_OBJECT(m_commandList);
     m_commandList->Close();
 
@@ -97,8 +97,9 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 
     InitImGui();
 
-    m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()]->Reset();
-    m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr);
+    IncrementAllocatorIndex();
+    m_commandAllocators[m_currentAllocatorIdx]->Reset();
+    m_commandList->Reset(m_commandAllocators[m_currentAllocatorIdx].Get(), nullptr);
 
     m_context.CommandList = m_commandList.Get();
     scene->InitResources(m_context);
@@ -135,6 +136,13 @@ void RenderPipeline::ExecuteCommandList(ID3D12GraphicsCommandList* commandList)
     m_commandQueue->ExecuteCommandLists(1, cmdLists);
 }
 
+void RenderPipeline::ResetCommandList(ID3D12GraphicsCommandList* commandList)
+{
+    IncrementAllocatorIndex();
+    m_commandAllocators[m_currentAllocatorIdx]->Reset();
+    commandList->Reset(m_commandAllocators[m_currentAllocatorIdx].Get(), nullptr);
+}
+
 void RenderPipeline::Resize(int width, int height)
 {
     if (width == m_context.Width && height == m_context.Height)
@@ -148,7 +156,9 @@ void RenderPipeline::Resize(int width, int height)
     for (auto fenceVals : m_fenceValues)
         fenceVals = m_currentFence;
 
-    ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr));
+    IncrementAllocatorIndex();
+    m_commandAllocators[m_currentAllocatorIdx]->Reset();
+    ThrowIfFailed(m_commandList->Reset(m_commandAllocators[m_currentAllocatorIdx].Get(), nullptr));
 
     m_swapChain.Resize(m_device.Get(), m_commandList.Get(), m_context);
 
@@ -171,9 +181,10 @@ void RenderPipeline::Render(Scene* scene)
     ImGui::Text("Avg %.3f ms/F (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     ImGui::End();
 
+    IncrementAllocatorIndex();
     // To BeginFrame. Direct approach won't work here.
-    m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()]->Reset();
-    m_commandList->Reset(m_commandAllocators[m_swapChain.GetCurrentBackBufferIndex()].Get(), nullptr);
+    m_commandAllocators[m_currentAllocatorIdx]->Reset();
+    m_commandList->Reset(m_commandAllocators[m_currentAllocatorIdx].Get(), nullptr);
 
     m_context.CommandList = m_commandList.Get();
 

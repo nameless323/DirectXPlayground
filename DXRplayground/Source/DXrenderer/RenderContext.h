@@ -16,6 +16,7 @@ struct RenderContext
     static constexpr UINT MaxCubemaps = 64;
     static constexpr UINT MaxCubemapsUAV = 64;
     static constexpr UINT MaxRT = 100;
+    static constexpr UINT AllocatorsCount = 6;
     UINT CbvSrvUavDescriptorSize = -1;
     UINT RtvDescriptorSize = -1;
     UINT DsvDescriptorSize = -1;
