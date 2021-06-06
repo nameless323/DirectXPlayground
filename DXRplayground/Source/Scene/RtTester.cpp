@@ -13,6 +13,7 @@
 
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "DXrenderer/Textures/EnvironmentMap.h"
+#include "DXrenderer/RenderPipeline.h"
 
 #include "External/IMGUI/imgui.h"
 
@@ -34,6 +35,13 @@ RtTester::~RtTester()
     SafeDelete(m_floor);
     SafeDelete(m_floorMaterialCb);
     SafeDelete(m_floorTransformCb);
+
+    // dxr
+    SafeDelete(m_tlas);
+    SafeDelete(m_blas);
+    SafeDelete(m_missShaderTable);
+    SafeDelete(m_hitGroupShaderTable);
+    SafeDelete(m_rayGenShaderTable);
 }
 
 void RtTester::InitResources(RenderContext& context)
@@ -285,6 +293,7 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     geomDesc.Triangles.Transform3x4 = 0;
     geomDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
     geomDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
+    geomDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 
     std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geomDescs;
 
@@ -293,8 +302,90 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
         geomDesc.Triangles.IndexBuffer = mesh->GetIndexBufferGpuAddress();
         geomDesc.Triangles.IndexCount = mesh->GetIndexCount();
         geomDesc.Triangles.VertexCount = mesh->GetVertexCount();
+        geomDesc.Triangles.VertexBuffer.StartAddress = mesh->GetVertexBufferGpuAddress();
+        geomDescs.push_back(geomDesc);
     }
 
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
+
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelInputs = bottomLevelBuildDesc.Inputs;
+    bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    bottomLevelInputs.Flags = buildFlags;
+    bottomLevelInputs.NumDescs = UINT(geomDescs.size());
+    bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+    bottomLevelInputs.pGeometryDescs = geomDescs.data();
+
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& topLevelInputs = topLevelBuildDesc.Inputs;
+    topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    topLevelInputs.Flags = buildFlags;
+    topLevelInputs.NumDescs = 1;
+    topLevelInputs.pGeometryDescs = nullptr;
+    topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
+
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
+    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
+    assert(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
+
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
+    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
+    assert(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
+
+    UnorderedAccessBuffer scratchBuffer{ context.CommandList, *context.Device, UINT(std::max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes)) };
+
+    m_blas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
+    m_blas->SetName(L"BottomLevelAccelerationStructure");
+
+    m_tlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(topLevelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
+    m_tlas->SetName(L"TopLevelAccelerationStructure");
+
+    D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
+    instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1; // todo check here
+
+    UploadBuffer instanceDescs{ *context.Device, sizeof(instanceDesc), false, 1 };
+    instanceDescs.UploadData(0, instanceDesc);
+
+    bottomLevelBuildDesc.ScratchAccelerationStructureData = scratchBuffer.GetGpuAddress();
+    bottomLevelBuildDesc.SourceAccelerationStructureData = m_blas->GetGpuAddress();
+
+    topLevelBuildDesc.DestAccelerationStructureData = m_tlas->GetGpuAddress();
+    topLevelBuildDesc.ScratchAccelerationStructureData = scratchBuffer.GetGpuAddress();
+    topLevelBuildDesc.Inputs.InstanceDescs = instanceDescs.GetFrameDataGpuAddress(0);
+
+    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
+    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_blas->GetResource()));
+    context.CommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
+
+    context.Pipeline->ExecuteCommandList(context.CommandList);
+    context.Pipeline->Flush();
+}
+
+void RtTester::BuildShaderTables(RenderContext& context)
+{
+    ComPtr<ID3D12StateObjectProperties> stateObjectProps;
+    ThrowIfFailed(m_dxrStateObject.As(&stateObjectProps));
+    void* rayGenShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"Raygen");
+    void* missGenShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"Miss");
+    void* hitGroupShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"TriangleHitGroup");
+
+    UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES; // + localRootSigSize
+
+    UINT numShaderRecords = 1;
+
+    UINT shaderRecordSize = Align(shaderIdentifierSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+
+    m_rayGenShaderTable = new UploadBuffer(*context.Device, shaderRecordSize, false, 1, true);
+    m_rayGenShaderTable->UploadData(0, rayGenShaderIdentifier);
+    m_rayGenShaderTable->SetName(L"RayGenShaderTable");
+
+    m_missShaderTable = new UploadBuffer(*context.Device, shaderRecordSize, false, 1, true);
+    m_missShaderTable->UploadData(0, missGenShaderIdentifier);
+    m_missShaderTable->SetName(L"MissShaderTable");
+
+    m_hitGroupShaderTable = new UploadBuffer(*context.Device, shaderRecordSize, false, 1, true);
+    m_hitGroupShaderTable->UploadData(0, hitGroupShaderIdentifier);
+    m_hitGroupShaderTable->SetName(L"HitGroupShaderTable");
 }
 
 }

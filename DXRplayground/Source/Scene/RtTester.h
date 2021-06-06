@@ -19,6 +19,7 @@ class TextureManager;
 class Tonemapper;
 class LightManager;
 class EnvironmentMap;
+class UnorderedAccessBuffer;
 
 class RtTester : public Scene
 {
@@ -49,6 +50,7 @@ private:
     void CreateRtRootSigs(RenderContext& context);
     void CreateRtPSO(RenderContext& context);
     void BuildAccelerationStructures(RenderContext& context);
+    void BuildShaderTables(RenderContext& context);
     //
 
     Model* m_gltfMesh = nullptr;
@@ -77,9 +79,16 @@ private:
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtGlobalRootSig;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtLocalRootSig;
     Microsoft::WRL::ComPtr<ID3D12StateObject> m_dxrStateObject;
+
+    UploadBuffer* m_missShaderTable = nullptr;
+    UploadBuffer* m_hitGroupShaderTable = nullptr;
+    UploadBuffer* m_rayGenShaderTable = nullptr;
+
     Shader m_rayGenShader;
     Shader m_closestHitShader;
     Shader m_missShader;
+    UnorderedAccessBuffer* m_blas = nullptr;
+    UnorderedAccessBuffer* m_tlas = nullptr;
     //
 };
 }
