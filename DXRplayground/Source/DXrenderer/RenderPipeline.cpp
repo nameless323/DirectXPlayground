@@ -27,6 +27,7 @@ RenderPipeline::~RenderPipeline()
 
 void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 {
+    m_context.Pipeline = this;
     UINT dxgiFactoryFlags = 0;
 #ifdef _DEBUG
     {
@@ -125,6 +126,13 @@ void RenderPipeline::Flush()
         WaitForSingleObjectEx(fenceEventHandle, INFINITE, false);
         CloseHandle(fenceEventHandle);
     }
+}
+
+void RenderPipeline::ExecuteCommandList(ID3D12GraphicsCommandList* commandList)
+{
+    commandList->Close();
+    ID3D12CommandList* cmdLists[] = { commandList };
+    m_commandQueue->ExecuteCommandLists(1, cmdLists);
 }
 
 void RenderPipeline::Resize(int width, int height)

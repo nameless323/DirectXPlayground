@@ -7,6 +7,7 @@ namespace DirectxPlayground
 class Swapchain;
 class TextureManager;
 class PsoManager;
+class IRenderPipeline;
 
 struct RenderContext
 {
@@ -23,10 +24,12 @@ struct RenderContext
     UINT Width = 0;
     UINT Height = 0;
 
-    ID3D12GraphicsCommandList* CommandList = nullptr;
+    ID3D12GraphicsCommandList5* CommandList = nullptr;
     ID3D12Device5* Device = nullptr;
     Swapchain* SwapChain = nullptr;
     TextureManager* TexManager = nullptr;
     PsoManager* PsoManager = nullptr;
+
+    IRenderPipeline* Pipeline = nullptr;
 };
 }
