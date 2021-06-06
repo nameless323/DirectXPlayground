@@ -53,6 +53,11 @@ inline UINT CalculateConstantBufferByteSize(UINT byteSize) // [a_vorontcov] Dx12
     return (byteSize + 255) & ~255;
 }
 
+inline UINT Align(UINT size, UINT alignment)
+{
+    return (size + (alignment - 1)) & ~(alignment - 1);
+}
+
 #if defined(_DEBUG)
 inline void SetDXobjectName(ID3D12Object* object, LPCWSTR name)
 {

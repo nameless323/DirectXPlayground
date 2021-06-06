@@ -3,14 +3,15 @@
 #include <d3d12.h>
 #include <cassert>
 #include <wrl.h>
+#include "DXrenderer/DXhelpers.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
 {
-class UploadBuffer
+class UploadBuffer // todo: split to upload, cb and rt
 {
 public:
-    UploadBuffer(ID3D12Device& device, UINT elementSize, bool isConstantBuffer, UINT framesCount);
+    UploadBuffer(ID3D12Device& device, UINT elementSize, bool isConstantBuffer, UINT framesCount, bool isRtShaderRecordBuffer = false);
     UploadBuffer(const UploadBuffer&) = delete;
     UploadBuffer(UploadBuffer&&) = delete;
     UploadBuffer& operator=(const UploadBuffer&) = delete;
@@ -23,6 +24,7 @@ public:
     void UploadData(UINT frameIndex, T& data);
 
     D3D12_GPU_VIRTUAL_ADDRESS GetFrameDataGpuAddress(UINT frame) const;
+    void SetName(const std::wstring& name);
 
 private:
     bool m_isConstantBuffer = false;
@@ -43,6 +45,11 @@ void UploadBuffer::UploadData(UINT frameIndex, T& data)
     UploadData(frameIndex, reinterpret_cast<byte*>(&data));
 }
 
+inline void UploadBuffer::SetName(const std::wstring& name)
+{
+    SetDXobjectName(m_resource.Get(), name.c_str());
+}
+
 //////////////////////////////////////////////////////////////////////////
 /// UnorderedAccessBuffer
 //////////////////////////////////////////////////////////////////////////
@@ -50,7 +57,7 @@ void UploadBuffer::UploadData(UINT frameIndex, T& data)
 class UnorderedAccessBuffer
 {
 public:
-    UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Device& device, UINT dataSize, const byte* initialData = nullptr, bool isStagingBuffer = false);
+    UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Device& device, UINT dataSize, const byte* initialData = nullptr, bool isStagingBuffer = false, bool isRtAccelerationStruct = false);
     UnorderedAccessBuffer(const UploadBuffer&) = delete;
     UnorderedAccessBuffer(UploadBuffer&&) = delete;
     UnorderedAccessBuffer& operator=(const UploadBuffer&) = delete;
@@ -61,6 +68,8 @@ public:
     void UploadData(const byte* data);
     template <typename T>
     void UploadData(T& data);
+
+    void SetName(const std::wstring& name);
 
     D3D12_GPU_VIRTUAL_ADDRESS GetGpuAddress() const;
 
@@ -96,5 +105,10 @@ inline void UnorderedAccessBuffer::UploadData(const byte* data)
 inline D3D12_GPU_VIRTUAL_ADDRESS UnorderedAccessBuffer::GetGpuAddress() const
 {
     return m_buffer->GetGPUVirtualAddress();
+}
+
+inline void UnorderedAccessBuffer::SetName(const std::wstring& name)
+{
+    SetDXobjectName(m_buffer.Get(), name.c_str());
 }
 }

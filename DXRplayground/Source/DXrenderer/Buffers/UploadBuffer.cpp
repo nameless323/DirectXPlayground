@@ -6,12 +6,17 @@
 namespace DirectxPlayground
 {
 
-UploadBuffer::UploadBuffer(ID3D12Device& device, UINT elementSize, bool isConstantBuffer, UINT framesCount)
+UploadBuffer::UploadBuffer(ID3D12Device& device, UINT elementSize, bool isConstantBuffer, UINT framesCount, bool isRtShaderRecordBuffer /* = false */)
     : m_isConstantBuffer(isConstantBuffer)
     , m_framesCount(framesCount)
 {
+    assert((isConstantBuffer && isRtShaderRecordBuffer) != 1 && "Buffer cant be both constant and shader record buffer");
+
     m_rawDataSize = static_cast<size_t>(elementSize);
     m_frameDataSize = m_isConstantBuffer ? GetConstantBufferByteSize(elementSize) : m_rawDataSize;
+    if (isRtShaderRecordBuffer)
+        m_frameDataSize = Align(elementSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+
     m_bufferSize = framesCount * m_frameDataSize;
 
     CD3DX12_HEAP_PROPERTIES hProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
@@ -64,7 +69,7 @@ constexpr UINT UploadBuffer::GetConstantBufferByteSize(UINT byteSize)
 /// UnorderedAccessBuffer
 //////////////////////////////////////////////////////////////////////////
 
-UnorderedAccessBuffer::UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Device& device, UINT dataSize, const byte* initialData /*= nullptr*/, bool isStagingBuffer /*= false*/)
+UnorderedAccessBuffer::UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandList, ID3D12Device& device, UINT dataSize, const byte* initialData /*= nullptr*/, bool isStagingBuffer /*= false*/, bool isRtAccelerationStruct /*= false*/) // todo: just pass the init state
     : m_bufferSize(dataSize)
     , m_isStaging(isStagingBuffer)
 {
@@ -73,6 +78,8 @@ UnorderedAccessBuffer::UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandL
 
     CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
     D3D12_RESOURCE_STATES state = initialData == nullptr ? D3D12_RESOURCE_STATE_UNORDERED_ACCESS : D3D12_RESOURCE_STATE_COPY_DEST;
+    if (isRtAccelerationStruct)
+        state = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
     ThrowIfFailed(device.CreateCommittedResource(
         &heapProps,
         D3D12_HEAP_FLAG_NONE,
