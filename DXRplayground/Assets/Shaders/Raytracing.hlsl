@@ -6,13 +6,13 @@ struct SceneRtData
 
 RaytracingAccelerationStructure Scene : register(t0);
 RWTexture2D<float4> RenderTarget : register(u0);
-ConstantBuffer<SceneRtData> SceneCb : register(b1);
+ConstantBuffer<SceneRtData> SceneCb : register(b0);
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 struct RayPayload
 {
     float4 color;
-}
+};
 
 void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
 {
@@ -34,7 +34,7 @@ void Raygen()
     float3 rayDir;
     float3 origin;
 
-    GenerateCameraRay(DispatchRayIndex().xy, origin, rayDir);
+    GenerateCameraRay(DispatchRaysIndex().xy, origin, rayDir);
 
     RayDesc ray;
     ray.Origin = origin;
@@ -46,7 +46,7 @@ void Raygen()
     RayPayload payload = { float4(0.0f, 0.0f, 0.0f, 0.0f) };
     TraceRay(Scene, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, ~0, 0, 1, 0, ray, payload);
 
-    RenderTarget[DispatchRayIndex().xy] = payload.color;
+    RenderTarget[DispatchRaysIndex().xy] = payload.color;
 }
 
 [shader("closesthit")]
