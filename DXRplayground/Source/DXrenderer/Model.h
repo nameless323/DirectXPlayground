@@ -74,14 +74,17 @@ public:
         {
             return m_vertexBuffer->GetVertexBufferView();
         }
+
         const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const
         {
             return m_indexBuffer->GetIndexBufferView();
         }
+
         D3D12_GPU_VIRTUAL_ADDRESS GetVertexBufferGpuAddress() const
         {
             return m_vertexBuffer->GetVertexBuffer()->GetGPUVirtualAddress();
         }
+
         D3D12_GPU_VIRTUAL_ADDRESS GetIndexBufferGpuAddress() const
         {
             return m_indexBuffer->GetIndexBuffer()->GetGPUVirtualAddress();
@@ -90,6 +93,16 @@ public:
         D3D12_GPU_VIRTUAL_ADDRESS GetMaterialBufferGpuAddress(UINT frame) const
         {
             return m_materialBuffer->GetFrameDataGpuAddress(frame);
+        }
+
+        ID3D12Resource* GetIndexBufferResource() const
+        {
+            return m_indexBuffer->GetIndexBuffer();
+        }
+
+        ID3D12Resource* GetVertexBufferResource() const
+        {
+            return m_vertexBuffer->GetVertexBuffer();
         }
 
         void UpdateMaterialBuffer(UINT frame)
