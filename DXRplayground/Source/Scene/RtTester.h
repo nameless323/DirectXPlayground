@@ -39,6 +39,8 @@ private:
         float Padding{};
     } m_floorMaterial;
 
+    void DepthPrepass(RenderContext& context);
+    void RenderForwardObjects(RenderContext& context);
     void LoadGeometry(RenderContext& context);
     void CreateRootSignature(RenderContext& context);
     void CreatePSOs(RenderContext& context);
@@ -62,6 +64,7 @@ private:
     UploadBuffer* m_floorMaterialCb = nullptr;
     const std::string m_psoName = "Opaque_PBR";
     const std::string m_floorPsoName = "Opaque_Non_Textured_PBR";
+    const std::string m_depthPrepassPsoName = "Depth_Prepass";
 
     Camera* m_camera = nullptr;
     CameraController* m_cameraController = nullptr;

@@ -105,8 +105,6 @@ void RtTester::Render(RenderContext& context)
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
 
-    auto rtCpuHandle = context.TexManager->GetRtHandle(context, m_tonemapper->GetRtIndex());
-
     D3D12_RECT scissorRect = { 0, 0, LONG(context.Width), LONG(context.Height) };
     D3D12_VIEWPORT viewport = {};
     viewport.TopLeftX = 0.0f;
@@ -119,9 +117,58 @@ void RtTester::Render(RenderContext& context)
     context.CommandList->RSSetScissorRects(1, &scissorRect);
     context.CommandList->RSSetViewports(1, &viewport);
 
+    DepthPrepass(context);
+    RenderForwardObjects(context);
+
+    m_tonemapper->Render(context);
+
+    auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    context.CommandList->ResourceBarrier(1, &toPresent);
+}
+
+void RtTester::DepthPrepass(RenderContext& context)
+{
+    UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
+    auto rtCpuHandle = context.TexManager->GetRtHandle(context, m_tonemapper->GetRtIndex());
+
+    context.CommandList->OMSetRenderTargets(0, nullptr, false, &context.SwapChain->GetDSCPUhandle());
+    context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+    context.CommandList->SetGraphicsRootSignature(m_commonRootSig.Get());
+    context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_depthPrepassPsoName));
+    ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
+    context.CommandList->SetDescriptorHeaps(1, descHeap);
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), m_cameraCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_objectCb->GetFrameDataGpuAddress(0));
+
+    if (m_drawHelmet)
+    {
+        for (const auto mesh : m_gltfMesh->GetMeshes())
+        {
+            context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
+            context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
+
+            context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+        }
+    }
+
+    if (m_drawFloor)
+    {
+        context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_floorTransformCb->GetFrameDataGpuAddress(frameIndex));
+        context.CommandList->IASetVertexBuffers(0, 1, &m_floor->GetVertexBufferView());
+        context.CommandList->IASetIndexBuffer(&m_floor->GetIndexBufferView());
+        context.CommandList->DrawIndexedInstanced(m_floor->GetIndexCount(), 1, 0, 0, 0);
+    }
+}
+
+void RtTester::RenderForwardObjects(RenderContext& context)
+{
+    UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
+    auto rtCpuHandle = context.TexManager->GetRtHandle(context, m_tonemapper->GetRtIndex());
+
     context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &context.SwapChain->GetDSCPUhandle());
     context.CommandList->ClearRenderTargetView(rtCpuHandle, m_tonemapper->GetClearColor(), 0, nullptr);
-    context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     context.CommandList->SetGraphicsRootSignature(m_commonRootSig.Get());
     context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_psoName));
@@ -155,11 +202,6 @@ void RtTester::Render(RenderContext& context)
         context.CommandList->IASetIndexBuffer(&m_floor->GetIndexBufferView());
         context.CommandList->DrawIndexedInstanced(m_floor->GetIndexCount(), 1, 0, 0, 0);
     }
-
-    m_tonemapper->Render(context);
-
-    auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-    context.CommandList->ResourceBarrier(1, &toPresent);
 }
 
 void RtTester::LoadGeometry(RenderContext& context)
@@ -190,17 +232,24 @@ void RtTester::CreateRootSignature(RenderContext& context)
 void RtTester::CreatePSOs(RenderContext& context)
 {
     auto& inputLayout = GetInputLayoutUV_N_T();
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = GetDefaultOpaquePsoDescriptor(m_commonRootSig.Get(), 1);
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = GetDefaultOpaquePsoDescriptor(m_commonRootSig.Get(), 0);
     desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
 
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
+    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//DepthPrepass.hlsl");
+    context.PsoManager->CreatePso(context, m_depthPrepassPsoName, shaderPath, desc);
+
+    desc.NumRenderTargets = 1;
+    desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
+    desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     desc.RTVFormats[0] = m_tonemapper->GetHDRTargetFormat();
 
-    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
     context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
 
     shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonTexturedNonInstanced.hlsl");
     context.PsoManager->CreatePso(context, m_floorPsoName, shaderPath, desc);
+
 }
 
 void RtTester::UpdateGui(RenderContext& context)
