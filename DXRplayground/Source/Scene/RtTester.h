@@ -86,6 +86,8 @@ private:
     UploadBuffer* m_missShaderTable = nullptr;
     UploadBuffer* m_hitGroupShaderTable = nullptr;
     UploadBuffer* m_rayGenShaderTable = nullptr;
+    UploadBuffer* m_instanceDescs = nullptr; // todo: after flush should be ok to delete, but it's not.
+    UnorderedAccessBuffer* m_scratchBuffer = nullptr; // todo: same shit as above
 
     Shader m_rayGenShader;
     Shader m_closestHitShader;

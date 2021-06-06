@@ -42,6 +42,8 @@ RtTester::~RtTester()
     SafeDelete(m_missShaderTable);
     SafeDelete(m_hitGroupShaderTable);
     SafeDelete(m_rayGenShaderTable);
+    SafeDelete(m_instanceDescs);
+    SafeDelete(m_scratchBuffer);
 }
 
 void RtTester::InitResources(RenderContext& context)
@@ -272,9 +274,9 @@ void RtTester::UpdateGui(RenderContext& context)
 void RtTester::InitRaytracingPipeline(RenderContext& context)
 {
     CreateRtRootSigs(context);
-    //BuildAccelerationStructures(context);
+    BuildAccelerationStructures(context);
     CreateRtPSO(context);
-    //BuildShaderTables(context);
+    BuildShaderTables(context);
 }
 
 void RtTester::CreateRtRootSigs(RenderContext& context)
@@ -353,14 +355,24 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
 
     std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geomDescs;
 
+    std::vector<CD3DX12_RESOURCE_BARRIER> toNonPixelTranitions;
+    std::vector<CD3DX12_RESOURCE_BARRIER> toIndexVertexTransitions;
+
     for (const auto mesh : m_gltfMesh->GetMeshes())
     {
+        toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+        toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+
+        toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_INDEX_BUFFER));
+        toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
         geomDesc.Triangles.IndexBuffer = mesh->GetIndexBufferGpuAddress();
         geomDesc.Triangles.IndexCount = mesh->GetIndexCount();
         geomDesc.Triangles.VertexCount = mesh->GetVertexCount();
         geomDesc.Triangles.VertexBuffer.StartAddress = mesh->GetVertexBufferGpuAddress();
         geomDescs.push_back(geomDesc);
     }
+    context.CommandList->ResourceBarrier(UINT(toNonPixelTranitions.size()), toNonPixelTranitions.data());
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 
@@ -388,7 +400,7 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
     assert(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
-    UnorderedAccessBuffer scratchBuffer{ context.CommandList, *context.Device, UINT(std::max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes)) };
+    m_scratchBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(std::max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes)));
 
     m_blas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
     m_blas->SetName(L"BottomLevelAccelerationStructure");
@@ -397,17 +409,18 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     m_tlas->SetName(L"TopLevelAccelerationStructure");
 
     D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
-    instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1; // todo check here
+    instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1; // todo check here for instancing
 
-    UploadBuffer instanceDescs{ *context.Device, sizeof(instanceDesc), false, 1 };
-    instanceDescs.UploadData(0, instanceDesc);
+    m_instanceDescs = new UploadBuffer{ *context.Device, sizeof(instanceDesc), false, 1 };
+    m_instanceDescs->SetName(L"InstanceDescs");
+    m_instanceDescs->UploadData(0, instanceDesc);
 
-    bottomLevelBuildDesc.ScratchAccelerationStructureData = scratchBuffer.GetGpuAddress();
-    bottomLevelBuildDesc.SourceAccelerationStructureData = m_blas->GetGpuAddress();
+    bottomLevelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
+    bottomLevelBuildDesc.DestAccelerationStructureData = m_blas->GetGpuAddress();
 
+    topLevelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
     topLevelBuildDesc.DestAccelerationStructureData = m_tlas->GetGpuAddress();
-    topLevelBuildDesc.ScratchAccelerationStructureData = scratchBuffer.GetGpuAddress();
-    topLevelBuildDesc.Inputs.InstanceDescs = instanceDescs.GetFrameDataGpuAddress(0);
+    topLevelBuildDesc.Inputs.InstanceDescs = m_instanceDescs->GetFrameDataGpuAddress(0);
 
     context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
     context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_blas->GetResource()));
@@ -415,6 +428,9 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
 
     context.Pipeline->ExecuteCommandList(context.CommandList);
     context.Pipeline->Flush();
+    context.Pipeline->ResetCommandList(context.CommandList);
+
+    context.CommandList->ResourceBarrier(UINT(toIndexVertexTransitions.size()), toIndexVertexTransitions.data());
 }
 
 void RtTester::BuildShaderTables(RenderContext& context)
