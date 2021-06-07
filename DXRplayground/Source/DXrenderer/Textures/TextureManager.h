@@ -37,6 +37,8 @@ public:
 
     ID3D12Resource* GetResource(UINT index) const;
 
+    void CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC desc);
+
 private:
     void CreateSRVHeap(RenderContext& ctx);
     void CreateRTVHeap(RenderContext& ctx);
@@ -52,6 +54,10 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvCubeHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap = nullptr;
+
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtSrvHeap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtUavHeap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_rtResource = nullptr;
 
     UINT m_currentTexCount = 0;
     UINT m_currentCubemapsCount = 0;
