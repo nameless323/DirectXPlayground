@@ -14,8 +14,8 @@ UploadBuffer::UploadBuffer(ID3D12Device& device, UINT elementSize, bool isConsta
 
     m_rawDataSize = static_cast<size_t>(elementSize);
     m_frameDataSize = m_isConstantBuffer ? GetConstantBufferByteSize(elementSize) : m_rawDataSize;
-    if (isRtShaderRecordBuffer)
-        m_frameDataSize = Align(elementSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+    //if (isRtShaderRecordBuffer)
+    //    m_frameDataSize = Align(elementSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
     m_bufferSize = framesCount * m_frameDataSize;
 

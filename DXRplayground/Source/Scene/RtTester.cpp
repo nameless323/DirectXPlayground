@@ -20,6 +20,13 @@
 namespace DirectxPlayground
 {
 
+namespace
+{
+static constexpr UINT AccelStructSlot = 0;
+static constexpr UINT DXROutputSlot = 1;
+static constexpr UINT SceneCBSlot = 2;
+}
+
 using Microsoft::WRL::ComPtr;
 
 RtTester::~RtTester()
@@ -28,10 +35,9 @@ RtTester::~RtTester()
     SafeDelete(m_camera);
     SafeDelete(m_cameraController);
     SafeDelete(m_objectCb);
-    SafeDelete(m_gltfMesh);
+    SafeDelete(m_helmet);
     SafeDelete(m_tonemapper);
     SafeDelete(m_lightManager);
-    SafeDelete(m_envMap);
     SafeDelete(m_floor);
     SafeDelete(m_floorMaterialCb);
     SafeDelete(m_floorTransformCb);
@@ -44,6 +50,7 @@ RtTester::~RtTester()
     SafeDelete(m_rayGenShaderTable);
     SafeDelete(m_instanceDescs);
     SafeDelete(m_scratchBuffer);
+    SafeDelete(m_rtSceneDataCB);
 }
 
 void RtTester::InitResources(RenderContext& context)
@@ -75,7 +82,6 @@ void RtTester::InitResources(RenderContext& context)
     m_lightManager = new LightManager(context);
 
     auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
-    m_envMap = new EnvironmentMap(context, path, 512, 512);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 5.70710678118f, 0.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 
@@ -94,7 +100,6 @@ void RtTester::Render(RenderContext& context)
 {
     m_cameraController->Update();
     UpdateGui(context);
-    m_envMap->ConvertToCubemap(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
@@ -102,7 +107,7 @@ void RtTester::Render(RenderContext& context)
     XMFLOAT4 camPos = m_camera->GetPosition();
     m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
     m_cameraCb->UploadData(frameIndex, m_cameraData);
-    m_gltfMesh->UpdateMeshes(frameIndex);
+    m_helmet->UpdateMeshes(frameIndex);
 
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
@@ -120,6 +125,7 @@ void RtTester::Render(RenderContext& context)
     context.CommandList->RSSetViewports(1, &viewport);
 
     DepthPrepass(context);
+    RaytraceShadows(context);
     RenderForwardObjects(context);
 
     m_tonemapper->Render(context);
@@ -145,7 +151,7 @@ void RtTester::DepthPrepass(RenderContext& context)
 
     if (m_drawHelmet)
     {
-        for (const auto mesh : m_gltfMesh->GetMeshes())
+        for (const auto mesh : m_helmet->GetMeshes())
         {
             context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
             context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
@@ -183,7 +189,7 @@ void RtTester::RenderForwardObjects(RenderContext& context)
 
     if (m_drawHelmet)
     {
-        for (const auto mesh : m_gltfMesh->GetMeshes())
+        for (const auto mesh : m_helmet->GetMeshes())
         {
             context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
 
@@ -209,7 +215,7 @@ void RtTester::RenderForwardObjects(RenderContext& context)
 void RtTester::LoadGeometry(RenderContext& context)
 {
     auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
-    m_gltfMesh = new Model(context, path);
+    m_helmet = new Model(context, path);
 
     std::vector<Vertex> verts;
     verts.resize(4);
@@ -273,6 +279,20 @@ void RtTester::UpdateGui(RenderContext& context)
 
 void RtTester::InitRaytracingPipeline(RenderContext& context)
 {
+    m_rtSceneDataCB = new UploadBuffer(*context.Device, sizeof(RtCb), true, context.FramesCount);
+
+    D3D12_RESOURCE_DESC resDesc = {};
+    resDesc.MipLevels = 1;
+    resDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    resDesc.Width = context.Width;
+    resDesc.Height = context.Height;
+    resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    resDesc.DepthOrArraySize = 1;
+    resDesc.SampleDesc.Count = 1;
+    resDesc.SampleDesc.Quality = 0;
+    resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+    context.TexManager->CreateDxrOutput(context, resDesc);
     CreateRtRootSigs(context);
     BuildAccelerationStructures(context);
     CreateRtPSO(context);
@@ -384,11 +404,15 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
     bottomLevelInputs.pGeometryDescs = geomDescs.data();
 
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
+    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
+    assert(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
+
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& topLevelInputs = topLevelBuildDesc.Inputs;
     topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     topLevelInputs.Flags = buildFlags;
-    topLevelInputs.NumDescs = 1;
+    topLevelInputs.NumDescs = 1; // How many blas?
     topLevelInputs.pGeometryDescs = nullptr;
     topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
@@ -396,10 +420,7 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
     assert(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
-    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
-    assert(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
-
+    // during build
     m_scratchBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(std::max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes)));
 
     m_blas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
@@ -410,6 +431,8 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
 
     D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
     instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1; // todo check here for instancing
+    instanceDesc.InstanceMask = 1;
+    instanceDesc.AccelerationStructure = m_blas->GetGpuAddress();
 
     m_instanceDescs = new UploadBuffer{ *context.Device, sizeof(instanceDesc), false, 1 };
     m_instanceDescs->SetName(L"InstanceDescs");
@@ -458,6 +481,53 @@ void RtTester::BuildShaderTables(RenderContext& context)
     m_hitGroupShaderTable = new UploadBuffer(*context.Device, shaderRecordSize, false, 1, true);
     m_hitGroupShaderTable->UploadData(0, hitGroupShaderIdentifier);
     m_hitGroupShaderTable->SetName(L"HitGroupShaderTable");
+}
+
+void RtTester::RaytraceShadows(RenderContext& context)
+{
+    XMMATRIX viewProj = XMLoadFloat4x4(&m_camera->GetViewProjection());
+    XMVECTOR det = XMMatrixDeterminant(viewProj);
+    XMMATRIX invViewProjSimd = XMMatrixInverse(&det, viewProj);
+    XMFLOAT4X4 invViewProj;
+    XMStoreFloat4x4(&invViewProj, XMMatrixTranspose(invViewProjSimd));
+    RtCb rtSceneData{};
+    rtSceneData.InvViewProj = invViewProj;
+    rtSceneData.CamPosition = m_camera->GetPosition();
+    m_rtSceneDataCB->UploadData(context.SwapChain->GetCurrentBackBufferIndex(), rtSceneData);
+
+    auto cmdList = context.CommandList;
+
+    auto transition = CD3DX12_RESOURCE_BARRIER::Transition(context.TexManager->GetDXRResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    context.CommandList->ResourceBarrier(1, &transition);
+
+    ID3D12DescriptorHeap* descHeaps[] = { context.TexManager->GetDXRUavHeap() };
+    cmdList->SetComputeRootSignature(m_rtGlobalRootSig.Get());
+    cmdList->SetDescriptorHeaps(1, descHeaps);
+    cmdList->SetComputeRootConstantBufferView(SceneCBSlot, m_rtSceneDataCB->GetFrameDataGpuAddress(context.SwapChain->GetCurrentBackBufferIndex()));
+    cmdList->SetComputeRootShaderResourceView(AccelStructSlot, m_tlas->GetGpuAddress());
+    cmdList->SetComputeRootDescriptorTable(DXROutputSlot, context.TexManager->GetDXRUavHeap()->GetGPUDescriptorHandleForHeapStart());
+
+    D3D12_DISPATCH_RAYS_DESC desc = {};
+    desc.Width = context.Width;
+    desc.Height = context.Height;
+    desc.Depth = 1;
+
+    desc.HitGroupTable.StartAddress = m_hitGroupShaderTable->GetFrameDataGpuAddress(0);
+    desc.HitGroupTable.SizeInBytes = m_hitGroupShaderTable->GetBufferSize();
+    desc.HitGroupTable.StrideInBytes = m_hitGroupShaderTable->GetBufferSize();
+
+    desc.MissShaderTable.StartAddress = m_missShaderTable->GetFrameDataGpuAddress(0);
+    desc.MissShaderTable.SizeInBytes = m_missShaderTable->GetBufferSize();
+    desc.MissShaderTable.StrideInBytes = m_missShaderTable->GetBufferSize();
+
+    desc.RayGenerationShaderRecord.StartAddress = m_rayGenShaderTable->GetFrameDataGpuAddress(0);
+    desc.RayGenerationShaderRecord.SizeInBytes = m_rayGenShaderTable->GetBufferSize();
+
+    cmdList->SetPipelineState1(m_dxrStateObject.Get());
+    cmdList->DispatchRays(&desc);
+
+    transition = CD3DX12_RESOURCE_BARRIER::Transition(context.TexManager->GetDXRResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    context.CommandList->ResourceBarrier(1, &transition);
 }
 
 }

@@ -26,6 +26,9 @@ public:
     D3D12_GPU_VIRTUAL_ADDRESS GetFrameDataGpuAddress(UINT frame) const;
     void SetName(const std::wstring& name);
 
+    size_t GetFrameDataSize() const;
+    size_t GetBufferSize() const;
+
 private:
     bool m_isConstantBuffer = false;
     size_t m_frameDataSize = 0;
@@ -48,6 +51,16 @@ void UploadBuffer::UploadData(UINT frameIndex, T& data)
 inline void UploadBuffer::SetName(const std::wstring& name)
 {
     SetDXobjectName(m_resource.Get(), name.c_str());
+}
+
+inline size_t UploadBuffer::GetFrameDataSize() const
+{
+    return m_frameDataSize;
+}
+
+inline size_t UploadBuffer::GetBufferSize() const
+{
+    return m_bufferSize;
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -33,6 +33,19 @@ public:
     ID3D12DescriptorHeap* GetCubemapHeap() const;
     ID3D12DescriptorHeap* GetCubemapUAVHeap() const;
 
+    ID3D12DescriptorHeap* GetDXRUavHeap() const
+    {
+        return m_rtUavHeap.Get();
+    }
+    ID3D12DescriptorHeap* GetDXRSrvHeap() const
+    {
+        return m_rtSrvHeap.Get();
+    }
+    ID3D12Resource* GetDXRResource() const
+    {
+        return m_rtResource.Get();
+    }
+
     D3D12_CPU_DESCRIPTOR_HANDLE GetRtHandle(RenderContext& ctx, UINT index) const;
 
     ID3D12Resource* GetResource(UINT index) const;
@@ -55,9 +68,11 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvCubeHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap = nullptr;
 
+    // DXR
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtSrvHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtUavHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_rtResource = nullptr;
+    //
 
     UINT m_currentTexCount = 0;
     UINT m_currentCubemapsCount = 0;

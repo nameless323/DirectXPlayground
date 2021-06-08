@@ -53,9 +53,10 @@ private:
     void CreateRtPSO(RenderContext& context);
     void BuildAccelerationStructures(RenderContext& context);
     void BuildShaderTables(RenderContext& context);
+    void RaytraceShadows(RenderContext& context);
     //
 
-    Model* m_gltfMesh = nullptr;
+    Model* m_helmet = nullptr;
     Model* m_floor = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
     UploadBuffer* m_cameraCb = nullptr;
@@ -70,7 +71,6 @@ private:
     CameraController* m_cameraController = nullptr;
     Tonemapper* m_tonemapper = nullptr;
     LightManager* m_lightManager = nullptr;
-    EnvironmentMap* m_envMap = nullptr;
     UINT m_directionalLightInd = 0;
     CameraShaderData m_cameraData{};
 
@@ -79,6 +79,13 @@ private:
     bool m_useRasterizer = true;
 
     // rt
+    struct RtCb
+    {
+        XMFLOAT4X4 InvViewProj;
+        XMFLOAT4 CamPosition;
+    };
+
+    UploadBuffer* m_rtSceneDataCB = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtGlobalRootSig;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtLocalRootSig;
     Microsoft::WRL::ComPtr<ID3D12StateObject> m_dxrStateObject;

@@ -207,7 +207,7 @@ void TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC des
     ThrowIfFailed(ctx.Device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
         D3D12_HEAP_FLAG_NONE,
         &desc,
-        D3D12_RESOURCE_STATE_COMMON,
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
         nullptr,
         IID_PPV_ARGS(&m_rtResource)));
 
