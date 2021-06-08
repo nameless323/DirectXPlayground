@@ -230,5 +230,8 @@
     <ClInclude Include="Source\Scene\RtTester.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\DXrenderer\DirectXRaytracingHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

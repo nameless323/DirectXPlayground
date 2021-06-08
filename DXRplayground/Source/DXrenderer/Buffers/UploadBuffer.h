@@ -29,6 +29,12 @@ public:
     size_t GetFrameDataSize() const;
     size_t GetBufferSize() const;
 
+    void Unmap()
+    {
+        if (m_resource != nullptr)
+            m_resource->Unmap(0, nullptr);
+    }
+
 private:
     bool m_isConstantBuffer = false;
     size_t m_frameDataSize = 0;

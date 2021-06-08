@@ -101,6 +101,5 @@ private:
     Shader m_missShader;
     UnorderedAccessBuffer* m_blas = nullptr;
     UnorderedAccessBuffer* m_tlas = nullptr;
-    //
 };
 }

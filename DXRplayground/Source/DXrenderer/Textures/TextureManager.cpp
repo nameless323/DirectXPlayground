@@ -219,6 +219,7 @@ void TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC des
     uavHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     uavHeapDesc.NumDescriptors = 1;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&uavHeapDesc, IID_PPV_ARGS(&m_rtUavHeap)));
+    SetDXobjectName(m_rtUavHeap.Get(), L"RT_UAV_HEAP");
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
     uavDesc.Format = m_rtResource->GetDesc().Format;
@@ -232,6 +233,7 @@ void TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC des
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     heapDesc.NumDescriptors = 1;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_rtSrvHeap)));
+    SetDXobjectName(m_rtSrvHeap.Get(), L"RT_SRV_HEAP");
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

@@ -31,7 +31,6 @@ void GenerateCameraRay(uint2 index, out float3 origin, out float3 direction)
 [shader("raygeneration")]
 void Raygen()
 {
-    /*return;
     float3 rayDir;
     float3 origin;
 
@@ -42,27 +41,27 @@ void Raygen()
     ray.Direction = rayDir;
 
     ray.TMin = 0.0001f;
-    ray.TMax = 10000.0f;
+    ray.TMax = 100000.0f;
 
     RayPayload payload = { float4(0.0f, 0.0f, 0.0f, 0.0f) };
     TraceRay(Scene, // What bvh
-             RAY_FLAG_CULL_BACK_FACING_TRIANGLES, // optimization params https://docs.microsoft.com/en-us/windows/win32/direct3d12/ray_flag
-             ~0, // Instance mask. 0xFF to test against everything. See D3D12_RAYTRACING_INSTANCE_DESC when creating blas
-              0, 1, 0, // Shaders. HitGrop, NumHitGroups, MissShader. Hit group includes hit shader and geom. So for shadows one, for reflections another, primary rays another one
+             RAY_FLAG_FORCE_OPAQUE, // optimization params https://docs.microsoft.com/en-us/windows/win32/direct3d12/ray_flag
+              0xFF, // Instance mask. 0xFF to test against everything. See D3D12_RAYTRACING_INSTANCE_DESC when creating blas
+              0, 1, 0, // Shaders: HitGrop, NumHitGroups, MissShader. Hit group includes hit shader and geom. So for shadows one, for reflections another, primary rays another one
               ray,
               payload);
 
-    //RenderTarget[DispatchRaysIndex().xy] = payload.color;*/
+    RenderTarget[DispatchRaysIndex().xy] = payload.color;// float4(DispatchRaysIndex().xy, DispatchRaysDimensions().xy);// payload.color;
 }
 
 [shader("closesthit")]
 void ClosestHit(inout RayPayload payload, in Attributes attr)
 {
-    //payload.color = float4(0.0f, 0.0f, 1.0f, 1.0f);
+    payload.color = float4(0.0f, 0.0f, 1.0f, 1.0f);
 }
 
 [shader("miss")]
 void Miss(inout RayPayload payload)
 {
-    //payload.color = float4(1.0f, 0.0f, 0.0f, 1.0f);
+    payload.color = float4(1.0f, 0.0f, 0.0f, 1.0f);
 }

@@ -176,6 +176,7 @@
     <ClInclude Include="Source\CameraController.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\HeapBuffer.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\UploadBuffer.h" />
+    <ClInclude Include="Source\DXrenderer\DirectXRaytracingHelper.h" />
     <ClInclude Include="Source\DXrenderer\DXhelpers.h" />
     <ClInclude Include="Source\DXrenderer\Textures\EnvironmentMap.h" />
     <ClInclude Include="Source\DXrenderer\Light.h" />
