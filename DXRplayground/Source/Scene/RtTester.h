@@ -56,7 +56,7 @@ private:
     void RaytraceShadows(RenderContext& context);
     //
 
-    Model* m_helmet = nullptr;
+    Model* m_suzanne = nullptr;
     Model* m_floor = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
     UploadBuffer* m_cameraCb = nullptr;
@@ -74,8 +74,8 @@ private:
     UINT m_directionalLightInd = 0;
     CameraShaderData m_cameraData{};
 
-    bool m_drawFloor = false;
-    bool m_drawHelmet = true;
+    bool m_drawFloor = true;
+    bool m_drawSuzanne = true;
     bool m_useRasterizer = true;
 
     // rt
@@ -99,7 +99,8 @@ private:
     Shader m_rayGenShader;
     Shader m_closestHitShader;
     Shader m_missShader;
-    UnorderedAccessBuffer* m_blas = nullptr;
+    UnorderedAccessBuffer* m_modelBlas = nullptr;
+    UnorderedAccessBuffer* m_floorBlas = nullptr;
     UnorderedAccessBuffer* m_tlas = nullptr;
 };
 }

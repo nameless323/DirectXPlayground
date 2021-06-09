@@ -35,7 +35,7 @@ RtTester::~RtTester()
     SafeDelete(m_camera);
     SafeDelete(m_cameraController);
     SafeDelete(m_objectCb);
-    SafeDelete(m_helmet);
+    SafeDelete(m_suzanne);
     SafeDelete(m_tonemapper);
     SafeDelete(m_lightManager);
     SafeDelete(m_floor);
@@ -44,7 +44,8 @@ RtTester::~RtTester()
 
     // dxr
     SafeDelete(m_tlas);
-    SafeDelete(m_blas);
+    SafeDelete(m_modelBlas);
+    SafeDelete(m_floorBlas);
     SafeDelete(m_missShaderTable);
     SafeDelete(m_hitGroupShaderTable);
     SafeDelete(m_rayGenShaderTable);
@@ -62,7 +63,7 @@ void RtTester::InitResources(RenderContext& context)
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, 1);
 
     XMFLOAT4X4 toWorld;
-    XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
+    XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 2.0f, 3.0f)));
     m_objectCb->UploadData(0, toWorld);
 
     m_floorTransformCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
@@ -107,7 +108,7 @@ void RtTester::Render(RenderContext& context)
     XMFLOAT4 camPos = m_camera->GetPosition();
     m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
     m_cameraCb->UploadData(frameIndex, m_cameraData);
-    m_helmet->UpdateMeshes(frameIndex);
+    m_suzanne->UpdateMeshes(frameIndex);
 
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
@@ -149,9 +150,9 @@ void RtTester::DepthPrepass(RenderContext& context)
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), m_cameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_objectCb->GetFrameDataGpuAddress(0));
 
-    if (m_drawHelmet)
+    if (m_drawSuzanne)
     {
-        for (const auto mesh : m_helmet->GetMeshes())
+        for (const auto mesh : m_suzanne->GetMeshes())
         {
             context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
             context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
@@ -187,9 +188,9 @@ void RtTester::RenderForwardObjects(RenderContext& context)
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), m_lightManager->GetLightsBufferGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
-    if (m_drawHelmet)
+    if (m_drawSuzanne)
     {
-        for (const auto mesh : m_helmet->GetMeshes())
+        for (const auto mesh : m_suzanne->GetMeshes())
         {
             context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
 
@@ -214,8 +215,8 @@ void RtTester::RenderForwardObjects(RenderContext& context)
 
 void RtTester::LoadGeometry(RenderContext& context)
 {
-    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
-    m_helmet = new Model(context, path);
+    auto path = ASSETS_DIR + std::string("Models//Suzanne//glTF//Suzanne.gltf");
+    m_suzanne = new Model(context, path);
 
     std::vector<Vertex> verts;
     verts.resize(4);
@@ -270,7 +271,7 @@ void RtTester::UpdateGui(RenderContext& context)
     ImGui::Text("");
     ImGui::Text("Rasterizer");
     ImGui::Checkbox("Use Rasterizer", &m_useRasterizer);
-    ImGui::Checkbox("Draw Helmet", &m_drawHelmet);
+    ImGui::Checkbox("Draw Suzanne", &m_drawSuzanne);
     ImGui::Checkbox("Draw Floor", &m_drawFloor);
     ImGui::End();
 
@@ -325,118 +326,6 @@ void RtTester::CreateRtRootSigs(RenderContext& context)
     // think about local root sig
 }
 
-// Pretty-print a state object tree.
-inline void PrintStateObjectDesc(const D3D12_STATE_OBJECT_DESC* desc)
-{
-    std::wstringstream wstr;
-    wstr << L"\n";
-    wstr << L"--------------------------------------------------------------------\n";
-    wstr << L"| D3D12 State Object 0x" << static_cast<const void*>(desc) << L": ";
-    if (desc->Type == D3D12_STATE_OBJECT_TYPE_COLLECTION) wstr << L"Collection\n";
-    if (desc->Type == D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE) wstr << L"Raytracing Pipeline\n";
-
-    auto ExportTree = [](UINT depth, UINT numExports, const D3D12_EXPORT_DESC* exports)
-    {
-        std::wostringstream woss;
-        for (UINT i = 0; i < numExports; i++)
-        {
-            woss << L"|";
-            if (depth > 0)
-            {
-                for (UINT j = 0; j < 2 * depth - 1; j++) woss << L" ";
-            }
-            woss << L" [" << i << L"]: ";
-            if (exports[i].ExportToRename) woss << exports[i].ExportToRename << L" --> ";
-            woss << exports[i].Name << L"\n";
-        }
-        return woss.str();
-    };
-
-    for (UINT i = 0; i < desc->NumSubobjects; i++)
-    {
-        wstr << L"| [" << i << L"]: ";
-        switch (desc->pSubobjects[i].Type)
-        {
-        case D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE:
-            wstr << L"Global Root Signature 0x" << desc->pSubobjects[i].pDesc << L"\n";
-            break;
-        case D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE:
-            wstr << L"Local Root Signature 0x" << desc->pSubobjects[i].pDesc << L"\n";
-            break;
-        case D3D12_STATE_SUBOBJECT_TYPE_NODE_MASK:
-            wstr << L"Node Mask: 0x" << std::hex << std::setfill(L'0') << std::setw(8) << *static_cast<const UINT*>(desc->pSubobjects[i].pDesc) << std::setw(0) << std::dec << L"\n";
-            break;
-        case D3D12_STATE_SUBOBJECT_TYPE_DXIL_LIBRARY:
-        {
-            wstr << L"DXIL Library 0x";
-            auto lib = static_cast<const D3D12_DXIL_LIBRARY_DESC*>(desc->pSubobjects[i].pDesc);
-            wstr << lib->DXILLibrary.pShaderBytecode << L", " << lib->DXILLibrary.BytecodeLength << L" bytes\n";
-            wstr << ExportTree(1, lib->NumExports, lib->pExports);
-            break;
-        }
-        case D3D12_STATE_SUBOBJECT_TYPE_EXISTING_COLLECTION:
-        {
-            wstr << L"Existing Library 0x";
-            auto collection = static_cast<const D3D12_EXISTING_COLLECTION_DESC*>(desc->pSubobjects[i].pDesc);
-            wstr << collection->pExistingCollection << L"\n";
-            wstr << ExportTree(1, collection->NumExports, collection->pExports);
-            break;
-        }
-        case D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION:
-        {
-            wstr << L"Subobject to Exports Association (Subobject [";
-            auto association = static_cast<const D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION*>(desc->pSubobjects[i].pDesc);
-            UINT index = static_cast<UINT>(association->pSubobjectToAssociate - desc->pSubobjects);
-            wstr << index << L"])\n";
-            for (UINT j = 0; j < association->NumExports; j++)
-            {
-                wstr << L"|  [" << j << L"]: " << association->pExports[j] << L"\n";
-            }
-            break;
-        }
-        case D3D12_STATE_SUBOBJECT_TYPE_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION:
-        {
-            wstr << L"DXIL Subobjects to Exports Association (";
-            auto association = static_cast<const D3D12_DXIL_SUBOBJECT_TO_EXPORTS_ASSOCIATION*>(desc->pSubobjects[i].pDesc);
-            wstr << association->SubobjectToAssociate << L")\n";
-            for (UINT j = 0; j < association->NumExports; j++)
-            {
-                wstr << L"|  [" << j << L"]: " << association->pExports[j] << L"\n";
-            }
-            break;
-        }
-        case D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_SHADER_CONFIG:
-        {
-            wstr << L"Raytracing Shader Config\n";
-            auto config = static_cast<const D3D12_RAYTRACING_SHADER_CONFIG*>(desc->pSubobjects[i].pDesc);
-            wstr << L"|  [0]: Max Payload Size: " << config->MaxPayloadSizeInBytes << L" bytes\n";
-            wstr << L"|  [1]: Max Attribute Size: " << config->MaxAttributeSizeInBytes << L" bytes\n";
-            break;
-        }
-        case D3D12_STATE_SUBOBJECT_TYPE_RAYTRACING_PIPELINE_CONFIG:
-        {
-            wstr << L"Raytracing Pipeline Config\n";
-            auto config = static_cast<const D3D12_RAYTRACING_PIPELINE_CONFIG*>(desc->pSubobjects[i].pDesc);
-            wstr << L"|  [0]: Max Recursion Depth: " << config->MaxTraceRecursionDepth << L"\n";
-            break;
-        }
-        case D3D12_STATE_SUBOBJECT_TYPE_HIT_GROUP:
-        {
-            wstr << L"Hit Group (";
-            auto hitGroup = static_cast<const D3D12_HIT_GROUP_DESC*>(desc->pSubobjects[i].pDesc);
-            wstr << (hitGroup->HitGroupExport ? hitGroup->HitGroupExport : L"[none]") << L")\n";
-            wstr << L"|  [0]: Any Hit Import: " << (hitGroup->AnyHitShaderImport ? hitGroup->AnyHitShaderImport : L"[none]") << L"\n";
-            wstr << L"|  [1]: Closest Hit Import: " << (hitGroup->ClosestHitShaderImport ? hitGroup->ClosestHitShaderImport : L"[none]") << L"\n";
-            wstr << L"|  [2]: Intersection Import: " << (hitGroup->IntersectionShaderImport ? hitGroup->IntersectionShaderImport : L"[none]") << L"\n";
-            break;
-        }
-        }
-        wstr << L"|--------------------------------------------------------------------\n";
-    }
-    wstr << L"\n";
-    OutputDebugStringW(wstr.str().c_str());
-}
-
 void RtTester::CreateRtPSO(RenderContext& context)
 {
     CD3DX12_STATE_OBJECT_DESC rtPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
@@ -453,9 +342,11 @@ void RtTester::CreateRtPSO(RenderContext& context)
     lib->DefineExport(L"Raygen");
     lib->DefineExport(L"ClosestHit");
     lib->DefineExport(L"Miss");
+    lib->DefineExport(L"AnyHit");
 
     CD3DX12_HIT_GROUP_SUBOBJECT* hitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
     hitGroup->SetClosestHitShaderImport(L"ClosestHit");
+    hitGroup->SetAnyHitShaderImport(L"AnyHit");
     hitGroup->SetHitGroupExport(L"TriangleHitGroup");
     hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
@@ -468,10 +359,8 @@ void RtTester::CreateRtPSO(RenderContext& context)
     globalRootSig->SetRootSignature(m_rtGlobalRootSig.Get());
 
     CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT* pipelineConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-    UINT maxRecursionDepth = 1;
+    UINT maxRecursionDepth = 2;
     pipelineConfig->Config(maxRecursionDepth);
-
-    PrintStateObjectDesc(rtPipeline);
 
     ThrowIfFailed(context.Device->CreateStateObject(rtPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create raytracing state object.\n");
 }
@@ -486,12 +375,14 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     geomDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
     geomDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 
+    // Build Suzanne
+
     std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geomDescs;
 
     std::vector<CD3DX12_RESOURCE_BARRIER> toNonPixelTranitions;
     std::vector<CD3DX12_RESOURCE_BARRIER> toIndexVertexTransitions;
 
-    for (const auto mesh : m_helmet->GetMeshes())
+    for (const auto mesh : m_suzanne->GetMeshes())
     {
         toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
         toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
@@ -505,27 +396,54 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
         geomDesc.Triangles.VertexBuffer.StartAddress = mesh->GetVertexBufferGpuAddress();
         geomDescs.push_back(geomDesc);
     }
-    context.CommandList->ResourceBarrier(UINT(toNonPixelTranitions.size()), toNonPixelTranitions.data());
 
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
 
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelBuildDesc = {};
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelInputs = bottomLevelBuildDesc.Inputs;
-    bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    bottomLevelInputs.Flags = buildFlags;
-    bottomLevelInputs.NumDescs = UINT(geomDescs.size());
-    bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-    bottomLevelInputs.pGeometryDescs = geomDescs.data();
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelModelBuildDesc = {};
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelModelInputs = bottomLevelModelBuildDesc.Inputs;
+    bottomLevelModelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    bottomLevelModelInputs.Flags = buildFlags;
+    bottomLevelModelInputs.NumDescs = UINT(geomDescs.size());
+    bottomLevelModelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+    bottomLevelModelInputs.pGeometryDescs = geomDescs.data();
 
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
-    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
-    assert(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelModelPrebuildInfo = {};
+    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelModelInputs, &bottomLevelModelPrebuildInfo);
+    assert(bottomLevelModelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
+    //
+    // floor
+    const Model::Mesh* floorMesh = m_floor->GetMeshes()[0];
+    toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(floorMesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+    toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(floorMesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+
+    toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(floorMesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_INDEX_BUFFER));
+    toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(floorMesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+
+    D3D12_RAYTRACING_GEOMETRY_DESC floorGeomDesc = geomDesc;
+    floorGeomDesc.Triangles.IndexBuffer = floorMesh->GetIndexBufferGpuAddress();
+    floorGeomDesc.Triangles.IndexCount = floorMesh->GetIndexCount();
+    floorGeomDesc.Triangles.VertexCount = floorMesh->GetVertexCount();
+    floorGeomDesc.Triangles.VertexBuffer.StartAddress = floorMesh->GetVertexBufferGpuAddress();
+
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelFloorBuildDesc = {};
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelFloorInputs = bottomLevelFloorBuildDesc.Inputs;
+    bottomLevelFloorInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    bottomLevelFloorInputs.Flags = buildFlags;
+    bottomLevelFloorInputs.NumDescs = 1;
+    bottomLevelFloorInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+    bottomLevelFloorInputs.pGeometryDescs = &floorGeomDesc;
+
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelFloorPrebuildInfo = {};
+    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelFloorInputs, &bottomLevelFloorPrebuildInfo);
+    assert(bottomLevelFloorPrebuildInfo.ResultDataMaxSizeInBytes > 0);
+    //
+    context.CommandList->ResourceBarrier(UINT(toNonPixelTranitions.size()), toNonPixelTranitions.data());
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& topLevelInputs = topLevelBuildDesc.Inputs;
     topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     topLevelInputs.Flags = buildFlags;
-    topLevelInputs.NumDescs = 1; // How many blas?
+    topLevelInputs.NumDescs = 3; // 2 suzanne + floor
     topLevelInputs.pGeometryDescs = nullptr;
     topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
@@ -534,38 +452,66 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     assert(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
     // during build
-    m_scratchBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(std::max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelPrebuildInfo.ScratchDataSizeInBytes)));
+    m_scratchBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(std::max(std::max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelModelPrebuildInfo.ScratchDataSizeInBytes), bottomLevelFloorPrebuildInfo.ScratchDataSizeInBytes)));
 
     D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 
-    m_blas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
-    m_blas->SetName(L"BottomLevelAccelerationStructure");
+    m_modelBlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelModelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
+    m_modelBlas->SetName(L"BottomLevelSuzanneAccelerationStructure");
+
+    m_floorBlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelFloorPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
+    m_floorBlas->SetName(L"BottomLevelFloorAccelerationStructure");
 
     m_tlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(topLevelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
     m_tlas->SetName(L"TopLevelAccelerationStructure");
 
+    std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescriptors;
+
     D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
-    instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1; // todo check here for instancing
+    instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1; // instancing
+    instanceDesc.Transform[1][3] = 2;
     instanceDesc.Transform[2][3] = 3;
     instanceDesc.InstanceMask = 1;
-    instanceDesc.AccelerationStructure = m_blas->GetGpuAddress();
-    //MsHelper::AllocateUploadBuffer(context.Device, &instanceDesc, sizeof(instanceDesc), &instanceDescs, L"InstanceDescs");
+    instanceDesc.AccelerationStructure = m_modelBlas->GetGpuAddress();
+    instanceDesc.Flags = 0;
+    instanceDesc.InstanceID = 0;
+    instanceDesc.InstanceContributionToHitGroupIndex = 0;
+    instanceDescriptors.push_back(instanceDesc);
+    instanceDesc.Transform[0][3] = 5;
+    instanceDescriptors.push_back(instanceDesc);
 
-    m_instanceDescs = new UploadBuffer{ *context.Device, sizeof(instanceDesc), false, 1 };
+    D3D12_RAYTRACING_INSTANCE_DESC floorInstanceDesc = {};
+    floorInstanceDesc.Transform[0][0] = floorInstanceDesc.Transform[1][1] = floorInstanceDesc.Transform[2][2] = 1;
+    floorInstanceDesc.InstanceMask = 2;
+    floorInstanceDesc.AccelerationStructure = m_floorBlas->GetGpuAddress();
+    floorInstanceDesc.Flags = 0;
+    floorInstanceDesc.InstanceID = 0;
+    floorInstanceDesc.InstanceContributionToHitGroupIndex = 0;
+    instanceDescriptors.push_back(floorInstanceDesc);
+
+    m_instanceDescs = new UploadBuffer{ *context.Device, sizeof(instanceDesc) * UINT(instanceDescriptors.size()), false, 1 };
     m_instanceDescs->SetName(L"InstanceDescs");
-    m_instanceDescs->UploadData(0, instanceDesc);
+    m_instanceDescs->UploadData(0, reinterpret_cast<byte*>(instanceDescriptors.data()));
 
-    bottomLevelBuildDesc.Inputs = bottomLevelInputs; // useless
-    bottomLevelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
-    bottomLevelBuildDesc.DestAccelerationStructureData = m_blas->GetGpuAddress();
+    bottomLevelModelBuildDesc.Inputs = bottomLevelModelInputs; // useless
+    bottomLevelModelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
+    bottomLevelModelBuildDesc.DestAccelerationStructureData = m_modelBlas->GetGpuAddress();
+
+    bottomLevelFloorBuildDesc.Inputs = bottomLevelFloorInputs; // useless
+    bottomLevelFloorBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
+    bottomLevelFloorBuildDesc.DestAccelerationStructureData = m_floorBlas->GetGpuAddress();
 
     topLevelBuildDesc.Inputs = topLevelInputs; // useless
     topLevelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
     topLevelBuildDesc.DestAccelerationStructureData = m_tlas->GetGpuAddress();
     topLevelBuildDesc.Inputs.InstanceDescs = m_instanceDescs->GetFrameDataGpuAddress(0);
 
-    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelBuildDesc, 0, nullptr);
-    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_blas->GetResource()));
+    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelModelBuildDesc, 0, nullptr);
+    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_modelBlas->GetResource()));
+
+    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelFloorBuildDesc, 0, nullptr);
+    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_floorBlas->GetResource()));
+
     context.CommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
 
     //context.Pipeline->ExecuteCommandList(context.CommandList);
