@@ -31,10 +31,16 @@ struct CbLight
     uint UsedLights;
 };
 
+struct CbShadowMap
+{
+    uint idx;
+};
+
 ConstantBuffer<CbCamera> cbCamera : register(b0);
 ConstantBuffer<CbObject> cbObject : register(b1);
 ConstantBuffer<CbMaterial> cbMaterial : register(b2);
 ConstantBuffer<CbLight> cbLight : register(b3);
+ConstantBuffer<CbShadowMap> cbShadowMap : register(b4);
 
 Texture2D<float4> Textures[10000] : register(t0);
 
@@ -76,7 +82,7 @@ float4 ps(vOut pIn) : SV_Target
 {
     float2 shadowUv = (pIn.projPos.xy / pIn.projPos.w) * 0.5f + 0.5f;
     shadowUv.y = 1.0f - shadowUv.y;
-    float shadow = Textures[3].Sample(LinearWrapSampler, shadowUv).x; // ololo
+    float shadow = Textures[cbShadowMap.idx].Sample(LinearWrapSampler, shadowUv).x; // ololo
 
     float4 albedo = cbMaterial.Albedo;
     float metallness = cbMaterial.Metallness;

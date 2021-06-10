@@ -79,6 +79,7 @@ private:
     bool m_useRasterizer = true;
 
     // rt
+    UploadBuffer* m_shadowMapCB = nullptr;
     struct RtCb
     {
         XMFLOAT4X4 InvViewProj;

@@ -52,6 +52,7 @@ RtTester::~RtTester()
     SafeDelete(m_instanceDescs);
     SafeDelete(m_scratchBuffer);
     SafeDelete(m_rtSceneDataCB);
+    SafeDelete(m_shadowMapCB);
 }
 
 void RtTester::InitResources(RenderContext& context)
@@ -165,6 +166,7 @@ void RtTester::DepthPrepass(RenderContext& context)
     if (m_drawFloor)
     {
         context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_floorTransformCb->GetFrameDataGpuAddress(frameIndex));
+        context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(4), m_shadowMapCB->GetFrameDataGpuAddress(0));
         context.CommandList->IASetVertexBuffers(0, 1, &m_floor->GetVertexBufferView());
         context.CommandList->IASetIndexBuffer(&m_floor->GetIndexBufferView());
         context.CommandList->DrawIndexedInstanced(m_floor->GetIndexCount(), 1, 0, 0, 0);
@@ -281,6 +283,7 @@ void RtTester::UpdateGui(RenderContext& context)
 void RtTester::InitRaytracingPipeline(RenderContext& context)
 {
     m_rtSceneDataCB = new UploadBuffer(*context.Device, sizeof(RtCb), true, context.FramesCount);
+    m_shadowMapCB = new UploadBuffer(*context.Device, sizeof(UINT), true, 1);
 
     D3D12_RESOURCE_DESC resDesc = {};
     resDesc.MipLevels = 1;
@@ -294,6 +297,7 @@ void RtTester::InitRaytracingPipeline(RenderContext& context)
     resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
     m_shadowMapIndex = context.TexManager->CreateDxrOutput(context, resDesc);
+    m_shadowMapCB->UploadData(0, m_shadowMapIndex);
 
     CreateRtRootSigs(context);
     BuildAccelerationStructures(context);
