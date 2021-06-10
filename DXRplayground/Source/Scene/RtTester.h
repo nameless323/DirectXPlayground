@@ -79,17 +79,18 @@ private:
     bool m_useRasterizer = true;
 
     // rt
+    static constexpr UINT RootDescriptorSize = 8;
     UploadBuffer* m_shadowMapCB = nullptr;
+    UploadBuffer* m_rtShadowRaysBuffer = nullptr;
     struct RtCb
     {
         XMFLOAT4X4 InvViewProj;
         XMFLOAT4 CamPosition;
-        XMFLOAT4 LightPosition;
     };
 
     UploadBuffer* m_rtSceneDataCB = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtGlobalRootSig;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtLocalRootSig;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_shadowLocalRootSig;
     Microsoft::WRL::ComPtr<ID3D12StateObject> m_dxrStateObject;
 
     UploadBuffer* m_missShaderTable = nullptr;
@@ -98,6 +99,7 @@ private:
     UploadBuffer* m_instanceDescs = nullptr; // todo: after flush should be ok to delete, but it's not.
     UnorderedAccessBuffer* m_scratchBuffer = nullptr; // todo: same shit as above
     UINT m_shadowMapIndex = 0;
+    UINT m_hitGroupStride = 0;
 
     Shader m_rayGenShader;
     Shader m_closestHitShader;

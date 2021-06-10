@@ -53,6 +53,7 @@ RtTester::~RtTester()
     SafeDelete(m_scratchBuffer);
     SafeDelete(m_rtSceneDataCB);
     SafeDelete(m_shadowMapCB);
+    SafeDelete(m_rtShadowRaysBuffer);
 }
 
 void RtTester::InitResources(RenderContext& context)
@@ -284,6 +285,7 @@ void RtTester::InitRaytracingPipeline(RenderContext& context)
 {
     m_rtSceneDataCB = new UploadBuffer(*context.Device, sizeof(RtCb), true, context.FramesCount);
     m_shadowMapCB = new UploadBuffer(*context.Device, sizeof(UINT), true, 1);
+    m_rtShadowRaysBuffer = new UploadBuffer(*context.Device, sizeof(XMFLOAT4), true, 1);
 
     D3D12_RESOURCE_DESC resDesc = {};
     resDesc.MipLevels = 1;
@@ -327,7 +329,14 @@ void RtTester::CreateRtRootSigs(RenderContext& context)
     ThrowIfFailed(D3D12SerializeRootSignature(&globalRootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, &error), error ? static_cast<wchar_t*>(error->GetBufferPointer()) : nullptr);
     ThrowIfFailed(context.Device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&m_rtGlobalRootSig)));
 
-    // think about local root sig
+    // dont overlap buffers
+    CD3DX12_ROOT_PARAMETER localRootParams[1]{};
+    localRootParams[0].InitAsConstantBufferView(0, 1);
+    CD3DX12_ROOT_SIGNATURE_DESC localRootSigDesc(1, localRootParams);
+    localRootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+
+    ThrowIfFailed(D3D12SerializeRootSignature(&localRootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, &error), error ? static_cast<wchar_t*>(error->GetBufferPointer()) : nullptr);
+    ThrowIfFailed(context.Device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&m_shadowLocalRootSig)));
 }
 
 void RtTester::CreateRtPSO(RenderContext& context)
@@ -366,6 +375,13 @@ void RtTester::CreateRtPSO(RenderContext& context)
     UINT payloadSize = sizeof(XMFLOAT4); // float4 color
     UINT attribSize = sizeof(XMFLOAT2); //float2 barycentrics. default for trigs
     shaderConfig->Config(payloadSize, attribSize);
+
+    CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT* localRootSig = rtPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+    localRootSig->SetRootSignature(m_shadowLocalRootSig.Get());
+
+    CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT* localRootSigAssociation = rtPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+    localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
+    localRootSigAssociation->AddExport(L"TriangleHitGroup");
 
     CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT* globalRootSig = rtPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
     globalRootSig->SetRootSignature(m_rtGlobalRootSig.Get());
@@ -555,18 +571,22 @@ void RtTester::BuildShaderTables(RenderContext& context)
     m_rayGenShaderTable->UploadData(0, reinterpret_cast<byte*>(rayGenShaderIdentifier));
     m_rayGenShaderTable->SetName(L"RayGenShaderTable");
 
-    struct HitGropus
-    {
-        byte hitgroup[D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES];
-        byte shadowHitgroup[D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES];
-    } hitGropus;
-    memcpy(&hitGropus.hitgroup, hitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
-    memcpy(&hitGropus.shadowHitgroup, shadowHitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    UINT hitGroupShaderRecordSize = Align(shaderIdentifierSize + sizeof(D3D12_GPU_VIRTUAL_ADDRESS), D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
+    m_hitGroupStride = hitGroupShaderRecordSize;
+    std::vector<byte> hitGroups;
+    hitGroups.resize(size_t(hitGroupShaderRecordSize) * 2UL); // hit group for primary rays + hit group for shadow rays
+    byte* data = hitGroups.data();
+    // local root sig - 1cb. shader record + cb
+    memcpy(data, hitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    D3D12_GPU_VIRTUAL_ADDRESS cbAddress = m_rtShadowRaysBuffer->GetFrameDataGpuAddress(0);
+    memcpy(data + D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES, &cbAddress, sizeof(D3D12_GPU_VIRTUAL_ADDRESS));
 
-    m_hitGroupShaderTable = new UploadBuffer(*context.Device, sizeof(hitGropus), false, 1, true);
-    m_hitGroupShaderTable->UploadData(0, hitGropus);
+    // no local root sig
+    memcpy(data + hitGroupShaderRecordSize, shadowHitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+    m_hitGroupShaderTable = new UploadBuffer(*context.Device, hitGroupShaderRecordSize * 2, false, 1, true);
+    m_hitGroupShaderTable->UploadData(0, reinterpret_cast<const byte*>(data));
     m_hitGroupShaderTable->SetName(L"HitGroupShaderTable");
-
 
     struct Misses
     {
@@ -591,9 +611,10 @@ void RtTester::RaytraceShadows(RenderContext& context)
     RtCb rtSceneData{};
     rtSceneData.InvViewProj = invViewProj;
     rtSceneData.CamPosition = m_camera->GetPosition();
-    Light& dirLight = m_lightManager->GetLightRef(m_directionalLightInd);
-    rtSceneData.LightPosition = { dirLight.Direction.x, dirLight.Direction.y, dirLight.Direction.z, 1.0f };
     m_rtSceneDataCB->UploadData(context.SwapChain->GetCurrentBackBufferIndex(), rtSceneData);
+
+    Light& dirLight = m_lightManager->GetLightRef(m_directionalLightInd);
+    m_rtShadowRaysBuffer->UploadData(0, XMFLOAT4{ dirLight.Direction.x, dirLight.Direction.y, dirLight.Direction.z, 1.0f });
 
     auto cmdList = context.CommandList;
 
@@ -613,8 +634,8 @@ void RtTester::RaytraceShadows(RenderContext& context)
     desc.Depth = 1;
 
     desc.HitGroupTable.StartAddress = m_hitGroupShaderTable->GetFrameDataGpuAddress(0);
-    desc.HitGroupTable.SizeInBytes = m_hitGroupShaderTable->GetBufferSize();
-    desc.HitGroupTable.StrideInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
+    desc.HitGroupTable.SizeInBytes = UINT64(m_hitGroupStride) * 2UL;
+    desc.HitGroupTable.StrideInBytes = m_hitGroupStride;
 
     desc.MissShaderTable.StartAddress = m_missShaderTable->GetFrameDataGpuAddress(0);
     desc.MissShaderTable.SizeInBytes = m_missShaderTable->GetBufferSize();

@@ -2,12 +2,16 @@ struct SceneRtData
 {
     float4x4 invViewProj;
     float4 camPosition;
+};
+struct ShadowCB
+{
     float4 lightPosition;
 };
 
 RaytracingAccelerationStructure Scene : register(t0);
 RWTexture2D<float4> RenderTarget : register(u0);
 ConstantBuffer<SceneRtData> SceneCb : register(b0);
+ConstantBuffer<ShadowCB> ShadowCb : register(b0, space1);
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 struct RayPayload
@@ -59,7 +63,7 @@ void Raygen()
 void ClosestHit(inout RayPayload payload, in Attributes attr)
 {
     float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
-    float3 direction = normalize(SceneCb.lightPosition - hitPoint);
+    float3 direction = normalize(ShadowCb.lightPosition - hitPoint);
     RayDesc ray;
     ray.Origin = hitPoint;
     ray.Direction = direction;
