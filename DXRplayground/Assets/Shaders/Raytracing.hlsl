@@ -2,6 +2,7 @@ struct SceneRtData
 {
     float4x4 invViewProj;
     float4 camPosition;
+    float4 lightPosition;
 };
 
 RaytracingAccelerationStructure Scene : register(t0);
@@ -43,11 +44,11 @@ void Raygen()
     ray.TMin = 0.0001f;
     ray.TMax = 5000.0f;
 
-    RayPayload payload = { float4(0.0f, 0.0f, 0.0f, 0.0f) };
+    RayPayload payload = { float4(1.0f, 1.0f, 1.0f, 1.0f) };
     TraceRay(Scene, // What bvh
              RAY_FLAG_NONE, // optimization params https://docs.microsoft.com/en-us/windows/win32/direct3d12/ray_flag
-             0xFF, // Instance mask. 0xFF to test against everything. See D3D12_RAYTRACING_INSTANCE_DESC when creating blas
-             0, 1, 0, // Shaders: HitGrop, NumHitGroups, MissShader. Hit group includes hit shader and geom. So for shadows one, for reflections another, primary rays another one
+             2, // Instance mask. 0xFF to test against everything. See D3D12_RAYTRACING_INSTANCE_DESC when creating blas
+             0, 2, 0, // Shaders: HitGrop, NumHitGroups, MissShader. Hit group includes hit shader and geom. So for shadows one, for reflections another, primary rays another one
              ray,
              payload);
 
@@ -57,17 +58,42 @@ void Raygen()
 [shader("closesthit")]
 void ClosestHit(inout RayPayload payload, in Attributes attr)
 {
-    payload.color = float4(0.0f, 0.0f, 1.0f, 1.0f);
+    float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
+    float3 direction = normalize(SceneCb.lightPosition - hitPoint);
+    RayDesc ray;
+    ray.Origin = hitPoint;
+    ray.Direction = direction;
+    ray.TMin = 0.0001f;
+    ray.TMax = 5000.0f;
+
+    TraceRay(Scene,
+             RAY_FLAG_NONE,
+             0xFF,
+             1, 2, 1,
+             ray,
+             payload);
 }
 
 [shader("anyhit")]
 void AnyHit(inout RayPayload payload, in Attributes attr)
 {
-    payload.color = float4(0.0f, 1.0f, 0.0f, 1.0f);
+    payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 [shader("miss")]
 void Miss(inout RayPayload payload)
 {
-    payload.color = float4(1.0f, 0.0f, 0.0f, 1.0f);
+    payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+[shader("closesthit")]
+void ShadowClosestHit(inout RayPayload payload, in Attributes attr)
+{
+    payload.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+[shader("miss")]
+void ShadowMiss(inout RayPayload payload)
+{
+    payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 }

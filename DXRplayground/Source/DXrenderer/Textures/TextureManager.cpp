@@ -124,6 +124,42 @@ RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std
     return res;
 }
 
+DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState)
+{
+    Microsoft::WRL::ComPtr<ID3D12Resource> resource;
+
+    ThrowIfFailed(ctx.Device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+        D3D12_HEAP_FLAG_NONE,
+        &desc,
+        initialState,
+        nullptr,
+        IID_PPV_ARGS(&resource)));
+
+#if defined(_DEBUG)
+    SetDXobjectName(resource.Get(), name.c_str());
+#endif
+    RtvSrvUavResourceIdx res{};
+    
+    D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
+    viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    viewDesc.Format = desc.Format;
+    viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    viewDesc.Texture2D.MipLevels = resource->GetDesc().MipLevels;
+    viewDesc.Texture2D.MostDetailedMip = 0;
+    viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+    handle.Offset(m_currentTexCount * ctx.CbvSrvUavDescriptorSize);
+    ctx.Device->CreateShaderResourceView(resource.Get(), &viewDesc, handle);
+
+    res.SRVOffset = m_currentTexCount++;
+
+    m_resources.push_back(resource);
+    res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
+
+    return res;
+}
+
 DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV /*= false*/, const byte* data /*= nullptr*/)
 {
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;
@@ -198,7 +234,7 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderCont
 }
 
 
-void TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC desc)
+UINT TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC desc)
 {
     static UINT i = 0;
     assert(i == 0);
@@ -228,13 +264,6 @@ void TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC des
     uavDesc.Texture2D.PlaneSlice = 0;
     ctx.Device->CreateUnorderedAccessView(m_rtResource.Get(), nullptr, &uavDesc, m_rtUavHeap->GetCPUDescriptorHandleForHeapStart());
 
-    D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
-    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = 1;
-    ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_rtSrvHeap)));
-    SetDXobjectName(m_rtSrvHeap.Get(), L"RT_SRV_HEAP");
-
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Format = desc.Format;
@@ -242,7 +271,11 @@ void TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC des
     srvDesc.Texture2D.MipLevels = m_rtResource->GetDesc().MipLevels;
     srvDesc.Texture2D.MostDetailedMip = 0;
     srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-    ctx.Device->CreateShaderResourceView(m_rtResource.Get(), &srvDesc, m_rtSrvHeap->GetCPUDescriptorHandleForHeapStart());
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+    handle.Offset(m_currentTexCount * ctx.CbvSrvUavDescriptorSize);
+    ctx.Device->CreateShaderResourceView(m_rtResource.Get(), &srvDesc, handle);
+    return m_currentTexCount++;
 }
 
 bool TextureManager::ParsePNG(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)

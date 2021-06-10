@@ -30,6 +30,7 @@ public:
 
     void UpdateViewProjection();
     void SetView(const XMFLOAT4X4& view, const XMFLOAT4X4& toWorld, bool updateViewProjection = false);
+    void SetWorldPosition(const XMFLOAT3& pos, bool updateViewAndVP = true);
 
 private:
     XMFLOAT4X4 m_projection;

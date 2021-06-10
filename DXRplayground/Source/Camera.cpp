@@ -15,4 +15,19 @@ Camera::Camera(float fovY, float aspect, float nearZ, float farZ)
     XMStoreFloat4x4(&m_viewProjection, vp);
 }
 
+void Camera::SetWorldPosition(const XMFLOAT3& pos, bool updateViewAndVP /* = true*/)
+{
+    m_toWorld(3, 0) = pos.x;
+    m_toWorld(3, 1) = pos.y;
+    m_toWorld(3, 2) = pos.z;
+    if (updateViewAndVP)
+    {
+        XMMATRIX cameraToWorld = XMLoadFloat4x4(&m_toWorld);
+        XMMATRIX newView = XMMatrixInverse(&XMMatrixDeterminant(cameraToWorld), cameraToWorld);
+        XMFLOAT4X4 newViewStored;
+        XMStoreFloat4x4(&newViewStored, newView);
+        SetView(newViewStored, m_toWorld, true);
+    }
+}
+
 }

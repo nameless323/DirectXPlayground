@@ -83,6 +83,7 @@ private:
     {
         XMFLOAT4X4 InvViewProj;
         XMFLOAT4 CamPosition;
+        XMFLOAT4 LightPosition;
     };
 
     UploadBuffer* m_rtSceneDataCB = nullptr;
@@ -95,6 +96,7 @@ private:
     UploadBuffer* m_rayGenShaderTable = nullptr;
     UploadBuffer* m_instanceDescs = nullptr; // todo: after flush should be ok to delete, but it's not.
     UnorderedAccessBuffer* m_scratchBuffer = nullptr; // todo: same shit as above
+    UINT m_shadowMapIndex = 0;
 
     Shader m_rayGenShader;
     Shader m_closestHitShader;

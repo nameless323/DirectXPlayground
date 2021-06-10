@@ -59,6 +59,7 @@ void RtTester::InitResources(RenderContext& context)
     using Microsoft::WRL::ComPtr;
 
     m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
+    m_camera->SetWorldPosition({ 0.0f, 2.0f, -2.0f });
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
     m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, 1);
 
@@ -82,8 +83,7 @@ void RtTester::InitResources(RenderContext& context)
     m_cameraController = new CameraController(m_camera);
     m_lightManager = new LightManager(context);
 
-    auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
-    Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 5.70710678118f, 0.0f } };
+    Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 10.0f, 10.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 
     LoadGeometry(context);
@@ -256,7 +256,7 @@ void RtTester::CreatePSOs(RenderContext& context)
     shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
     context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
 
-    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonTexturedNonInstanced.hlsl");
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstancedDxrShadowed.hlsl");
     context.PsoManager->CreatePso(context, m_floorPsoName, shaderPath, desc);
 
 }
@@ -293,7 +293,7 @@ void RtTester::InitRaytracingPipeline(RenderContext& context)
     resDesc.SampleDesc.Quality = 0;
     resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    context.TexManager->CreateDxrOutput(context, resDesc);
+    m_shadowMapIndex = context.TexManager->CreateDxrOutput(context, resDesc);
 
     CreateRtRootSigs(context);
     BuildAccelerationStructures(context);
@@ -344,11 +344,19 @@ void RtTester::CreateRtPSO(RenderContext& context)
     lib->DefineExport(L"Miss");
     lib->DefineExport(L"AnyHit");
 
+    lib->DefineExport(L"ShadowClosestHit");
+    lib->DefineExport(L"ShadowMiss");
+
     CD3DX12_HIT_GROUP_SUBOBJECT* hitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
     hitGroup->SetClosestHitShaderImport(L"ClosestHit");
     hitGroup->SetAnyHitShaderImport(L"AnyHit");
     hitGroup->SetHitGroupExport(L"TriangleHitGroup");
     hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
+    CD3DX12_HIT_GROUP_SUBOBJECT* shadowHitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+    shadowHitGroup->SetClosestHitShaderImport(L"ShadowClosestHit");
+    shadowHitGroup->SetHitGroupExport(L"ShadowHitGroup");
+    shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
     CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT* shaderConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
     UINT payloadSize = sizeof(XMFLOAT4); // float4 color
@@ -529,24 +537,44 @@ void RtTester::BuildShaderTables(RenderContext& context)
     void* missShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"Miss");
     void* hitGroupShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"TriangleHitGroup");
 
+    void* shadowMissShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"ShadowMiss");
+    void* shadowHitGroupShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"ShadowHitGroup");
+
     UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES; // + localRootSigSize
 
     UINT numShaderRecords = 1;
-
     // Local root sig for each table + copy data there. should be alighed by max root sig + BYTE_ALIGNMENT
+    // might be needed for specific hit gropus - light position only for shadows
     UINT shaderRecordSize = Align(shaderIdentifierSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
     m_rayGenShaderTable = new UploadBuffer(*context.Device, shaderRecordSize, false, 1, true);
     m_rayGenShaderTable->UploadData(0, reinterpret_cast<byte*>(rayGenShaderIdentifier));
     m_rayGenShaderTable->SetName(L"RayGenShaderTable");
-    
-    m_missShaderTable = new UploadBuffer(*context.Device, shaderRecordSize, false, 1, true);
-    m_missShaderTable->UploadData(0, reinterpret_cast<byte*>(missShaderIdentifier));
+
+    struct HitGropus
+    {
+        byte hitgroup[D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES];
+        byte shadowHitgroup[D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES];
+    } hitGropus;
+    memcpy(&hitGropus.hitgroup, hitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    memcpy(&hitGropus.shadowHitgroup, shadowHitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+    m_hitGroupShaderTable = new UploadBuffer(*context.Device, sizeof(hitGropus), false, 1, true);
+    m_hitGroupShaderTable->UploadData(0, hitGropus);
+    m_hitGroupShaderTable->SetName(L"HitGroupShaderTable");
+
+
+    struct Misses
+    {
+        byte miss[D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES];
+        byte shadowMiss[D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES];
+    } misses;
+    memcpy(&misses.miss, missShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    memcpy(&misses.shadowMiss, shadowMissShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    m_missShaderTable = new UploadBuffer(*context.Device, sizeof(Misses), false, 1, true);
+    m_missShaderTable->UploadData(0, misses);
     m_missShaderTable->SetName(L"MissShaderTable");
 
-    m_hitGroupShaderTable = new UploadBuffer(*context.Device, shaderRecordSize, false, 1, true);
-    m_hitGroupShaderTable->UploadData(0, reinterpret_cast<byte*>(hitGroupShaderIdentifier));
-    m_hitGroupShaderTable->SetName(L"HitGroupShaderTable");
 }
 
 void RtTester::RaytraceShadows(RenderContext& context)
@@ -559,6 +587,8 @@ void RtTester::RaytraceShadows(RenderContext& context)
     RtCb rtSceneData{};
     rtSceneData.InvViewProj = invViewProj;
     rtSceneData.CamPosition = m_camera->GetPosition();
+    Light& dirLight = m_lightManager->GetLightRef(m_directionalLightInd);
+    rtSceneData.LightPosition = { dirLight.Direction.x, dirLight.Direction.y, dirLight.Direction.z, 1.0f };
     m_rtSceneDataCB->UploadData(context.SwapChain->GetCurrentBackBufferIndex(), rtSceneData);
 
     auto cmdList = context.CommandList;
@@ -580,11 +610,11 @@ void RtTester::RaytraceShadows(RenderContext& context)
 
     desc.HitGroupTable.StartAddress = m_hitGroupShaderTable->GetFrameDataGpuAddress(0);
     desc.HitGroupTable.SizeInBytes = m_hitGroupShaderTable->GetBufferSize();
-    desc.HitGroupTable.StrideInBytes = desc.HitGroupTable.SizeInBytes;
+    desc.HitGroupTable.StrideInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
     desc.MissShaderTable.StartAddress = m_missShaderTable->GetFrameDataGpuAddress(0);
     desc.MissShaderTable.SizeInBytes = m_missShaderTable->GetBufferSize();
-    desc.MissShaderTable.StrideInBytes = desc.MissShaderTable.SizeInBytes;
+    desc.MissShaderTable.StrideInBytes = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
     desc.RayGenerationShaderRecord.StartAddress = m_rayGenShaderTable->GetFrameDataGpuAddress(0);
     desc.RayGenerationShaderRecord.SizeInBytes = m_rayGenShaderTable->GetBufferSize();

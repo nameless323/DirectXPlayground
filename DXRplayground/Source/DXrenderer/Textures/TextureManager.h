@@ -25,6 +25,7 @@ class TextureManager
 public:
     TextureManager(RenderContext& ctx);
     RtvSrvUavResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename, bool allowUAV = false);
+    RtvSrvUavResourceIdx CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     RtvSrvUavResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true, bool allowUAV = false);
 
     RtvSrvUavResourceIdx CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
@@ -37,10 +38,10 @@ public:
     {
         return m_rtUavHeap.Get();
     }
-    ID3D12DescriptorHeap* GetDXRSrvHeap() const
-    {
-        return m_rtSrvHeap.Get();
-    }
+    //ID3D12DescriptorHeap* GetDXRSrvHeap() const
+    //{
+    //    return m_rtSrvHeap.Get();
+    //}
     ID3D12Resource* GetDXRResource() const
     {
         return m_rtResource.Get();
@@ -50,7 +51,7 @@ public:
 
     ID3D12Resource* GetResource(UINT index) const;
 
-    void CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC desc);
+    UINT CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC desc);
 
 private:
     void CreateSRVHeap(RenderContext& ctx);
@@ -69,7 +70,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap = nullptr;
 
     // DXR
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtSrvHeap = nullptr;
+    //Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtSrvHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtUavHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_rtResource = nullptr;
     //
