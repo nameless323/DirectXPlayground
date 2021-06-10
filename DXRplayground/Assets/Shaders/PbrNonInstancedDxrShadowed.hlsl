@@ -82,7 +82,7 @@ float4 ps(vOut pIn) : SV_Target
 {
     float2 shadowUv = (pIn.projPos.xy / pIn.projPos.w) * 0.5f + 0.5f;
     shadowUv.y = 1.0f - shadowUv.y;
-    float shadow = Textures[cbShadowMap.idx].Sample(LinearWrapSampler, shadowUv).x; // ololo
+    float shadow = Textures[cbShadowMap.idx].Sample(LinearWrapSampler, shadowUv).x;
 
     float4 albedo = cbMaterial.Albedo;
     float metallness = cbMaterial.Metallness;
