@@ -63,14 +63,15 @@ void RtTester::InitResources(RenderContext& context)
     m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
     m_camera->SetWorldPosition({ 0.0f, 2.0f, -2.0f });
     m_cameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
-    m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, 1);
+    m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4) * 2, true, 1);
 
-    XMFLOAT4X4 toWorld;
-    XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 2.0f, 3.0f)));
+    XMFLOAT4X4 toWorld[2];
+    XMStoreFloat4x4(&toWorld[0], XMMatrixTranspose(XMMatrixTranslation(0.0f, 2.0f, 3.0f)));
+    XMStoreFloat4x4(&toWorld[1], XMMatrixTranspose(XMMatrixTranslation(5.0f, 2.0f, 3.0f)));
     m_objectCb->UploadData(0, toWorld);
 
     m_floorTransformCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
-    XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 0.0f)));
+    XMStoreFloat4x4(&toWorld[0], XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 0.0f)));
     for (UINT i = 0; i < context.FramesCount; ++i)
         m_floorTransformCb->UploadData(i, toWorld);
 
@@ -160,7 +161,7 @@ void RtTester::DepthPrepass(RenderContext& context)
             context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
 
             context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+            context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 2, 0, 0, 0);
         }
     }
 
@@ -201,7 +202,7 @@ void RtTester::RenderForwardObjects(RenderContext& context)
             context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
 
             context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+            context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 2, 0, 0, 0);
         }
     }
 
@@ -256,7 +257,7 @@ void RtTester::CreatePSOs(RenderContext& context)
     desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     desc.RTVFormats[0] = m_tonemapper->GetHDRTargetFormat();
 
-    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrInstanced.hlsl");
     context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
 
     shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstancedDxrShadowed.hlsl");
@@ -337,60 +338,6 @@ void RtTester::CreateRtRootSigs(RenderContext& context)
 
     ThrowIfFailed(D3D12SerializeRootSignature(&localRootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1, &blob, &error), error ? static_cast<wchar_t*>(error->GetBufferPointer()) : nullptr);
     ThrowIfFailed(context.Device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), IID_PPV_ARGS(&m_shadowLocalRootSig)));
-}
-
-void RtTester::CreateRtPSO(RenderContext& context)
-{
-    CD3DX12_STATE_OBJECT_DESC rtPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
-
-    CD3DX12_DXIL_LIBRARY_SUBOBJECT* lib = rtPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
-
-    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Raytracing.hlsl");
-
-    bool success = Shader::CompileFromFile(shaderPath, L"", L"lib_6_3", m_rayGenShader);
-    assert(success);
-
-    lib->SetDXILLibrary(&m_rayGenShader.GetBytecode());
-
-    lib->DefineExport(L"Raygen");
-    lib->DefineExport(L"ClosestHit");
-    lib->DefineExport(L"Miss");
-    lib->DefineExport(L"AnyHit");
-
-    lib->DefineExport(L"ShadowClosestHit");
-    lib->DefineExport(L"ShadowMiss");
-
-    CD3DX12_HIT_GROUP_SUBOBJECT* hitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-    hitGroup->SetClosestHitShaderImport(L"ClosestHit");
-    hitGroup->SetAnyHitShaderImport(L"AnyHit");
-    hitGroup->SetHitGroupExport(L"TriangleHitGroup");
-    hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
-
-    CD3DX12_HIT_GROUP_SUBOBJECT* shadowHitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-    shadowHitGroup->SetClosestHitShaderImport(L"ShadowClosestHit");
-    shadowHitGroup->SetHitGroupExport(L"ShadowHitGroup");
-    shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
-
-    CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT* shaderConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
-    UINT payloadSize = sizeof(XMFLOAT4); // float4 color
-    UINT attribSize = sizeof(XMFLOAT2); //float2 barycentrics. default for trigs
-    shaderConfig->Config(payloadSize, attribSize);
-
-    CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT* localRootSig = rtPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
-    localRootSig->SetRootSignature(m_shadowLocalRootSig.Get());
-
-    CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT* localRootSigAssociation = rtPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
-    localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
-    localRootSigAssociation->AddExport(L"TriangleHitGroup");
-
-    CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT* globalRootSig = rtPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
-    globalRootSig->SetRootSignature(m_rtGlobalRootSig.Get());
-
-    CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT* pipelineConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
-    UINT maxRecursionDepth = 2;
-    pipelineConfig->Config(maxRecursionDepth);
-
-    ThrowIfFailed(context.Device->CreateStateObject(rtPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create raytracing state object.\n");
 }
 
 void RtTester::BuildAccelerationStructures(RenderContext& context)
@@ -501,10 +448,11 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     instanceDesc.Transform[2][3] = 3;
     instanceDesc.InstanceMask = 1;
     instanceDesc.AccelerationStructure = m_modelBlas->GetGpuAddress();
-    instanceDesc.Flags = 0;
+    instanceDesc.Flags = 0; // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_raytracing_instance_flags
     instanceDesc.InstanceID = 0;
-    instanceDesc.InstanceContributionToHitGroupIndex = 0;
+    instanceDesc.InstanceContributionToHitGroupIndex = 0; // Offset in HitGroups (for example in traceRay hit group is 0, if this geometry wants to be called with other hit group (the second one), put 1 here and get your bias)
     instanceDescriptors.push_back(instanceDesc);
+
     instanceDesc.Transform[0][3] = 5;
     instanceDescriptors.push_back(instanceDesc);
 
@@ -521,15 +469,12 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     m_instanceDescs->SetName(L"InstanceDescs");
     m_instanceDescs->UploadData(0, reinterpret_cast<byte*>(instanceDescriptors.data()));
 
-    bottomLevelModelBuildDesc.Inputs = bottomLevelModelInputs; // useless
     bottomLevelModelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
     bottomLevelModelBuildDesc.DestAccelerationStructureData = m_modelBlas->GetGpuAddress();
 
-    bottomLevelFloorBuildDesc.Inputs = bottomLevelFloorInputs; // useless
     bottomLevelFloorBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
     bottomLevelFloorBuildDesc.DestAccelerationStructureData = m_floorBlas->GetGpuAddress();
 
-    topLevelBuildDesc.Inputs = topLevelInputs; // useless
     topLevelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
     topLevelBuildDesc.DestAccelerationStructureData = m_tlas->GetGpuAddress();
     topLevelBuildDesc.Inputs.InstanceDescs = m_instanceDescs->GetFrameDataGpuAddress(0);
@@ -542,11 +487,61 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
 
     context.CommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
 
-    //context.Pipeline->ExecuteCommandList(context.CommandList);
-    //context.Pipeline->Flush();
-    //context.Pipeline->ResetCommandList(context.CommandList);
-
     context.CommandList->ResourceBarrier(UINT(toIndexVertexTransitions.size()), toIndexVertexTransitions.data());
+}
+
+void RtTester::CreateRtPSO(RenderContext& context)
+{
+    CD3DX12_STATE_OBJECT_DESC rtPipeline{ D3D12_STATE_OBJECT_TYPE_RAYTRACING_PIPELINE };
+
+    CD3DX12_DXIL_LIBRARY_SUBOBJECT* lib = rtPipeline.CreateSubobject<CD3DX12_DXIL_LIBRARY_SUBOBJECT>();
+
+    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Raytracing.hlsl");
+
+    bool success = Shader::CompileFromFile(shaderPath, L"", L"lib_6_3", m_rayGenShader);
+    assert(success);
+
+    lib->SetDXILLibrary(&m_rayGenShader.GetBytecode());
+
+    lib->DefineExport(L"Raygen");
+    lib->DefineExport(L"ClosestHit");
+    lib->DefineExport(L"Miss");
+    lib->DefineExport(L"AnyHit");
+
+    lib->DefineExport(L"ShadowClosestHit");
+    lib->DefineExport(L"ShadowMiss");
+
+    CD3DX12_HIT_GROUP_SUBOBJECT* hitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+    hitGroup->SetClosestHitShaderImport(L"ClosestHit");
+    hitGroup->SetAnyHitShaderImport(L"AnyHit");
+    hitGroup->SetHitGroupExport(L"TriangleHitGroup");
+    hitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
+    CD3DX12_HIT_GROUP_SUBOBJECT* shadowHitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+    shadowHitGroup->SetClosestHitShaderImport(L"ShadowClosestHit");
+    shadowHitGroup->SetHitGroupExport(L"ShadowHitGroup");
+    shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
+
+    CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT* shaderConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
+    UINT payloadSize = sizeof(XMFLOAT4); // float4 color
+    UINT attribSize = sizeof(XMFLOAT2); //float2 barycentrics. default for trigs
+    shaderConfig->Config(payloadSize, attribSize);
+
+    CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT* localRootSig = rtPipeline.CreateSubobject<CD3DX12_LOCAL_ROOT_SIGNATURE_SUBOBJECT>();
+    localRootSig->SetRootSignature(m_shadowLocalRootSig.Get());
+
+    CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT* localRootSigAssociation = rtPipeline.CreateSubobject<CD3DX12_SUBOBJECT_TO_EXPORTS_ASSOCIATION_SUBOBJECT>();
+    localRootSigAssociation->SetSubobjectToAssociate(*localRootSig);
+    localRootSigAssociation->AddExport(L"TriangleHitGroup");
+
+    CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT* globalRootSig = rtPipeline.CreateSubobject<CD3DX12_GLOBAL_ROOT_SIGNATURE_SUBOBJECT>();
+    globalRootSig->SetRootSignature(m_rtGlobalRootSig.Get());
+
+    CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT* pipelineConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_PIPELINE_CONFIG_SUBOBJECT>();
+    UINT maxRecursionDepth = 2;
+    pipelineConfig->Config(maxRecursionDepth);
+
+    ThrowIfFailed(context.Device->CreateStateObject(rtPipeline, IID_PPV_ARGS(&m_dxrStateObject)), L"Couldn't create raytracing state object.\n");
 }
 
 void RtTester::BuildShaderTables(RenderContext& context)

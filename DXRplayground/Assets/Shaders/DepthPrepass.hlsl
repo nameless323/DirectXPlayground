@@ -5,7 +5,7 @@ struct CbCamera
 };
 struct CbObject
 {
-    float4x4 ToWorld;
+    float4x4 ToWorld[2];
 };
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
@@ -19,9 +19,9 @@ struct vIn
     float4 tangent : TANGENT0;
 };
 
-float4 vs(vIn i) : SV_Position
+float4 vs(vIn i, uint ind : SV_InstanceID) : SV_Position
 {
-    float4 wPos = mul(float4(i.pos.xyz, 1.0f), cbObject.ToWorld);
+    float4 wPos = mul(float4(i.pos.xyz, 1.0f), cbObject.ToWorld[ind]);
     return mul(wPos, cbCamera.ViewProjection);
 }
 
