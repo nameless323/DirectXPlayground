@@ -111,7 +111,7 @@ private:
     Shader m_missShader;
     UnorderedAccessBuffer* m_modelBlas = nullptr;
     UnorderedAccessBuffer* m_floorBlas = nullptr;
-    UnorderedAccessBuffer* m_sphereBlas = nullptr;
+    UnorderedAccessBuffer* m_sdfBlas = nullptr;
     UnorderedAccessBuffer* m_tlas = nullptr;
 };
 }

@@ -55,7 +55,7 @@ RtTester::~RtTester()
     SafeDelete(m_shadowMapCB);
     SafeDelete(m_rtShadowRaysBuffer);
     SafeDelete(m_aabb);
-    SafeDelete(m_sphereBlas);
+    SafeDelete(m_sdfBlas);
 }
 
 void RtTester::InitResources(RenderContext& context)
@@ -440,25 +440,25 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelFloorInputs, &bottomLevelFloorPrebuildInfo);
     assert(bottomLevelFloorPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
-    // sphere
-    D3D12_RAYTRACING_GEOMETRY_DESC sphereDesc{};
-    sphereDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-    sphereDesc.AABBs.AABBCount = 1;
-    sphereDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
-    sphereDesc.AABBs.AABBs.StartAddress = m_aabbResource->GetGPUVirtualAddress();
-    sphereDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+    // sdf
+    D3D12_RAYTRACING_GEOMETRY_DESC sdfDesc{};
+    sdfDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
+    sdfDesc.AABBs.AABBCount = 1;
+    sdfDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
+    sdfDesc.AABBs.AABBs.StartAddress = m_aabbResource->GetGPUVirtualAddress();
+    sdfDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelSphereBuildDesc = {};
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelSphereInputs = bottomLevelSphereBuildDesc.Inputs;
-    bottomLevelSphereInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    bottomLevelSphereInputs.Flags = buildFlags;
-    bottomLevelSphereInputs.NumDescs = 1;
-    bottomLevelSphereInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-    bottomLevelSphereInputs.pGeometryDescs = &sphereDesc;
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelSdfBuildDesc = {};
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelSdfInputs = bottomLevelSdfBuildDesc.Inputs;
+    bottomLevelSdfInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    bottomLevelSdfInputs.Flags = buildFlags;
+    bottomLevelSdfInputs.NumDescs = 1;
+    bottomLevelSdfInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+    bottomLevelSdfInputs.pGeometryDescs = &sdfDesc;
 
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelSpherePrebuildInfo = {};
-    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelSphereInputs, &bottomLevelSpherePrebuildInfo);
-    assert(bottomLevelSpherePrebuildInfo.ResultDataMaxSizeInBytes > 0);
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelSdfPrebuildInfo = {};
+    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelSdfInputs, &bottomLevelSdfPrebuildInfo);
+    assert(bottomLevelSdfPrebuildInfo.ResultDataMaxSizeInBytes > 0);
 
     //
     context.CommandList->ResourceBarrier(UINT(toNonPixelTranitions.size()), toNonPixelTranitions.data());
@@ -467,7 +467,7 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& topLevelInputs = topLevelBuildDesc.Inputs;
     topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     topLevelInputs.Flags = buildFlags;
-    topLevelInputs.NumDescs = 4; // 2 suzanne + floor + sphere aabb
+    topLevelInputs.NumDescs = 4; // 2 suzanne + floor + sdf aabb
     topLevelInputs.pGeometryDescs = nullptr;
     topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
@@ -477,7 +477,7 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
 
     UINT64 maxScratchBufferSize = std::max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelModelPrebuildInfo.ScratchDataSizeInBytes);
     maxScratchBufferSize = std::max(maxScratchBufferSize, bottomLevelFloorPrebuildInfo.ScratchDataSizeInBytes);
-    maxScratchBufferSize = std::max(maxScratchBufferSize, bottomLevelSpherePrebuildInfo.ScratchDataSizeInBytes);
+    maxScratchBufferSize = std::max(maxScratchBufferSize, bottomLevelSdfPrebuildInfo.ScratchDataSizeInBytes);
     // during build
     m_scratchBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(maxScratchBufferSize));
 
@@ -489,8 +489,8 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     m_floorBlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelFloorPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
     m_floorBlas->SetName(L"BottomLevelFloorAccelerationStructure");
 
-    m_sphereBlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelSpherePrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
-    m_sphereBlas->SetName(L"SphereAccelerationStructure");
+    m_sdfBlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelSdfPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
+    m_sdfBlas->SetName(L"SdfAccelerationStructure");
 
     m_tlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(topLevelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
     m_tlas->SetName(L"TopLevelAccelerationStructure");
@@ -520,17 +520,17 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     floorInstanceDesc.InstanceContributionToHitGroupIndex = 0;
     instanceDescriptors.push_back(floorInstanceDesc);
 
-    D3D12_RAYTRACING_INSTANCE_DESC sphereInstanceDesc = {};
-    sphereInstanceDesc.Transform[0][0] = sphereInstanceDesc.Transform[1][1] = sphereInstanceDesc.Transform[2][2] = 1; // instancing
-    sphereInstanceDesc.Transform[0][3] = -6;
-    sphereInstanceDesc.Transform[1][3] = 2;
-    sphereInstanceDesc.Transform[2][3] = 3;
-    sphereInstanceDesc.InstanceMask = 1;
-    sphereInstanceDesc.AccelerationStructure = m_sphereBlas->GetGpuAddress();
-    sphereInstanceDesc.Flags = 0;
-    sphereInstanceDesc.InstanceID = 0;
-    sphereInstanceDesc.InstanceContributionToHitGroupIndex = 1;
-    instanceDescriptors.push_back(sphereInstanceDesc);
+    D3D12_RAYTRACING_INSTANCE_DESC sdfInstanceDesc = {};
+    sdfInstanceDesc.Transform[0][0] = sdfInstanceDesc.Transform[1][1] = sdfInstanceDesc.Transform[2][2] = 1; // instancing
+    sdfInstanceDesc.Transform[0][3] = -6;
+    sdfInstanceDesc.Transform[1][3] = 2;
+    sdfInstanceDesc.Transform[2][3] = 3;
+    sdfInstanceDesc.InstanceMask = 1;
+    sdfInstanceDesc.AccelerationStructure = m_sdfBlas->GetGpuAddress();
+    sdfInstanceDesc.Flags = 0;
+    sdfInstanceDesc.InstanceID = 0;
+    sdfInstanceDesc.InstanceContributionToHitGroupIndex = 1;
+    instanceDescriptors.push_back(sdfInstanceDesc);
 
     m_instanceDescs = new UploadBuffer{ *context.Device, sizeof(instanceDesc) * UINT(instanceDescriptors.size()), false, 1 };
     m_instanceDescs->SetName(L"InstanceDescs");
@@ -542,8 +542,8 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     bottomLevelFloorBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
     bottomLevelFloorBuildDesc.DestAccelerationStructureData = m_floorBlas->GetGpuAddress();
 
-    bottomLevelSphereBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
-    bottomLevelSphereBuildDesc.DestAccelerationStructureData = m_sphereBlas->GetGpuAddress();
+    bottomLevelSdfBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
+    bottomLevelSdfBuildDesc.DestAccelerationStructureData = m_sdfBlas->GetGpuAddress();
 
     topLevelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
     topLevelBuildDesc.DestAccelerationStructureData = m_tlas->GetGpuAddress();
@@ -555,8 +555,8 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelFloorBuildDesc, 0, nullptr);
     context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_floorBlas->GetResource()));
 
-    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelSphereBuildDesc, 0, nullptr);
-    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_sphereBlas->GetResource()));
+    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelSdfBuildDesc, 0, nullptr);
+    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_sdfBlas->GetResource()));
 
     context.CommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
 
@@ -584,8 +584,8 @@ void RtTester::CreateRtPSO(RenderContext& context)
     lib->DefineExport(L"ShadowClosestHit");
     lib->DefineExport(L"ShadowMiss");
 
-    lib->DefineExport(L"SphereIntersection");
-    lib->DefineExport(L"SphereClosestHit");
+    lib->DefineExport(L"SdfIntersection");
+    lib->DefineExport(L"SdfClosestHit");
 
     CD3DX12_HIT_GROUP_SUBOBJECT* hitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
     hitGroup->SetClosestHitShaderImport(L"ClosestHit");
@@ -598,11 +598,11 @@ void RtTester::CreateRtPSO(RenderContext& context)
     shadowHitGroup->SetHitGroupExport(L"ShadowHitGroup");
     shadowHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_TRIANGLES);
 
-    CD3DX12_HIT_GROUP_SUBOBJECT* sphereHitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
-    sphereHitGroup->SetIntersectionShaderImport(L"SphereIntersection");
-    sphereHitGroup->SetClosestHitShaderImport(L"SphereClosestHit");
-    sphereHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
-    sphereHitGroup->SetHitGroupExport(L"SphereHitGroup");
+    CD3DX12_HIT_GROUP_SUBOBJECT* sdfHitGroup = rtPipeline.CreateSubobject<CD3DX12_HIT_GROUP_SUBOBJECT>();
+    sdfHitGroup->SetIntersectionShaderImport(L"SdfIntersection");
+    sdfHitGroup->SetClosestHitShaderImport(L"SdfClosestHit");
+    sdfHitGroup->SetHitGroupType(D3D12_HIT_GROUP_TYPE_PROCEDURAL_PRIMITIVE);
+    sdfHitGroup->SetHitGroupExport(L"SdfHitGroup");
 
     // max sizes
     CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT* shaderConfig = rtPipeline.CreateSubobject<CD3DX12_RAYTRACING_SHADER_CONFIG_SUBOBJECT>();
@@ -638,7 +638,7 @@ void RtTester::BuildShaderTables(RenderContext& context)
     void* shadowMissShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"ShadowMiss");
     void* shadowHitGroupShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"ShadowHitGroup");
 
-    void* sphereHitGroupShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"SphereHitGroup");
+    void* sdfHitGroupShaderIdentifier = stateObjectProps->GetShaderIdentifier(L"SdfHitGroup");
 
     UINT shaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES; // + localRootSigSize
 
@@ -654,7 +654,7 @@ void RtTester::BuildShaderTables(RenderContext& context)
     UINT hitGroupShaderRecordSize = Align(shaderIdentifierSize + sizeof(D3D12_GPU_VIRTUAL_ADDRESS), D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
     m_hitGroupStride = hitGroupShaderRecordSize;
     std::vector<byte> hitGroups;
-    hitGroups.resize(size_t(hitGroupShaderRecordSize) * NumHitGroups); // hit group for primary rays + hit group for shadow rays + sphere hit group
+    hitGroups.resize(size_t(hitGroupShaderRecordSize) * NumHitGroups); // hit group for primary rays + hit group for shadow rays + sdf hit group
     byte* data = hitGroups.data();
     // TRIANGLE HIT GROUP local root sig - 1cb. shader record + cb
     memcpy(data, hitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
@@ -664,8 +664,8 @@ void RtTester::BuildShaderTables(RenderContext& context)
     // SHADOW HIT GROUP no local root sig for shadow rays
     memcpy(data + hitGroupShaderRecordSize, shadowHitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 
-    // SPHERE HIT GROUP
-    memcpy(data + hitGroupShaderRecordSize * 2UL, sphereHitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+    // SDF HIT GROUP
+    memcpy(data + UINT64(hitGroupShaderRecordSize) * 2UL, sdfHitGroupShaderIdentifier, D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
 
     m_hitGroupShaderTable = new UploadBuffer(*context.Device, hitGroupShaderRecordSize * NumHitGroups, false, 1, true);
     m_hitGroupShaderTable->UploadData(0, reinterpret_cast<const byte*>(data));

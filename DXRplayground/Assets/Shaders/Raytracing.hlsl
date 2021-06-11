@@ -15,9 +15,9 @@ ConstantBuffer<ShadowCB> ShadowCb : register(b0, space1);
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
 
-struct SphereAttributes
+struct SdfAttributes
 {
-    float radii;
+    float dist;
 };
 
 struct RayPayload
@@ -108,7 +108,7 @@ void ShadowMiss(inout RayPayload payload)
     payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
-// Spheres
+// SDFs
 float SphereDist(float3 pos, float radius)
 {
     return length(pos) - radius;
@@ -120,7 +120,7 @@ float TorusDist(float3 pos, float2 t)
 }
 
 [shader("intersection")]
-void SphereIntersection()
+void SdfIntersection()
 {
     RayDesc ray;
     ray.Origin = ObjectRayOrigin();
@@ -129,7 +129,7 @@ void SphereIntersection()
     float thit;
     float radius = 1.5f;
     const float epsilon = 0.00001f;
-    SphereAttributes attr;
+    SdfAttributes attr;
     const uint maxSteps = 35;
     for (uint i = 0; i < maxSteps; ++i)
     {
@@ -145,7 +145,7 @@ void SphereIntersection()
 }
 
 [shader("closesthit")]
-void SphereClosestHit(inout RayPayload payload, in SphereAttributes attr)
+void SdfClosestHit(inout RayPayload payload, in SdfAttributes attr)
 {
     payload.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
 }
