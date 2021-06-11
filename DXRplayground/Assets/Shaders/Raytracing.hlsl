@@ -14,6 +14,12 @@ ConstantBuffer<SceneRtData> SceneCb : register(b0);
 ConstantBuffer<ShadowCB> ShadowCb : register(b0, space1);
 
 typedef BuiltInTriangleIntersectionAttributes Attributes;
+
+struct SphereAttributes
+{
+    float radii;
+};
+
 struct RayPayload
 {
     float4 color;
@@ -52,7 +58,7 @@ void Raygen()
     TraceRay(Scene, // What bvh
              RAY_FLAG_NONE, // optimization params https://docs.microsoft.com/en-us/windows/win32/direct3d12/ray_flag
              2, // Instance mask. 0xFF to test against everything. See D3D12_RAYTRACING_INSTANCE_DESC when creating blas
-             0, 2, 0, // Shaders: HitGrop, NumHitGroups, MissShader. Hit group includes hit shader and geom. So for shadows one, for reflections another, primary rays another one
+             0, 3, 0, // Shaders: HitGrop, NumHitGroups, MissShader. Hit group includes hit shader and geom. So for shadows one, for reflections another, primary rays another one
              ray,
              payload);
 
@@ -63,7 +69,7 @@ void Raygen()
 void ClosestHit(inout RayPayload payload, in Attributes attr)
 {
     float3 hitPoint = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
-    float3 direction = normalize(ShadowCb.lightPosition - hitPoint);
+    float3 direction = normalize(ShadowCb.lightPosition.xyz - hitPoint);
     RayDesc ray;
     ray.Origin = hitPoint;
     ray.Direction = direction;
@@ -73,7 +79,7 @@ void ClosestHit(inout RayPayload payload, in Attributes attr)
     TraceRay(Scene,
              RAY_FLAG_NONE,
              0xFF,
-             1, 2, 1,
+             1, 3, 1,
              ray,
              payload);
 }
@@ -100,4 +106,46 @@ void ShadowClosestHit(inout RayPayload payload, in Attributes attr)
 void ShadowMiss(inout RayPayload payload)
 {
     payload.color = float4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+// Spheres
+float SphereDist(float3 pos, float radius)
+{
+    return length(pos) - radius;
+}
+float TorusDist(float3 pos, float2 t)
+{
+    float2 q = float2(length(pos.xz) - t.x, pos.y);
+    return length(q) - t.y;
+}
+
+[shader("intersection")]
+void SphereIntersection()
+{
+    RayDesc ray;
+    ray.Origin = ObjectRayOrigin();
+    ray.Direction = ObjectRayDirection();
+    float t = RayTMin();
+    float thit;
+    float radius = 1.5f;
+    const float epsilon = 0.00001f;
+    SphereAttributes attr;
+    const uint maxSteps = 35;
+    for (uint i = 0; i < maxSteps; ++i)
+    {
+        float3 pos = ray.Origin + ray.Direction * t;
+        //float d = SphereDist(pos, radius);
+        float d = TorusDist(pos, float2(1.5f, 0.5f));
+        if (d < epsilon)
+        {
+            ReportHit(t, 0, attr);
+        }
+        t += d;
+    }
+}
+
+[shader("closesthit")]
+void SphereClosestHit(inout RayPayload payload, in SphereAttributes attr)
+{
+    payload.color = float4(0.0f, 0.0f, 0.0f, 1.0f);
 }

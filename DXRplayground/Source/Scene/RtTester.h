@@ -54,6 +54,7 @@ private:
     void BuildAccelerationStructures(RenderContext& context);
     void BuildShaderTables(RenderContext& context);
     void RaytraceShadows(RenderContext& context);
+    void BuildRtAABB(RenderContext& context);
     //
 
     Model* m_suzanne = nullptr;
@@ -80,6 +81,7 @@ private:
 
     // rt
     static constexpr UINT RootDescriptorSize = 8;
+    static constexpr UINT NumHitGroups = 3;
     UploadBuffer* m_shadowMapCB = nullptr;
     UploadBuffer* m_rtShadowRaysBuffer = nullptr;
     struct RtCb
@@ -97,6 +99,9 @@ private:
     UploadBuffer* m_hitGroupShaderTable = nullptr;
     UploadBuffer* m_rayGenShaderTable = nullptr;
     UploadBuffer* m_instanceDescs = nullptr; // todo: after flush should be ok to delete, but it's not.
+
+    UploadBuffer* m_aabb = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> m_aabbResource;
     UnorderedAccessBuffer* m_scratchBuffer = nullptr; // todo: same shit as above
     UINT m_shadowMapIndex = 0;
     UINT m_hitGroupStride = 0;
@@ -106,6 +111,7 @@ private:
     Shader m_missShader;
     UnorderedAccessBuffer* m_modelBlas = nullptr;
     UnorderedAccessBuffer* m_floorBlas = nullptr;
+    UnorderedAccessBuffer* m_sphereBlas = nullptr;
     UnorderedAccessBuffer* m_tlas = nullptr;
 };
 }
