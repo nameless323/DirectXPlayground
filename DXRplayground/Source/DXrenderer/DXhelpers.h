@@ -229,4 +229,11 @@ inline UINT GetPixelSize(DXGI_FORMAT format)
     return formats.at(format);
 }
 
+inline constexpr DirectX::XMFLOAT4X4 IdentityMatrix{
+    1.0f, 0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 1.0f, 0.0f,
+    0.0f, 0.0f, 0.0f, 1.0f
+    };
+
 }

@@ -146,6 +146,7 @@
     <ClCompile Include="Source\Camera.cpp" />
     <ClCompile Include="Source\CameraController.cpp" />
     <ClCompile Include="Source\DXrenderer\Buffers\UploadBuffer.cpp" />
+    <ClCompile Include="Source\DXrenderer\DXR\AccelerationStructure.cpp" />
     <ClCompile Include="Source\DXrenderer\Textures\EnvironmentMap.cpp" />
     <ClCompile Include="Source\DXrenderer\LightManager.cpp" />
     <ClCompile Include="Source\DXrenderer\Model.cpp" />
@@ -178,6 +179,7 @@
     <ClInclude Include="Source\DXrenderer\Buffers\UploadBuffer.h" />
     <ClInclude Include="Source\DXrenderer\DirectXRaytracingHelper.h" />
     <ClInclude Include="Source\DXrenderer\DXhelpers.h" />
+    <ClInclude Include="Source\DXrenderer\DXR\AccelerationStructure.h" />
     <ClInclude Include="Source\DXrenderer\Textures\EnvironmentMap.h" />
     <ClInclude Include="Source\DXrenderer\Light.h" />
     <ClInclude Include="Source\DXrenderer\LightManager.h" />

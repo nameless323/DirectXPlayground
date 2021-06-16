@@ -96,6 +96,9 @@
     <ClCompile Include="Source\Scene\RtTester.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\DXrenderer\DXR\AccelerationStructure.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\WindowsApp.h">
@@ -231,6 +234,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\DXrenderer\DirectXRaytracingHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\DXrenderer\DXR\AccelerationStructure.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
