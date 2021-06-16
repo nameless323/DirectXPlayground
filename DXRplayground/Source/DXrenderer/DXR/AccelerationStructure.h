@@ -22,9 +22,9 @@ public:
     // TODO: mixed aabb/model
     AccelerationStructure(std::vector<Model*> models);
     ~AccelerationStructure();
-    void Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* descriptor = nullptr, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE);
+    void Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* defaultDesc = nullptr, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE);
  
-    void AddDescriptor(const DirectX::XMFLOAT4X4& transform = IdentityMatrix, UINT instanceMask = 0, UINT instanceId = 0, UINT flags = 0, UINT contribToHitGroupIndex = 0);
+    void AddDescriptor(const AccelerationStructure& blas, const DirectX::XMFLOAT4X4& transform = IdentityMatrix, UINT instanceMask = 0, UINT instanceId = 0, UINT flags = 0, UINT contribToHitGroupIndex = 0);
     void AddDescriptor(D3D12_RAYTRACING_INSTANCE_DESC desc);
 
     void Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier = true);
@@ -37,7 +37,7 @@ private:
    std::vector<Model*> m_models;
    std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_instanceDescs;
 
-   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO m_prebuildInfo{};
+   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO m_prebuildInfo = {};
    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC m_buildDesc = {};
 
    std::vector<CD3DX12_RESOURCE_BARRIER> m_toNonPixelTransitions;
@@ -49,6 +49,7 @@ private:
    bool m_isPrebuilt = false;
    bool m_isBuilt = false;
 };
+
 
 }
 }

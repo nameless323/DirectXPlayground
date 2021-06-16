@@ -18,15 +18,15 @@ AccelerationStructure::~AccelerationStructure()
     SafeDelete(m_instanceDescsBuffer);
 }
 
-void AccelerationStructure::Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* descriptor /*= nullptr*/, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags /*= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE*/)
+void AccelerationStructure::Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* defaultDesc /*= nullptr*/, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags /*= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE*/)
 {
     assert(!m_isBuilt);
     assert(!m_isPrebuilt);
 
     D3D12_RAYTRACING_GEOMETRY_DESC desc{};
-    if (descriptor != nullptr)
+    if (defaultDesc != nullptr)
     {
-        desc = *descriptor;
+        desc = *defaultDesc;
     }
     else
     {
@@ -69,7 +69,7 @@ void AccelerationStructure::Prebuild(RenderContext& context, const D3D12_RAYTRAC
     m_isPrebuilt = true;
 }
 
-void AccelerationStructure::AddDescriptor(const DirectX::XMFLOAT4X4& transform /* = Identity */, UINT instanceMask /* = 0 */, UINT instanceId /* = 0 */, UINT flags /* = 0 */, UINT contribToHitGroupIndex /* = 0 */)
+void AccelerationStructure::AddDescriptor(const AccelerationStructure& blas, const DirectX::XMFLOAT4X4& transform /* = Identity */, UINT instanceMask /* = 0 */, UINT instanceId /* = 0 */, UINT flags /* = 0 */, UINT contribToHitGroupIndex /* = 0 */)
 {
     assert(!m_isBuilt);
     assert(m_isPrebuilt);
@@ -83,7 +83,7 @@ void AccelerationStructure::AddDescriptor(const DirectX::XMFLOAT4X4& transform /
     desc.InstanceID = instanceId;
     desc.Flags = flags;
     desc.InstanceContributionToHitGroupIndex = contribToHitGroupIndex;
-    desc.AccelerationStructure = m_buffer->GetGpuAddress();
+    desc.AccelerationStructure = blas.m_buffer->GetGpuAddress();
 
     m_instanceDescs.push_back(std::move(desc));
 }
