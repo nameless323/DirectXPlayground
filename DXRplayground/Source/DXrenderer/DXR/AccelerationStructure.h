@@ -72,9 +72,12 @@ inline UINT64 AccelerationStructure::UpdateScratchSize(AccelerationStructure& ot
 class BottomLevelAccelerationStructure : public AccelerationStructure
 {
 public:
-    // TODO: mixed aabb/model
-    BottomLevelAccelerationStructure(std::vector<Model*> models);
-    BottomLevelAccelerationStructure(Model* model);
+    BottomLevelAccelerationStructure(RenderContext& context, std::vector<Model*> models, std::vector<D3D12_RAYTRACING_AABB> aabbs);
+    BottomLevelAccelerationStructure(RenderContext& context, std::vector<Model*> models);
+    BottomLevelAccelerationStructure(RenderContext& context, Model* model);
+    BottomLevelAccelerationStructure(RenderContext& context, std::vector<D3D12_RAYTRACING_AABB> aabbs);
+    BottomLevelAccelerationStructure(RenderContext& context, D3D12_RAYTRACING_AABB aabb);
+
     ~BottomLevelAccelerationStructure();
     void Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* defaultDesc = nullptr, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE);
     void Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier) override;
@@ -82,7 +85,10 @@ public:
 private:
    std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> m_desc;
    std::vector<Model*> m_models;
+   UINT m_aabbsCount = 0;
 
+   Microsoft::WRL::ComPtr<ID3D12Resource> m_aabbResource;
+   UploadBuffer* m_aabbUploadBuffer = nullptr;
 
    std::vector<CD3DX12_RESOURCE_BARRIER> m_toNonPixelTransitions;
    std::vector<CD3DX12_RESOURCE_BARRIER> m_toIndexVertexTransitions;

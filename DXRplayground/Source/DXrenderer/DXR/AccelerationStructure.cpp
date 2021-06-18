@@ -25,19 +25,60 @@ void AccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer*
 /// BLAS
 //////////////////////////////////////////////////////////////////////////
 
-BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(std::vector<Model*> models)
+
+BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(RenderContext& context, std::vector<Model*> models, std::vector<D3D12_RAYTRACING_AABB> aabbs)
 {
     std::swap(models, m_models);
     m_desc.reserve(16);
+
+    m_aabbsCount = aabbs.size();
+    if (m_aabbsCount > 0)
+    {
+        m_aabbUploadBuffer = new UploadBuffer(*context.Device, sizeof(D3D12_RAYTRACING_AABB) * aabbs.size(), false, 1);
+        m_aabbUploadBuffer->UploadData(0, reinterpret_cast<byte*>(aabbs.data()));
+
+        CD3DX12_HEAP_PROPERTIES hProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+        CD3DX12_RESOURCE_DESC rDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(D3D12_RAYTRACING_AABB));
+        HRESULT hr = context.Device->CreateCommittedResource(
+            &hProps,
+            D3D12_HEAP_FLAG_NONE,
+            &rDesc,
+            D3D12_RESOURCE_STATE_COPY_DEST,
+            nullptr,
+            IID_PPV_ARGS(&m_aabbResource)
+        );
+        context.CommandList->CopyResource(m_aabbResource.Get(), m_aabbUploadBuffer->GetResource());
+
+        std::vector<CD3DX12_RESOURCE_BARRIER> transitions;
+        transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_aabbResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+        context.CommandList->ResourceBarrier(UINT(transitions.size()), transitions.data());
+    }
 }
 
-BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(Model* model)
-    : BottomLevelAccelerationStructure(std::vector<Model*>{ model })
+
+BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(RenderContext& context, std::vector<Model*> models)
+    : BottomLevelAccelerationStructure(context, models, {})
+{
+}
+
+BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(RenderContext& context, Model* model)
+    : BottomLevelAccelerationStructure(context, std::vector<Model*>{ model }, {})
+{
+}
+
+BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(RenderContext& context, std::vector<D3D12_RAYTRACING_AABB> aabbs)
+    : BottomLevelAccelerationStructure(context, {}, std::move(aabbs))
+{
+}
+
+BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(RenderContext& context, D3D12_RAYTRACING_AABB aabb)
+    : BottomLevelAccelerationStructure(context, {}, std::vector<D3D12_RAYTRACING_AABB>{ aabb })
 {
 }
 
 BottomLevelAccelerationStructure::~BottomLevelAccelerationStructure()
 {
+    SafeDelete(m_aabbUploadBuffer);
 }
 
 void BottomLevelAccelerationStructure::Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* defaultDesc /*= nullptr*/, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags /*= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE*/)
@@ -75,6 +116,18 @@ void BottomLevelAccelerationStructure::Prebuild(RenderContext& context, const D3
             desc.Triangles.VertexBuffer.StartAddress = mesh->GetVertexBufferGpuAddress();
             m_desc.push_back(desc);
         }
+    }
+
+    if (m_aabbsCount > 0)
+    {
+        D3D12_RAYTRACING_GEOMETRY_DESC aabbDesc;
+        aabbDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
+        aabbDesc.AABBs.AABBCount = m_aabbsCount;
+        aabbDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
+        aabbDesc.AABBs.AABBs.StartAddress = m_aabbResource->GetGPUVirtualAddress();
+        aabbDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+
+        m_desc.push_back(aabbDesc);
     }
 
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& buildDescInputs = m_buildDesc.Inputs;
