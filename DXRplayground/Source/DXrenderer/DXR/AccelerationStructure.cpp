@@ -5,20 +5,37 @@
 namespace DirectxPlayground::DXR
 {
 
-AccelerationStructure::AccelerationStructure(std::vector<Model*> models)
-{
-    std::swap(models, m_models);
-    m_desc.reserve(16);
-    m_instanceDescs.reserve(128);
-}
-
 AccelerationStructure::~AccelerationStructure()
 {
     SafeDelete(m_buffer);
-    SafeDelete(m_instanceDescsBuffer);
 }
 
-void AccelerationStructure::Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* defaultDesc /*= nullptr*/, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags /*= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE*/)
+void AccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier)
+{
+    m_buildDesc.ScratchAccelerationStructureData = scratchBuffer->GetGpuAddress();
+    m_buildDesc.DestAccelerationStructureData = m_buffer->GetGpuAddress();
+
+    context.CommandList->BuildRaytracingAccelerationStructure(&m_buildDesc, 0, nullptr);
+    if (setUavBarrier)
+        context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_buffer->GetResource()));
+    m_isBuilt = true;
+}
+
+//////////////////////////////////////////////////////////////////////////
+/// BLAS
+//////////////////////////////////////////////////////////////////////////
+
+BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(std::vector<Model*> models)
+{
+    std::swap(models, m_models);
+    m_desc.reserve(16);
+}
+
+BottomLevelAccelerationStructure::~BottomLevelAccelerationStructure()
+{
+}
+
+void BottomLevelAccelerationStructure::Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* defaultDesc /*= nullptr*/, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags /*= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE*/)
 {
     assert(!m_isBuilt);
     assert(!m_isPrebuilt);
@@ -69,10 +86,30 @@ void AccelerationStructure::Prebuild(RenderContext& context, const D3D12_RAYTRAC
     m_isPrebuilt = true;
 }
 
-void AccelerationStructure::AddDescriptor(const AccelerationStructure& blas, const DirectX::XMFLOAT4X4& transform /* = Identity */, UINT instanceMask /* = 0 */, UINT instanceId /* = 0 */, UINT flags /* = 0 */, UINT contribToHitGroupIndex /* = 0 */)
+
+void BottomLevelAccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier)
+{
+    AccelerationStructure::Build(context, scratchBuffer, setUavBarrier);
+    context.CommandList->ResourceBarrier(UINT(m_toIndexVertexTransitions.size()), m_toIndexVertexTransitions.data());
+}
+
+//////////////////////////////////////////////////////////////////////////
+/// TLAS
+//////////////////////////////////////////////////////////////////////////
+
+TopLevelAccelerationStructure::TopLevelAccelerationStructure()
+{
+    m_instanceDescs.reserve(128);
+}
+TopLevelAccelerationStructure::~TopLevelAccelerationStructure()
+{
+    SafeDelete(m_instanceDescsBuffer);
+}
+
+void TopLevelAccelerationStructure::AddDescriptor(const BottomLevelAccelerationStructure& blas, const DirectX::XMFLOAT4X4& transform /* = Identity */, UINT instanceMask /* = 0 */, UINT instanceId /* = 0 */, UINT flags /* = 0 */, UINT contribToHitGroupIndex /* = 0 */)
 {
     assert(!m_isBuilt);
-    assert(m_isPrebuilt);
+    assert(!m_isPrebuilt);
 
     D3D12_RAYTRACING_INSTANCE_DESC desc{};
     desc.Transform[0][0] = transform._11; desc.Transform[0][1] = transform._12; desc.Transform[0][2] = transform._13; desc.Transform[0][3] = transform._14;
@@ -83,29 +120,38 @@ void AccelerationStructure::AddDescriptor(const AccelerationStructure& blas, con
     desc.InstanceID = instanceId;
     desc.Flags = flags;
     desc.InstanceContributionToHitGroupIndex = contribToHitGroupIndex;
-    desc.AccelerationStructure = blas.m_buffer->GetGpuAddress();
+    desc.AccelerationStructure = blas.GetBuffer()->GetGpuAddress();
 
     m_instanceDescs.push_back(std::move(desc));
 }
 
-void AccelerationStructure::AddDescriptor(D3D12_RAYTRACING_INSTANCE_DESC desc)
+void TopLevelAccelerationStructure::AddDescriptor(D3D12_RAYTRACING_INSTANCE_DESC desc)
 {
     assert(!m_isBuilt);
     assert(m_isPrebuilt);
 
-    desc.AccelerationStructure = m_buffer->GetGpuAddress();
     m_instanceDescs.push_back(std::move(desc));
 }
 
-void AccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier /* = true */)
+void TopLevelAccelerationStructure::Prebuild(RenderContext& context, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags /* = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE*/)
 {
-    m_buildDesc.ScratchAccelerationStructureData = scratchBuffer->GetGpuAddress();
-    m_buildDesc.DestAccelerationStructureData = m_buffer->GetGpuAddress();
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& buildDescInputs = m_buildDesc.Inputs;
+    buildDescInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    buildDescInputs.Flags = buildFlags;
+    buildDescInputs.NumDescs = m_instanceDescs.size();
+    buildDescInputs.pGeometryDescs = nullptr;
+    buildDescInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
-    context.CommandList->BuildRaytracingAccelerationStructure(&m_buildDesc, 0, nullptr);
-    if (setUavBarrier)
-        context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_buffer->GetResource()));
-    context.CommandList->ResourceBarrier(UINT(m_toIndexVertexTransitions.size()), m_toIndexVertexTransitions.data());
+    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&buildDescInputs, &m_prebuildInfo);
+    assert(m_prebuildInfo.ResultDataMaxSizeInBytes > 0);
+    m_buffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(m_prebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
+
+    m_isPrebuilt = true;
+}
+
+void TopLevelAccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier)
+{
+    AccelerationStructure::Build(context, scratchBuffer, setUavBarrier);
 }
 
 }
