@@ -114,6 +114,5 @@ private:
    std::vector<D3D12_RAYTRACING_INSTANCE_DESC> m_instanceDescs;
    UploadBuffer* m_instanceDescsBuffer = nullptr;
 };
-
 }
 }

@@ -31,10 +31,10 @@ BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(RenderContext
     std::swap(models, m_models);
     m_desc.reserve(16);
 
-    m_aabbsCount = aabbs.size();
+    m_aabbsCount = UINT(aabbs.size());
     if (m_aabbsCount > 0)
     {
-        m_aabbUploadBuffer = new UploadBuffer(*context.Device, sizeof(D3D12_RAYTRACING_AABB) * aabbs.size(), false, 1);
+        m_aabbUploadBuffer = new UploadBuffer(*context.Device, sizeof(D3D12_RAYTRACING_AABB) * UINT(aabbs.size()), false, 1);
         m_aabbUploadBuffer->UploadData(0, reinterpret_cast<byte*>(aabbs.data()));
 
         CD3DX12_HEAP_PROPERTIES hProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
