@@ -12,6 +12,7 @@ namespace DirectxPlayground
 
 class Model;
 class UnorderedAccessBuffer;
+class UploadBuffer;
 struct RenderContext;
 
 namespace DXR
@@ -73,6 +74,7 @@ class BottomLevelAccelerationStructure : public AccelerationStructure
 public:
     // TODO: mixed aabb/model
     BottomLevelAccelerationStructure(std::vector<Model*> models);
+    BottomLevelAccelerationStructure(Model* model);
     ~BottomLevelAccelerationStructure();
     void Prebuild(RenderContext& context, const D3D12_RAYTRACING_GEOMETRY_DESC* defaultDesc = nullptr, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE);
     void Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier) override;

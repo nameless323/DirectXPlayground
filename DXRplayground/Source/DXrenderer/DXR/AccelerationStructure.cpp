@@ -31,6 +31,11 @@ BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(std::vector<M
     m_desc.reserve(16);
 }
 
+BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(Model* model)
+    : BottomLevelAccelerationStructure(std::vector<Model*>{ model })
+{
+}
+
 BottomLevelAccelerationStructure::~BottomLevelAccelerationStructure()
 {
 }
@@ -138,7 +143,7 @@ void TopLevelAccelerationStructure::Prebuild(RenderContext& context, D3D12_RAYTR
     D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& buildDescInputs = m_buildDesc.Inputs;
     buildDescInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
     buildDescInputs.Flags = buildFlags;
-    buildDescInputs.NumDescs = m_instanceDescs.size();
+    buildDescInputs.NumDescs = UINT(m_instanceDescs.size());
     buildDescInputs.pGeometryDescs = nullptr;
     buildDescInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
 
