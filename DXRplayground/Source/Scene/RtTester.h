@@ -60,7 +60,6 @@ private:
     void BuildAccelerationStructures(RenderContext& context);
     void BuildShaderTables(RenderContext& context);
     void RaytraceShadows(RenderContext& context);
-    void BuildRtAABB(RenderContext& context);
     //
 
     Model* m_suzanne = nullptr;
@@ -106,7 +105,6 @@ private:
     UploadBuffer* m_rayGenShaderTable = nullptr;
     UploadBuffer* m_instanceDescs = nullptr; // todo: after flush should be ok to delete, but it's not.
 
-    UploadBuffer* m_aabb = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_aabbResource;
     UnorderedAccessBuffer* m_scratchBuffer = nullptr; // todo: same shit as above
     UINT m_shadowMapIndex = 0;

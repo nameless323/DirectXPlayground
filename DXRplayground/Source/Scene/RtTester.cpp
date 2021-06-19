@@ -47,6 +47,7 @@ RtTester::~RtTester()
     SafeDelete(m_tlas);
     SafeDelete(m_modelBlas);
     SafeDelete(m_floorBlas);
+    SafeDelete(m_sdfBlas);
     SafeDelete(m_missShaderTable);
     SafeDelete(m_hitGroupShaderTable);
     SafeDelete(m_rayGenShaderTable);
@@ -55,8 +56,6 @@ RtTester::~RtTester()
     SafeDelete(m_rtSceneDataCB);
     SafeDelete(m_shadowMapCB);
     SafeDelete(m_rtShadowRaysBuffer);
-    SafeDelete(m_aabb);
-    SafeDelete(m_sdfBlas);
 }
 
 void RtTester::InitResources(RenderContext& context)
@@ -305,36 +304,10 @@ void RtTester::InitRaytracingPipeline(RenderContext& context)
     m_shadowMapIndex = context.TexManager->CreateDxrOutput(context, resDesc);
     m_shadowMapCB->UploadData(0, m_shadowMapIndex);
 
-    BuildRtAABB(context);
     CreateRtRootSigs(context);
     BuildAccelerationStructures(context);
     CreateRtPSO(context);
     BuildShaderTables(context);
-}
-
-void RtTester::BuildRtAABB(RenderContext& context)
-{
-    D3D12_RAYTRACING_AABB aabb =
-                { -3.0f, -3.0f, -3.0f,
-                  3.0f, 3.0f, 3.0f };
-    m_aabb = new UploadBuffer(*context.Device, sizeof(D3D12_RAYTRACING_AABB), false, 1);
-    m_aabb->UploadData(0, aabb);
-
-    CD3DX12_HEAP_PROPERTIES hProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    CD3DX12_RESOURCE_DESC rDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(D3D12_RAYTRACING_AABB));
-    HRESULT hr = context.Device->CreateCommittedResource(
-        &hProps,
-        D3D12_HEAP_FLAG_NONE,
-        &rDesc,
-        D3D12_RESOURCE_STATE_COPY_DEST,
-        nullptr,
-        IID_PPV_ARGS(&m_aabbResource)
-    );
-    context.CommandList->CopyResource(m_aabbResource.Get(), m_aabb->GetResource());
-
-    std::vector<CD3DX12_RESOURCE_BARRIER> transitions;
-    transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_aabbResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
-    context.CommandList->ResourceBarrier(UINT(transitions.size()), transitions.data());
 }
 
 void RtTester::CreateRtRootSigs(RenderContext& context)
@@ -385,44 +358,26 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     m_floorBlas->Prebuild(context);
     m_sdfBlas->Prebuild(context);
 
-    D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
-    instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1; // instancing
-    instanceDesc.Transform[1][3] = 2;
-    instanceDesc.Transform[2][3] = 3;
-    instanceDesc.InstanceMask = 1;
-    instanceDesc.AccelerationStructure = m_modelBlas->GetGpuAddress();
-    instanceDesc.Flags = 0; // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_raytracing_instance_flags
-    instanceDesc.InstanceID = 0;
-    instanceDesc.InstanceContributionToHitGroupIndex = 0; // Offset in HitGroups (for example in traceRay hit group is 0, if this geometry wants to be called with other hit group (the second one), put 1 here and get your bias)
-    m_tlas->AddDescriptor(instanceDesc);
+    XMFLOAT4X4 transform = IdentityMatrix;
 
-    instanceDesc.Transform[0][3] = 5;
-    m_tlas->AddDescriptor(instanceDesc);
+    m_tlas->AddDescriptor(*m_floorBlas, transform, 2);
 
-    D3D12_RAYTRACING_INSTANCE_DESC floorInstanceDesc = {};
-    floorInstanceDesc.Transform[0][0] = floorInstanceDesc.Transform[1][1] = floorInstanceDesc.Transform[2][2] = 1;
-    floorInstanceDesc.InstanceMask = 2;
-    floorInstanceDesc.AccelerationStructure = m_floorBlas->GetGpuAddress();
-    floorInstanceDesc.Flags = 0;
-    floorInstanceDesc.InstanceID = 0;
-    floorInstanceDesc.InstanceContributionToHitGroupIndex = 0;
-    m_tlas->AddDescriptor(floorInstanceDesc);
+    transform._24 = 2.0f;
+    transform._34 = 3.0f;
 
-    D3D12_RAYTRACING_INSTANCE_DESC sdfInstanceDesc = {};
-    sdfInstanceDesc.Transform[0][0] = sdfInstanceDesc.Transform[1][1] = sdfInstanceDesc.Transform[2][2] = 1; // instancing
-    sdfInstanceDesc.Transform[0][3] = -6;
-    sdfInstanceDesc.Transform[1][3] = 2;
-    sdfInstanceDesc.Transform[2][3] = 3;
-    sdfInstanceDesc.InstanceMask = 1;
-    sdfInstanceDesc.AccelerationStructure = m_sdfBlas->GetGpuAddress();
-    sdfInstanceDesc.Flags = 0;
-    sdfInstanceDesc.InstanceID = 0;
-    sdfInstanceDesc.InstanceContributionToHitGroupIndex = 1;
-    m_tlas->AddDescriptor(sdfInstanceDesc);
+    m_tlas->AddDescriptor(*m_modelBlas, transform, 1);
+
+    transform._14 = 5.0f;
+    m_tlas->AddDescriptor(*m_modelBlas, transform, 1);
+
+    transform._14 = -6.0f;
+    transform._24 = 2.0f;
+    transform._34 = 3.0f;
+
+    m_tlas->AddDescriptor(*m_sdfBlas, transform, 1, 0, 0, 1);
     m_tlas->Prebuild(context);
 
     UINT64 maxScratchBufferSize = DXR::AccelerationStructure::GetMaxScratchSize({ m_modelBlas, m_floorBlas, m_sdfBlas, m_tlas });
-    // during build
     m_scratchBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(maxScratchBufferSize));
     m_modelBlas->Build(context, m_scratchBuffer, true);
     m_floorBlas->Build(context, m_scratchBuffer, true);
