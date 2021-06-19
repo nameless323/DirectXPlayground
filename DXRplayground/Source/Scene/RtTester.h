@@ -21,6 +21,12 @@ class LightManager;
 class EnvironmentMap;
 class UnorderedAccessBuffer;
 
+namespace DXR
+{
+class BottomLevelAccelerationStructure;
+class TopLevelAccelerationStructure;
+}
+
 class RtTester : public Scene
 {
 public:
@@ -109,9 +115,9 @@ private:
     Shader m_rayGenShader;
     Shader m_closestHitShader;
     Shader m_missShader;
-    UnorderedAccessBuffer* m_modelBlas = nullptr;
-    UnorderedAccessBuffer* m_floorBlas = nullptr;
-    UnorderedAccessBuffer* m_sdfBlas = nullptr;
-    UnorderedAccessBuffer* m_tlas = nullptr;
+    DXR::BottomLevelAccelerationStructure* m_modelBlas = nullptr;
+    DXR::BottomLevelAccelerationStructure* m_floorBlas = nullptr;
+    DXR::BottomLevelAccelerationStructure* m_sdfBlas = nullptr;
+    DXR::TopLevelAccelerationStructure* m_tlas = nullptr;
 };
 }

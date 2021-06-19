@@ -5,6 +5,7 @@
 #include <DirectXMath.h>
 
 #include "DXrenderer/DXhelpers.h"
+#include "DXrenderer/Buffers/UploadBuffer.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
@@ -23,6 +24,7 @@ public:
     virtual ~AccelerationStructure();
 
     virtual void Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier);
+    void SetName(const std::wstring& name);
 
     UnorderedAccessBuffer* GetBuffer() const;
 
@@ -30,6 +32,10 @@ public:
     UINT64 GetScratchSize() const;
 
     UINT64 UpdateScratchSize(AccelerationStructure& other);
+
+    D3D12_GPU_VIRTUAL_ADDRESS GetGpuAddress() const;
+
+    static UINT64 GetMaxScratchSize(std::vector<AccelerationStructure*> structs);
 
 protected:
     D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO m_prebuildInfo = {};
@@ -63,6 +69,16 @@ inline UINT64 AccelerationStructure::UpdateScratchSize(AccelerationStructure& ot
     assert(m_isPrebuilt);
     assert(other.m_isPrebuilt);
     return std::max(other.GetScratchSize(), GetScratchSize());
+}
+
+inline void AccelerationStructure::SetName(const std::wstring& name)
+{
+    m_buffer->SetName(name);
+}
+
+inline D3D12_GPU_VIRTUAL_ADDRESS AccelerationStructure::GetGpuAddress() const
+{
+    return m_buffer->GetGpuAddress();
 }
 
 //////////////////////////////////////////////////////////////////////////

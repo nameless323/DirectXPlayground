@@ -21,6 +21,14 @@ void AccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer*
     m_isBuilt = true;
 }
 
+UINT64 AccelerationStructure::GetMaxScratchSize(std::vector<AccelerationStructure*> structs)
+{
+    UINT64 res = 0;
+    for (auto s : structs)
+        res = std::max(res, s->GetScratchSize());
+    return res;
+}
+
 //////////////////////////////////////////////////////////////////////////
 /// BLAS
 //////////////////////////////////////////////////////////////////////////
@@ -147,8 +155,11 @@ void BottomLevelAccelerationStructure::Prebuild(RenderContext& context, const D3
 
 void BottomLevelAccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier)
 {
+    if (m_toNonPixelTransitions.size() > 0)
+        context.CommandList->ResourceBarrier(UINT(m_toNonPixelTransitions.size()), m_toNonPixelTransitions.data());
     AccelerationStructure::Build(context, scratchBuffer, setUavBarrier);
-    context.CommandList->ResourceBarrier(UINT(m_toIndexVertexTransitions.size()), m_toIndexVertexTransitions.data());
+    if (m_toIndexVertexTransitions.size() > 0)
+        context.CommandList->ResourceBarrier(UINT(m_toIndexVertexTransitions.size()), m_toIndexVertexTransitions.data());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -186,7 +197,7 @@ void TopLevelAccelerationStructure::AddDescriptor(const BottomLevelAccelerationS
 void TopLevelAccelerationStructure::AddDescriptor(D3D12_RAYTRACING_INSTANCE_DESC desc)
 {
     assert(!m_isBuilt);
-    assert(m_isPrebuilt);
+    assert(!m_isPrebuilt);
 
     m_instanceDescs.push_back(std::move(desc));
 }
@@ -203,12 +214,15 @@ void TopLevelAccelerationStructure::Prebuild(RenderContext& context, D3D12_RAYTR
     context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&buildDescInputs, &m_prebuildInfo);
     assert(m_prebuildInfo.ResultDataMaxSizeInBytes > 0);
     m_buffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(m_prebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
+    m_instanceDescsBuffer = new UploadBuffer(*context.Device, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * UINT(m_instanceDescs.size()), false, 1);
+    m_instanceDescsBuffer->UploadData(0, reinterpret_cast<byte*>(m_instanceDescs.data()));
 
     m_isPrebuilt = true;
 }
 
 void TopLevelAccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer* scratchBuffer, bool setUavBarrier)
 {
+    m_buildDesc.Inputs.InstanceDescs = m_instanceDescsBuffer->GetFrameDataGpuAddress(0);
     AccelerationStructure::Build(context, scratchBuffer, setUavBarrier);
 }
 

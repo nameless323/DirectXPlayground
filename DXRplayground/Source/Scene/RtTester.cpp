@@ -14,6 +14,7 @@
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "DXrenderer/Textures/EnvironmentMap.h"
 #include "DXrenderer/RenderPipeline.h"
+#include "DXrenderer/DXR/AccelerationStructure.h"
 
 #include "External/IMGUI/imgui.h"
 
@@ -370,132 +371,19 @@ void RtTester::CreateRtRootSigs(RenderContext& context)
 
 void RtTester::BuildAccelerationStructures(RenderContext& context)
 {
-    D3D12_RAYTRACING_GEOMETRY_DESC geomDesc{};
-    geomDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES;
-    geomDesc.Triangles.IndexFormat = DXGI_FORMAT_R32_UINT;
-    geomDesc.Triangles.Transform3x4 = 0;
-    geomDesc.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
-    geomDesc.Triangles.VertexBuffer.StrideInBytes = sizeof(Vertex);
-    geomDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
+    m_modelBlas = new DXR::BottomLevelAccelerationStructure(context, m_suzanne);
+    m_floorBlas = new DXR::BottomLevelAccelerationStructure(context, m_floor);
 
-    // Build Suzanne
+    D3D12_RAYTRACING_AABB aabb =
+    { -3.0f, -3.0f, -3.0f,
+      3.0f, 3.0f, 3.0f };
+    m_sdfBlas = new DXR::BottomLevelAccelerationStructure(context, aabb);
 
-    std::vector<D3D12_RAYTRACING_GEOMETRY_DESC> geomDescs;
+    m_tlas = new DXR::TopLevelAccelerationStructure();
 
-    std::vector<CD3DX12_RESOURCE_BARRIER> toNonPixelTranitions;
-    std::vector<CD3DX12_RESOURCE_BARRIER> toIndexVertexTransitions;
-
-    for (const auto mesh : m_suzanne->GetMeshes())
-    {
-        toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
-        toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
-
-        toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_INDEX_BUFFER));
-        toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-        geomDesc.Triangles.IndexBuffer = mesh->GetIndexBufferGpuAddress();
-        geomDesc.Triangles.IndexCount = mesh->GetIndexCount();
-        geomDesc.Triangles.VertexCount = mesh->GetVertexCount();
-        geomDesc.Triangles.VertexBuffer.StartAddress = mesh->GetVertexBufferGpuAddress();
-        geomDescs.push_back(geomDesc);
-    }
-
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS buildFlags = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE;
-
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelModelBuildDesc = {};
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelModelInputs = bottomLevelModelBuildDesc.Inputs;
-    bottomLevelModelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    bottomLevelModelInputs.Flags = buildFlags;
-    bottomLevelModelInputs.NumDescs = UINT(geomDescs.size());
-    bottomLevelModelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-    bottomLevelModelInputs.pGeometryDescs = geomDescs.data();
-
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelModelPrebuildInfo = {};
-    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelModelInputs, &bottomLevelModelPrebuildInfo);
-    assert(bottomLevelModelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
-    //
-    // floor
-    const Model::Mesh* floorMesh = m_floor->GetMeshes()[0];
-    toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(floorMesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
-    toNonPixelTranitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(floorMesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
-
-    toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(floorMesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_INDEX_BUFFER));
-    toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(floorMesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
-
-    D3D12_RAYTRACING_GEOMETRY_DESC floorGeomDesc = geomDesc;
-    floorGeomDesc.Triangles.IndexBuffer = floorMesh->GetIndexBufferGpuAddress();
-    floorGeomDesc.Triangles.IndexCount = floorMesh->GetIndexCount();
-    floorGeomDesc.Triangles.VertexCount = floorMesh->GetVertexCount();
-    floorGeomDesc.Triangles.VertexBuffer.StartAddress = floorMesh->GetVertexBufferGpuAddress();
-
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelFloorBuildDesc = {};
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelFloorInputs = bottomLevelFloorBuildDesc.Inputs;
-    bottomLevelFloorInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    bottomLevelFloorInputs.Flags = buildFlags;
-    bottomLevelFloorInputs.NumDescs = 1;
-    bottomLevelFloorInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-    bottomLevelFloorInputs.pGeometryDescs = &floorGeomDesc;
-
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelFloorPrebuildInfo = {};
-    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelFloorInputs, &bottomLevelFloorPrebuildInfo);
-    assert(bottomLevelFloorPrebuildInfo.ResultDataMaxSizeInBytes > 0);
-
-    // sdf
-    D3D12_RAYTRACING_GEOMETRY_DESC sdfDesc{};
-    sdfDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
-    sdfDesc.AABBs.AABBCount = 1;
-    sdfDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
-    sdfDesc.AABBs.AABBs.StartAddress = m_aabbResource->GetGPUVirtualAddress();
-    sdfDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
-
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC bottomLevelSdfBuildDesc = {};
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& bottomLevelSdfInputs = bottomLevelSdfBuildDesc.Inputs;
-    bottomLevelSdfInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    bottomLevelSdfInputs.Flags = buildFlags;
-    bottomLevelSdfInputs.NumDescs = 1;
-    bottomLevelSdfInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-    bottomLevelSdfInputs.pGeometryDescs = &sdfDesc;
-
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelSdfPrebuildInfo = {};
-    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelSdfInputs, &bottomLevelSdfPrebuildInfo);
-    assert(bottomLevelSdfPrebuildInfo.ResultDataMaxSizeInBytes > 0);
-
-    //
-    context.CommandList->ResourceBarrier(UINT(toNonPixelTranitions.size()), toNonPixelTranitions.data());
-
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC topLevelBuildDesc = {};
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS& topLevelInputs = topLevelBuildDesc.Inputs;
-    topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-    topLevelInputs.Flags = buildFlags;
-    topLevelInputs.NumDescs = 4; // 2 suzanne + floor + sdf aabb
-    topLevelInputs.pGeometryDescs = nullptr;
-    topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
-
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
-    context.Device->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
-    assert(topLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
-
-    UINT64 maxScratchBufferSize = std::max(topLevelPrebuildInfo.ScratchDataSizeInBytes, bottomLevelModelPrebuildInfo.ScratchDataSizeInBytes);
-    maxScratchBufferSize = std::max(maxScratchBufferSize, bottomLevelFloorPrebuildInfo.ScratchDataSizeInBytes);
-    maxScratchBufferSize = std::max(maxScratchBufferSize, bottomLevelSdfPrebuildInfo.ScratchDataSizeInBytes);
-    // during build
-    m_scratchBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(maxScratchBufferSize));
-
-    D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-
-    m_modelBlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelModelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
-    m_modelBlas->SetName(L"BottomLevelSuzanneAccelerationStructure");
-
-    m_floorBlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelFloorPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
-    m_floorBlas->SetName(L"BottomLevelFloorAccelerationStructure");
-
-    m_sdfBlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(bottomLevelSdfPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
-    m_sdfBlas->SetName(L"SdfAccelerationStructure");
-
-    m_tlas = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(topLevelPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
-    m_tlas->SetName(L"TopLevelAccelerationStructure");
-
-    std::vector<D3D12_RAYTRACING_INSTANCE_DESC> instanceDescriptors;
+    m_modelBlas->Prebuild(context);
+    m_floorBlas->Prebuild(context);
+    m_sdfBlas->Prebuild(context);
 
     D3D12_RAYTRACING_INSTANCE_DESC instanceDesc = {};
     instanceDesc.Transform[0][0] = instanceDesc.Transform[1][1] = instanceDesc.Transform[2][2] = 1; // instancing
@@ -506,10 +394,10 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     instanceDesc.Flags = 0; // https://docs.microsoft.com/en-us/windows/win32/api/d3d12/ne-d3d12-d3d12_raytracing_instance_flags
     instanceDesc.InstanceID = 0;
     instanceDesc.InstanceContributionToHitGroupIndex = 0; // Offset in HitGroups (for example in traceRay hit group is 0, if this geometry wants to be called with other hit group (the second one), put 1 here and get your bias)
-    instanceDescriptors.push_back(instanceDesc);
+    m_tlas->AddDescriptor(instanceDesc);
 
     instanceDesc.Transform[0][3] = 5;
-    instanceDescriptors.push_back(instanceDesc);
+    m_tlas->AddDescriptor(instanceDesc);
 
     D3D12_RAYTRACING_INSTANCE_DESC floorInstanceDesc = {};
     floorInstanceDesc.Transform[0][0] = floorInstanceDesc.Transform[1][1] = floorInstanceDesc.Transform[2][2] = 1;
@@ -518,7 +406,7 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     floorInstanceDesc.Flags = 0;
     floorInstanceDesc.InstanceID = 0;
     floorInstanceDesc.InstanceContributionToHitGroupIndex = 0;
-    instanceDescriptors.push_back(floorInstanceDesc);
+    m_tlas->AddDescriptor(floorInstanceDesc);
 
     D3D12_RAYTRACING_INSTANCE_DESC sdfInstanceDesc = {};
     sdfInstanceDesc.Transform[0][0] = sdfInstanceDesc.Transform[1][1] = sdfInstanceDesc.Transform[2][2] = 1; // instancing
@@ -530,37 +418,16 @@ void RtTester::BuildAccelerationStructures(RenderContext& context)
     sdfInstanceDesc.Flags = 0;
     sdfInstanceDesc.InstanceID = 0;
     sdfInstanceDesc.InstanceContributionToHitGroupIndex = 1;
-    instanceDescriptors.push_back(sdfInstanceDesc);
+    m_tlas->AddDescriptor(sdfInstanceDesc);
+    m_tlas->Prebuild(context);
 
-    m_instanceDescs = new UploadBuffer{ *context.Device, sizeof(instanceDesc) * UINT(instanceDescriptors.size()), false, 1 };
-    m_instanceDescs->SetName(L"InstanceDescs");
-    m_instanceDescs->UploadData(0, reinterpret_cast<byte*>(instanceDescriptors.data()));
-
-    bottomLevelModelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
-    bottomLevelModelBuildDesc.DestAccelerationStructureData = m_modelBlas->GetGpuAddress();
-
-    bottomLevelFloorBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
-    bottomLevelFloorBuildDesc.DestAccelerationStructureData = m_floorBlas->GetGpuAddress();
-
-    bottomLevelSdfBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
-    bottomLevelSdfBuildDesc.DestAccelerationStructureData = m_sdfBlas->GetGpuAddress();
-
-    topLevelBuildDesc.ScratchAccelerationStructureData = m_scratchBuffer->GetGpuAddress();
-    topLevelBuildDesc.DestAccelerationStructureData = m_tlas->GetGpuAddress();
-    topLevelBuildDesc.Inputs.InstanceDescs = m_instanceDescs->GetFrameDataGpuAddress(0);
-
-    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelModelBuildDesc, 0, nullptr);
-    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_modelBlas->GetResource()));
-
-    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelFloorBuildDesc, 0, nullptr);
-    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_floorBlas->GetResource()));
-
-    context.CommandList->BuildRaytracingAccelerationStructure(&bottomLevelSdfBuildDesc, 0, nullptr);
-    context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(m_sdfBlas->GetResource()));
-
-    context.CommandList->BuildRaytracingAccelerationStructure(&topLevelBuildDesc, 0, nullptr);
-
-    context.CommandList->ResourceBarrier(UINT(toIndexVertexTransitions.size()), toIndexVertexTransitions.data());
+    UINT64 maxScratchBufferSize = DXR::AccelerationStructure::GetMaxScratchSize({ m_modelBlas, m_floorBlas, m_sdfBlas, m_tlas });
+    // during build
+    m_scratchBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(maxScratchBufferSize));
+    m_modelBlas->Build(context, m_scratchBuffer, true);
+    m_floorBlas->Build(context, m_scratchBuffer, true);
+    m_sdfBlas->Build(context, m_scratchBuffer, true);
+    m_tlas->Build(context, m_scratchBuffer, false);
 }
 
 void RtTester::CreateRtPSO(RenderContext& context)
