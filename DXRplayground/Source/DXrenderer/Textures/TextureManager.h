@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cassert>
 #include <string>
+#include <map>
 
 #include <wrl.h>
 #include "External/Dx12Helpers/d3dx12.h"
@@ -106,6 +108,42 @@ inline D3D12_CPU_DESCRIPTOR_HANDLE TextureManager::GetRtHandle(RenderContext& ct
 inline ID3D12Resource* TextureManager::GetResource(UINT index) const
 {
     return m_resources[index].Get();
+}
+
+//////////////////////////////////////////////////////////////////////////
+/// Imgui Texture Manager
+//////////////////////////////////////////////////////////////////////////
+
+typedef void* ImTextureID;
+
+class ImguiTextureManager
+{
+public:
+    void AddTexture(ID3D12Resource* tex);
+    ImTextureID GetTextureId(ID3D12Resource* tex) const;
+
+private:
+    friend class RenderPipeline;
+
+    ImguiTextureManager(RenderContext* context);
+    ID3D12DescriptorHeap* GetHeap() const;
+
+    ID3D12DescriptorHeap* m_imguiDescriptorHeap = nullptr;
+
+    UINT m_currentOffset = 1; // IMGUI font texture.
+    RenderContext* m_context = nullptr;
+    std::map<ID3D12Resource*, ImTextureID> m_textures;
+};
+
+inline ID3D12DescriptorHeap* ImguiTextureManager::GetHeap() const
+{
+    return m_imguiDescriptorHeap;
+}
+
+inline ImTextureID ImguiTextureManager::GetTextureId(ID3D12Resource* tex) const
+{
+    assert(m_textures.count(tex) == 1);
+    return m_textures.at(tex);
 }
 
 }

@@ -8,6 +8,7 @@ class Swapchain;
 class TextureManager;
 class PsoManager;
 class IRenderPipeline;
+class ImguiTextureManager;
 
 struct RenderContext
 {
@@ -29,10 +30,9 @@ struct RenderContext
     ID3D12Device5* Device = nullptr;
     Swapchain* SwapChain = nullptr;
     TextureManager* TexManager = nullptr;
+    ImguiTextureManager* ImguiTexManager = nullptr;
     PsoManager* PsoManager = nullptr;
 
     IRenderPipeline* Pipeline = nullptr;
-
-    ID3D12DescriptorHeap* ImguiHeap = nullptr;
 };
 }

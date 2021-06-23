@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+#include <cassert>
 #include <exception>
+#include <map>
 #include <d3d12.h>
 #include <dxgi1_6.h>
 #include <string>
@@ -14,6 +16,8 @@
 namespace DirectxPlayground
 {
 class Scene;
+
+class ImguiTextureManager;
 
 class IRenderPipeline
 {
@@ -56,7 +60,7 @@ private:
     TextureManager* m_textureManager = nullptr;
     PsoManager* m_psoManager = nullptr;
 
-    ID3D12DescriptorHeap* m_imguiDescriptorHeap = nullptr; // TODO: ComPtr?
+    ImguiTextureManager* m_imguiTextureManager = nullptr;
 
     Microsoft::WRL::ComPtr<IDXGIFactory7> m_factory;
     Microsoft::WRL::ComPtr<ID3D12Device5> m_device;

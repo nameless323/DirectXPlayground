@@ -23,6 +23,7 @@ using Microsoft::WRL::ComPtr;
 RenderPipeline::~RenderPipeline()
 {
     SafeDelete(m_textureManager);
+    SafeDelete(m_imguiTextureManager);
 }
 
 void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
@@ -283,38 +284,19 @@ void RenderPipeline::InitImGui()
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
     ImGui::ImplWinInit(WindowsApp::GetHWND());
-    {
-        D3D12_DESCRIPTOR_HEAP_DESC desc = {};
-        desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        desc.NumDescriptors = 100;
-        desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-        m_context.Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiDescriptorHeap));
-        CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_imguiDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    m_imguiTextureManager = new ImguiTextureManager(&m_context);
 
-        D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
-        viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        viewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-        viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-        viewDesc.Texture2D.MipLevels = 1;
-        viewDesc.Texture2D.MostDetailedMip = 0;
-        viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-        for (UINT i = 0; i < desc.NumDescriptors; ++i)
-        {
-            m_context.Device->CreateShaderResourceView(nullptr, &viewDesc, handle);
-            handle.Offset(m_context.CbvSrvUavDescriptorSize);
-        }
-    }
-
-    ImGui::ImplDX12Init(m_context.Device, RenderContext::FramesCount, m_swapChain.GetBackBufferFormat(), m_imguiDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
-        m_imguiDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-    m_context.ImguiHeap = m_imguiDescriptorHeap;
+    ImGui::ImplDX12Init(m_context.Device, RenderContext::FramesCount, m_swapChain.GetBackBufferFormat(), m_imguiTextureManager->GetHeap()->GetCPUDescriptorHandleForHeapStart(),
+        m_imguiTextureManager->GetHeap()->GetGPUDescriptorHandleForHeapStart());
+    m_context.ImguiTexManager = m_imguiTextureManager;
 }
 
 void RenderPipeline::RenderImGui()
 {
     m_context.CommandList->OMSetRenderTargets(1, &m_swapChain.GetCurrentBackBufferCPUhandle(m_context), false, &m_swapChain.GetDSCPUhandle());
-    m_context.CommandList->SetDescriptorHeaps(1, &m_imguiDescriptorHeap);
+
+    ID3D12DescriptorHeap* descHeap[] = { m_imguiTextureManager->GetHeap() };
+    m_context.CommandList->SetDescriptorHeaps(1, descHeap);
     ImGui::Render();
     ImGui::ImplDX12RenderDrawData(ImGui::GetDrawData(), m_context.CommandList);
 }
@@ -325,5 +307,4 @@ void RenderPipeline::ShutdownImGui()
     ImGui::ImplWinShutdown();
     ImGui::DestroyContext();
 }
-
 }

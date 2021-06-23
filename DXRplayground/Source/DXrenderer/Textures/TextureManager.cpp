@@ -19,6 +19,10 @@
 
 namespace DirectxPlayground
 {
+namespace
+{
+static constexpr UINT MaxImguiTexturesCount = 128;
+}
 
 TextureManager::TextureManager(RenderContext& ctx)
 {
@@ -468,5 +472,58 @@ void TextureManager::CreateUAVHeap(RenderContext& ctx)
         ctx.Device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, handle);
         handle.Offset(ctx.CbvSrvUavDescriptorSize);
     }
+}
+
+//////////////////////////////////////////////////////////////////////////
+/// Imgui Texture Manager
+//////////////////////////////////////////////////////////////////////////
+
+ImguiTextureManager::ImguiTextureManager(RenderContext* context)
+    : m_context(context)
+{
+    D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+    desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    desc.NumDescriptors = MaxImguiTexturesCount;
+    desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    context->Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiDescriptorHeap));
+    SetDXobjectName(m_imguiDescriptorHeap, L"Pipeline Imgui Descriptor Heap");
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_imguiDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
+    viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    viewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    viewDesc.Texture2D.MipLevels = 1;
+    viewDesc.Texture2D.MostDetailedMip = 0;
+    viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+    for (UINT i = 0; i < desc.NumDescriptors; ++i)
+    {
+        context->Device->CreateShaderResourceView(nullptr, &viewDesc, handle);
+        handle.Offset(context->CbvSrvUavDescriptorSize);
+    }
+}
+
+void ImguiTextureManager::AddTexture(ID3D12Resource* tex)
+{
+    assert(m_textures.count(tex) == 0);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+    srvDesc.Format = tex->GetDesc().Format;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = tex->GetDesc().MipLevels;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_imguiDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+    handle.Offset(m_currentOffset * m_context->CbvSrvUavDescriptorSize);
+
+    m_context->Device->CreateShaderResourceView(tex, &srvDesc, handle);
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(m_imguiDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    gpuHandle.Offset(m_currentOffset * m_context->CbvSrvUavDescriptorSize);
+
+    m_textures.insert({ tex, reinterpret_cast<ImTextureID>(gpuHandle.ptr) });
+    ++m_currentOffset;
 }
 }
