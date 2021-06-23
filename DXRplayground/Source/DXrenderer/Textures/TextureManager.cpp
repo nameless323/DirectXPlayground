@@ -408,6 +408,7 @@ void TextureManager::CreateSRVHeap(RenderContext& ctx)
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     heapDesc.NumDescriptors = RenderContext::MaxTextures;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_srvHeap)));
+    NAME_D3D12_OBJECT(m_srvHeap);
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
 
     D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
@@ -443,6 +444,7 @@ void TextureManager::CreateRTVHeap(RenderContext& ctx)
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     heapDesc.NumDescriptors = RenderContext::MaxRT;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_rtvHeap)));
+    NAME_D3D12_OBJECT(m_rtvHeap);
 }
 
 void TextureManager::CreateUAVHeap(RenderContext& ctx)
@@ -452,6 +454,7 @@ void TextureManager::CreateUAVHeap(RenderContext& ctx)
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     heapDesc.NumDescriptors = RenderContext::MaxCubemapsUAV;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_uavHeap)));
+    NAME_D3D12_OBJECT(m_uavHeap);
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_uavHeap->GetCPUDescriptorHandleForHeapStart());
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};

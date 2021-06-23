@@ -56,7 +56,7 @@ private:
     TextureManager* m_textureManager = nullptr;
     PsoManager* m_psoManager = nullptr;
 
-    ID3D12DescriptorHeap* m_imguiDescriptorHeap = nullptr;
+    ID3D12DescriptorHeap* m_imguiDescriptorHeap = nullptr; // TODO: ComPtr?
 
     Microsoft::WRL::ComPtr<IDXGIFactory7> m_factory;
     Microsoft::WRL::ComPtr<ID3D12Device5> m_device;

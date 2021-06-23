@@ -134,6 +134,13 @@ void RtTester::Render(RenderContext& context)
     RaytraceShadows(context);
     RenderForwardObjects(context);
 
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE imguiHandle(context.ImguiHeap->GetGPUDescriptorHandleForHeapStart());
+    imguiHandle.Offset(context.CbvSrvUavDescriptorSize);
+    ImGui::Begin("TexTest");
+    ImGui::Image((ImTextureID)imguiHandle.ptr, { 128, 128 });
+    ImGui::End();
+
     m_tonemapper->Render(context);
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -308,6 +315,9 @@ void RtTester::InitRaytracingPipeline(RenderContext& context)
     BuildAccelerationStructures(context);
     CreateRtPSO(context);
     BuildShaderTables(context);
+
+
+    CreateImguiHeap(context);
 }
 
 void RtTester::CreateRtRootSigs(RenderContext& context)
@@ -554,6 +564,22 @@ void RtTester::RaytraceShadows(RenderContext& context)
 
     transition = CD3DX12_RESOURCE_BARRIER::Transition(context.TexManager->GetDXRResource(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     context.CommandList->ResourceBarrier(1, &transition);
+}
+
+void RtTester::CreateImguiHeap(RenderContext& context)
+{
+    ID3D12Resource* dxrResource = context.TexManager->GetDXRResource();
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+    srvDesc.Format = dxrResource->GetDesc().Format;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = dxrResource->GetDesc().MipLevels;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(context.ImguiHeap->GetCPUDescriptorHandleForHeapStart());
+    handle.Offset(1 * context.CbvSrvUavDescriptorSize);
+    //SetDXobjectName((ID3D12Object*)handle.ptr, L"HandleForDesc");
+    context.Device->CreateShaderResourceView(dxrResource, &srvDesc, handle);
 }
 
 }

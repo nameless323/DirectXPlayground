@@ -286,13 +286,29 @@ void RenderPipeline::InitImGui()
     {
         D3D12_DESCRIPTOR_HEAP_DESC desc = {};
         desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-        desc.NumDescriptors = 1;
+        desc.NumDescriptors = 100;
         desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         m_context.Device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_imguiDescriptorHeap));
+        CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_imguiDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
+        viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        viewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        viewDesc.Texture2D.MipLevels = 1;
+        viewDesc.Texture2D.MostDetailedMip = 0;
+        viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+        for (UINT i = 0; i < desc.NumDescriptors; ++i)
+        {
+            m_context.Device->CreateShaderResourceView(nullptr, &viewDesc, handle);
+            handle.Offset(m_context.CbvSrvUavDescriptorSize);
+        }
     }
 
     ImGui::ImplDX12Init(m_context.Device, RenderContext::FramesCount, m_swapChain.GetBackBufferFormat(), m_imguiDescriptorHeap->GetCPUDescriptorHandleForHeapStart(),
         m_imguiDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+    m_context.ImguiHeap = m_imguiDescriptorHeap;
 }
 
 void RenderPipeline::RenderImGui()

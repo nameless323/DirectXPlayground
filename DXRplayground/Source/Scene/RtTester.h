@@ -117,5 +117,10 @@ private:
     DXR::BottomLevelAccelerationStructure* m_floorBlas = nullptr;
     DXR::BottomLevelAccelerationStructure* m_sdfBlas = nullptr;
     DXR::TopLevelAccelerationStructure* m_tlas = nullptr;
+
+
+    /////////////////////
+    void CreateImguiHeap(RenderContext& context);
+
 };
 }

@@ -32,5 +32,7 @@ struct RenderContext
     PsoManager* PsoManager = nullptr;
 
     IRenderPipeline* Pipeline = nullptr;
+
+    ID3D12DescriptorHeap* ImguiHeap = nullptr;
 };
 }
