@@ -17,7 +17,7 @@ namespace
 RenderPipeline DirectXPipeline;
 }
 
-RtTester scene;
+GltfViewer scene;
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE prevInstance, _In_ PSTR cmdLine, _In_ int nCmdShow)
 {

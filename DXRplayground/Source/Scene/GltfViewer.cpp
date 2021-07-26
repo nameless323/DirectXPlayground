@@ -59,7 +59,7 @@ void GltfViewer::Render(RenderContext& context)
 {
     m_cameraController->Update();
     UpdateLights(context);
-    m_envMap->ConvertToCubemap(context);
+    //m_envMap->ConvertToCubemap(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
@@ -120,7 +120,7 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
+    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     m_gltfMesh = new Model(context, path);
 }
 

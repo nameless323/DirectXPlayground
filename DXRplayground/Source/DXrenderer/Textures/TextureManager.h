@@ -130,7 +130,7 @@ private:
 
     ID3D12DescriptorHeap* m_imguiDescriptorHeap = nullptr;
 
-    UINT m_currentOffset = 1; // IMGUI font texture.
+    UINT m_currentOffset = 1; // IMGUI font texture always goes at the beginning of the heap.
     RenderContext* m_context = nullptr;
     std::map<ID3D12Resource*, ImTextureID> m_textures;
 };

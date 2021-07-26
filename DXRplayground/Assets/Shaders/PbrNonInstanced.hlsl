@@ -104,18 +104,18 @@ float4 ps(vOut pIn) : SV_Target
         // float cosTheta = max(dot(H, V), 0.0f);
         float3 F = FresnelSchlick(H, V, f0);
 
-        float NDF = GGXDistribution(normal, H, metalnessRoughness.y);
-        float G = GeometrySmith(normal, V, L, metalnessRoughness.y);
+        float NDF = GGXDistribution(N, H, metalnessRoughness.y);
+        float G = GeometrySmith(N, V, L, metalnessRoughness.y);
 
         float3 numer = NDF * G * F; 
-        float denumer = 4.0f * max(dot(normal, V), 0.0f) * max(dot(normal, L), 0.0f);
+        float denumer = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f);
         float3 spec = numer / max(denumer, 0.0001f);
 
         float3 ks = F;
         float3 kd = float3(1.0f, 1.0f, 1.0f) - ks;
         kd *= 1.0f - metalnessRoughness.x;
 
-        float NdotL = max(dot(normal, L), 0.0f);
+        float NdotL = max(dot(N, L), 0.0f);
         Lo += (kd * albedo.xyz / PI + spec) * radiance * NdotL;
 
     }

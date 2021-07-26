@@ -4,7 +4,7 @@
 #include <string>
 #include <wrl.h>
 
-#include "External/dxc/x64/dxcapi.h"
+#include "External/dxc/x64_cfg/dxcapi.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
