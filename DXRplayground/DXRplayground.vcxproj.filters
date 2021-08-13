@@ -239,5 +239,8 @@
     <ClInclude Include="Source\DXrenderer\DXR\AccelerationStructure.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\DXrenderer\Textures\MipGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

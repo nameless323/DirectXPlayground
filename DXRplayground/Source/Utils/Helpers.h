@@ -26,4 +26,14 @@ inline void SafeDelete(T*& ptr)
         ptr = nullptr;
     }
 }
+
+inline UINT Log2(UINT v)
+{
+    return static_cast<UINT>(log2(8));
+}
+
+inline UINT NextPOT(UINT v)
+{
+    return static_cast<UINT>(pow(2, Log2(v)));
+}
 }

@@ -189,6 +189,7 @@
     <ClInclude Include="Source\DXrenderer\RenderContext.h" />
     <ClInclude Include="Source\DXrenderer\Shader.h" />
     <ClInclude Include="Source\DXrenderer\Swapchain.h" />
+    <ClInclude Include="Source\DXrenderer\Textures\MipGenerator.h" />
     <ClInclude Include="Source\DXrenderer\Textures\TextureManager.h" />
     <ClInclude Include="Source\DXrenderer\Tonemapper.h" />
     <ClInclude Include="Source\External\Dx12Helpers\d3dx12.h" />
