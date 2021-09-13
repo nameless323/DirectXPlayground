@@ -148,7 +148,7 @@ void PbrTester::LoadGeometry(RenderContext& context)
 void PbrTester::CreateRootSignature(RenderContext& context)
 {
     CreateCommonRootSignature(context.Device, IID_PPV_ARGS(&m_commonRootSig));
-    NAME_D3D12_OBJECT(m_commonRootSig);
+    AUTO_NAME_D3D12_OBJECT(m_commonRootSig);
 }
 
 void PbrTester::CreatePSOs(RenderContext& context)

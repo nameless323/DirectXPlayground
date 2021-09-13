@@ -69,7 +69,8 @@ inline void SetDXobjectName(ID3D12Object*, LPCWSTR)
 }
 #endif
 
-#define NAME_D3D12_OBJECT(x) SetDXobjectName(x.Get(), L#x)
+#define AUTO_NAME_D3D12_OBJECT(x) SetDXobjectName(x.Get(), L#x)
+#define NAME_D3D12_OBJECT(x, s) SetDXobjectName(x.Get(), s)
 
 inline DirectX::XMFLOAT4X4 TransposeMatrix(const DirectX::XMFLOAT4X4& m)
 {

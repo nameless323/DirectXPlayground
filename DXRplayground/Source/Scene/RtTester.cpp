@@ -246,7 +246,7 @@ void RtTester::LoadGeometry(RenderContext& context)
 void RtTester::CreateRootSignature(RenderContext& context)
 {
     CreateCommonRootSignature(context.Device, IID_PPV_ARGS(&m_commonRootSig));
-    NAME_D3D12_OBJECT(m_commonRootSig);
+    AUTO_NAME_D3D12_OBJECT(m_commonRootSig);
 }
 
 void RtTester::CreatePSOs(RenderContext& context)
