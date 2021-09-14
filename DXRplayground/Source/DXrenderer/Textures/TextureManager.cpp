@@ -31,7 +31,7 @@ TextureManager::TextureManager(RenderContext& ctx)
     CreateUAVHeap(ctx);
 }
 
-RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename, bool allowUAV /*= false*/)
+RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips /*= true*/, bool allowUAV /*= false*/)
 {
     std::vector<byte> buffer;
 
@@ -60,12 +60,15 @@ RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;
     Microsoft::WRL::ComPtr<ID3D12Resource> uploadResource;
 
+    UINT16 mipLevels = 1;// generateMips ? Log2(std::min(w, h)) + 1 : 1;
+    D3D12_RESOURCE_FLAGS flags = generateMips ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
+
     D3D12_RESOURCE_DESC texDesc = {};
-    texDesc.MipLevels = 1;
+    texDesc.MipLevels = mipLevels;
     texDesc.Format = textureFormat;
-    texDesc.Width = w;
+    texDesc.Width = w; // TODO: to the next pot (h too)
     texDesc.Height = h;
-    texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    texDesc.Flags = flags;
     texDesc.DepthOrArraySize = 1;
     texDesc.SampleDesc.Count = 1;
     texDesc.SampleDesc.Quality = 0;
@@ -346,11 +349,26 @@ bool TextureManager::ParseHDR(const std::string& filename, std::vector<byte>& bu
     w = static_cast<UINT>(width);
     h = static_cast<UINT>(height);
 
-    size_t imageSize = size_t(w) * size_t(h) * sizeof(float) * size_t(nComponents);
+    size_t imageSize = size_t(w) * size_t(h) * sizeof(float) * 4U;
     buffer.resize(imageSize);
-    memcpy(buffer.data(), data, imageSize);
+    // [a_vorontcov] Well extension to 4 components because we want to use the texture as uav, and currently R32G32B32 format isn't supported.
+    if (nComponents == 4)
+    {
+        memcpy(buffer.data(), data, imageSize);
+    }
+    else
+    {
+        float* bufferAsFloat = reinterpret_cast<float*>(buffer.data());
+        for (size_t i = 0; i < size_t(w) * size_t(h); ++i)
+        {
+            bufferAsFloat[i * 4 + 0] = data[i * 3 + 0];
+            bufferAsFloat[i * 4 + 1] = data[i * 3 + 1];
+            bufferAsFloat[i * 4 + 2] = data[i * 3 + 2];
+            bufferAsFloat[i * 4 + 3] = 1.0f;
+        }
+    }
 
-    textureFormat = nComponents == 3 ? DXGI_FORMAT_R32G32B32_FLOAT : DXGI_FORMAT_R32G32B32A32_FLOAT;
+    textureFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
     stbi_image_free(data);
 
@@ -412,7 +430,7 @@ void TextureManager::CreateSRVHeap(RenderContext& ctx)
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     heapDesc.NumDescriptors = RenderContext::MaxTextures;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_srvHeap)));
-    NAME_D3D12_OBJECT(m_srvHeap);
+    AUTO_NAME_D3D12_OBJECT(m_srvHeap);
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
 
     D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
@@ -448,7 +466,7 @@ void TextureManager::CreateRTVHeap(RenderContext& ctx)
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     heapDesc.NumDescriptors = RenderContext::MaxRT;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_rtvHeap)));
-    NAME_D3D12_OBJECT(m_rtvHeap);
+    AUTO_NAME_D3D12_OBJECT(m_rtvHeap);
 }
 
 void TextureManager::CreateUAVHeap(RenderContext& ctx)
@@ -456,9 +474,9 @@ void TextureManager::CreateUAVHeap(RenderContext& ctx)
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = RenderContext::MaxCubemapsUAV;
+    heapDesc.NumDescriptors = RenderContext::MaxUAVTextures;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_uavHeap)));
-    NAME_D3D12_OBJECT(m_uavHeap);
+    AUTO_NAME_D3D12_OBJECT(m_uavHeap);
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_uavHeap->GetCPUDescriptorHandleForHeapStart());
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
@@ -467,7 +485,7 @@ void TextureManager::CreateUAVHeap(RenderContext& ctx)
     viewDesc.Texture2DArray.FirstArraySlice = 0;
     viewDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-    for (UINT i = 0; i < RenderContext::MaxCubemapsUAV; ++i)
+    for (UINT i = 0; i < RenderContext::MaxUAVTextures; ++i)
     {
         ctx.Device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, handle);
         handle.Offset(ctx.CbvSrvUavDescriptorSize);
