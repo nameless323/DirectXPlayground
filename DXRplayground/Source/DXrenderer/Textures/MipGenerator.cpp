@@ -23,15 +23,21 @@ MipGenerator::MipGenerator(RenderContext& ctx)
 
 void MipGenerator::GenerateMips(RenderContext& ctx, ID3D12Resource* resource)
 {
-    MipGenData mipData{};
-    mipData.BaseMip = CreateResourceViews(ctx, resource);
-    mipData.NumMips = resource->GetDesc().MipLevels;
-    mipData.Width = static_cast<UINT>(resource->GetDesc().Width);
-    mipData.Height = resource->GetDesc().Height;
+    UINT numInvocations = (resource->GetDesc().MipLevels + (m_maxMipsPerInvocation - 1)) / m_maxMipsPerInvocation;
+    UINT baseMip = CreateMipViews(ctx, resource);
 
-    m_constantBuffers->UploadData(m_currentResourceInFrame++, mipData);
-    assert(m_currentResourceInFrame < m_maxResourcesInFrame);
-    m_queuedMips.push_back(std::move(mipData));
+    for (UINT i = 0; i < numInvocations; ++i)
+    {
+        MipGenData mipData{};
+        mipData.BaseMip = baseMip + m_maxMipsPerInvocation * i;
+        mipData.NumMips = resource->GetDesc().MipLevels - m_maxMipsPerInvocation * i;
+        mipData.Width = static_cast<UINT>(resource->GetDesc().Width) / std::pow(2U, m_maxMipsPerInvocation * i);
+        mipData.Height = resource->GetDesc().Height / std::pow(2U, m_maxMipsPerInvocation * i);
+
+        m_constantBuffers->UploadData(m_currentResourceInFrame++, mipData);
+        assert(m_currentResourceInFrame < m_maxResourcesInFrame);
+        m_queuedMips.push_back(std::move(mipData));
+    }
 }
 
 void MipGenerator::Flush(RenderContext& ctx)
@@ -84,7 +90,7 @@ void MipGenerator::CreatePso(RenderContext& ctx)
     ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
 }
 
-UINT MipGenerator::CreateResourceViews(RenderContext& ctx, ID3D12Resource* resource)
+UINT MipGenerator::CreateMipViews(RenderContext& ctx, ID3D12Resource* resource)
 {
     UINT baseOffset = m_currViewsCount;
     UINT mipsCount = resource->GetDesc().MipLevels;

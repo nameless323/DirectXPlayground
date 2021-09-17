@@ -27,10 +27,11 @@ private:
         UINT NumMips = 0;
     };
     static constexpr UINT m_maxResourcesInFrame = 256U;
+    static constexpr UINT m_maxMipsPerInvocation = 4U;
 
     void CreateUavHeap(RenderContext& ctx);
     void CreatePso(RenderContext& ctx);
-    UINT CreateResourceViews(RenderContext& ctx, ID3D12Resource* resource);
+    UINT CreateMipViews(RenderContext& ctx, ID3D12Resource* resource);
 
     std::vector<MipGenData> m_queuedMips;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap;
