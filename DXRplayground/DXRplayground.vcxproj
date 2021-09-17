@@ -152,6 +152,7 @@
     <ClCompile Include="Source\DXrenderer\Model.cpp" />
     <ClCompile Include="Source\DXrenderer\PsoManager.cpp" />
     <ClCompile Include="Source\DXrenderer\RenderPipeline.cpp" />
+    <ClCompile Include="Source\DXrenderer\Textures\MipGenerator.cpp" />
     <ClCompile Include="Source\DXRplayground.cpp" />
     <ClCompile Include="Source\DXrenderer\Shader.cpp" />
     <ClCompile Include="Source\DXrenderer\Swapchain.cpp" />

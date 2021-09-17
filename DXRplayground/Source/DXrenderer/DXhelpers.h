@@ -99,7 +99,7 @@ constexpr UINT MaxSpacesForConstantBuffers = 2;
 constexpr UINT MaxUAV = 6;
 constexpr UINT MaxSpacesForUAV = 2;
 constexpr UINT TextureTableIndex = ConstantBuffersCountPerSpace * MaxSpacesForConstantBuffers + MaxUAV * MaxSpacesForUAV;
-constexpr UINT UAVCubemapTableIndex = TextureTableIndex + 1;
+constexpr UINT UAVTableIndex = TextureTableIndex + 1;
 
 inline UINT GetCBRootParamIndex(UINT index, UINT space = 0)
 {
@@ -144,16 +144,16 @@ inline HRESULT CreateCommonRootSignature(ID3D12Device* device, REFIID riid, void
     cbParams.emplace_back();
     cbParams.back().InitAsDescriptorTable(1, &texRange, D3D12_SHADER_VISIBILITY_ALL);
 
-    D3D12_DESCRIPTOR_RANGE1 cubeUavRange{};
-    cubeUavRange.NumDescriptors = RenderContext::MaxCubemapsUAV;
-    cubeUavRange.BaseShaderRegister = 0;
-    cubeUavRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-    cubeUavRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
-    cubeUavRange.RegisterSpace = 2;
-    cubeUavRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+    D3D12_DESCRIPTOR_RANGE1 uavTexRange{};
+    uavTexRange.NumDescriptors = RenderContext::MaxUAVTextures;
+    uavTexRange.BaseShaderRegister = 0;
+    uavTexRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+    uavTexRange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+    uavTexRange.RegisterSpace = 2;
+    uavTexRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 
     cbParams.emplace_back();
-    cbParams.back().InitAsDescriptorTable(1, &cubeUavRange, D3D12_SHADER_VISIBILITY_ALL);
+    cbParams.back().InitAsDescriptorTable(1, &uavTexRange, D3D12_SHADER_VISIBILITY_ALL);
 
     CD3DX12_STATIC_SAMPLER_DESC linearClamp(
         0,

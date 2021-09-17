@@ -26,9 +26,15 @@ static constexpr UINT MaxImguiTexturesCount = 128;
 
 TextureManager::TextureManager(RenderContext& ctx)
 {
+    m_mipGenerator = new MipGenerator(ctx);
     CreateSRVHeap(ctx);
     CreateRTVHeap(ctx);
     CreateUAVHeap(ctx);
+}
+
+TextureManager::~TextureManager()
+{
+    SafeDelete(m_mipGenerator);
 }
 
 RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips /*= true*/, bool allowUAV /*= false*/)
@@ -60,7 +66,7 @@ RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;
     Microsoft::WRL::ComPtr<ID3D12Resource> uploadResource;
 
-    UINT16 mipLevels = 1;// generateMips ? Log2(std::min(w, h)) + 1 : 1;
+    UINT16 mipLevels = generateMips ? /*Log2(std::min(w, h)) + 1*/4 : 1;
     D3D12_RESOURCE_FLAGS flags = generateMips ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
 
     D3D12_RESOURCE_DESC texDesc = {};
@@ -127,6 +133,9 @@ RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std
     RtvSrvUavResourceIdx res{};
     res.SRVOffset = m_currentTexCount++;
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
+
+    if (generateMips)
+        m_mipGenerator->GenerateMips(ctx, resource.Get());
 
     return res;
 }
@@ -283,6 +292,11 @@ UINT TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC des
     handle.Offset(m_currentTexCount * ctx.CbvSrvUavDescriptorSize);
     ctx.Device->CreateShaderResourceView(m_rtResource.Get(), &srvDesc, handle);
     return m_currentTexCount++;
+}
+
+void TextureManager::FlushMipsQueue(RenderContext& ctx)
+{
+    m_mipGenerator->Flush(ctx);
 }
 
 bool TextureManager::ParsePNG(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)

@@ -87,11 +87,11 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 
     Shader::InitCompiler();
 
-    m_textureManager = new TextureManager(m_context);
-    m_context.TexManager = m_textureManager;
-
     m_psoManager = new PsoManager();
     m_context.PsoManager = m_psoManager;
+
+    m_textureManager = new TextureManager(m_context);
+    m_context.TexManager = m_textureManager;
 
     Flush();
     Resize(width, height);

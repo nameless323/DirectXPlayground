@@ -7,6 +7,7 @@
 #include <wrl.h>
 #include "External/Dx12Helpers/d3dx12.h"
 #include "DXrenderer/RenderContext.h"
+#include "DXrenderer/Textures/MipGenerator.h"
 
 namespace DirectxPlayground
 {
@@ -26,7 +27,9 @@ class TextureManager
 {
 public:
     TextureManager(RenderContext& ctx);
-    RtvSrvUavResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips = true, bool allowUAV = false);
+    ~TextureManager();
+
+    RtvSrvUavResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips = false, bool allowUAV = false);
     RtvSrvUavResourceIdx CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     RtvSrvUavResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true, bool allowUAV = false);
 
@@ -55,7 +58,7 @@ public:
 
     UINT CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC desc);
 
-    void FlushAllMips();
+    void FlushMipsQueue(RenderContext& ctx);
 
 private:
     void CreateSRVHeap(RenderContext& ctx);
@@ -78,6 +81,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtUavHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12Resource> m_rtResource = nullptr;
     //
+    MipGenerator* m_mipGenerator = nullptr;
 
     UINT m_currentTexCount = 0;
     UINT m_currentCubemapsCount = 0;

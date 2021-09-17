@@ -99,6 +99,9 @@
     <ClCompile Include="Source\DXrenderer\DXR\AccelerationStructure.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\DXrenderer\Textures\MipGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\WindowsApp.h">

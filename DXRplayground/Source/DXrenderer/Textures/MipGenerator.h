@@ -15,15 +15,28 @@ class MipGenerator
 public:
     MipGenerator(RenderContext& ctx);
 
-    void GenerateMips(const ID3D12Resource* resource);
+    void GenerateMips(RenderContext& ctx, ID3D12Resource* resource);
+    void Flush(RenderContext& ctx);
 
 private:
-    void CreateUavHeap();
-    void CreatePso();
+    struct MipGenData
+    {
+        UINT BaseMip = 0;
+        UINT Width = 0;
+        UINT Height = 0;
+        UINT NumMips = 0;
+    };
+    static constexpr UINT m_maxResourcesInFrame = 256U;
 
-    std::map<ID3D12Resource*, UINT> m_baseViewOffset;
+    void CreateUavHeap(RenderContext& ctx);
+    void CreatePso(RenderContext& ctx);
+    UINT CreateResourceViews(RenderContext& ctx, ID3D12Resource* resource);
+
+    std::vector<MipGenData> m_queuedMips;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap;
-    UINT m_currCount = 0;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
+    UINT m_currViewsCount = 0;
+    UINT m_currentResourceInFrame = 0;
     const std::string m_psoName = "Generate_Mips";
     UploadBuffer* m_constantBuffers = nullptr;
 };

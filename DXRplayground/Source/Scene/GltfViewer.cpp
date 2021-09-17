@@ -53,6 +53,8 @@ void GltfViewer::InitResources(RenderContext& context)
     m_tonemapper->InitResources(context, m_commonRootSig.Get());
 
     CreatePSOs(context);
+
+    context.TexManager->FlushMipsQueue(context);
 }
 
 void GltfViewer::Render(RenderContext& context)
@@ -127,7 +129,7 @@ void GltfViewer::LoadGeometry(RenderContext& context)
 void GltfViewer::CreateRootSignature(RenderContext& context)
 {
     CreateCommonRootSignature(context.Device, IID_PPV_ARGS(&m_commonRootSig));
-    NAME_D3D12_OBJECT(m_commonRootSig);
+    AUTO_NAME_D3D12_OBJECT(m_commonRootSig);
 }
 
 void GltfViewer::CreatePSOs(RenderContext& context)

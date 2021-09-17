@@ -18,7 +18,7 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//EnvMapConvertion.hlsl");
     ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
 
-    m_envMapIndex = ctx.TexManager->CreateTexture(ctx, path);
+    m_envMapIndex = ctx.TexManager->CreateTexture(ctx, path, true);
     m_cubemapIndex = ctx.TexManager->CreateCubemap(ctx, m_cubemapWidth, m_cubemapHeight, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
 
     m_texturesIndices.CubemapIndex = m_cubemapIndex.UAVOffset;
@@ -46,7 +46,7 @@ void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
 
     descHeaps[0] = { ctx.TexManager->GetCubemapUAVHeap() };
     ctx.CommandList->SetDescriptorHeaps(1, descHeaps);
-    ctx.CommandList->SetComputeRootDescriptorTable(UAVCubemapTableIndex, ctx.TexManager->GetCubemapUAVHeap()->GetGPUDescriptorHandleForHeapStart());
+    ctx.CommandList->SetComputeRootDescriptorTable(UAVTableIndex, ctx.TexManager->GetCubemapUAVHeap()->GetGPUDescriptorHandleForHeapStart());
 
     ctx.CommandList->Dispatch(m_cubemapWidth / 32, m_cubemapHeight / 32, 6);
 }
