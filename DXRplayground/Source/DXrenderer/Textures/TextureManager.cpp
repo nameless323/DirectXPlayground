@@ -66,7 +66,7 @@ RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std
     Microsoft::WRL::ComPtr<ID3D12Resource> resource;
     Microsoft::WRL::ComPtr<ID3D12Resource> uploadResource;
 
-    UINT16 mipLevels = generateMips ? /*Log2(std::min(w, h)) + 1*/4 : 1;
+    UINT16 mipLevels = generateMips ? 5/*Log2(std::min(w, h)) + 1*/ : 1;
     D3D12_RESOURCE_FLAGS flags = generateMips ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
 
     D3D12_RESOURCE_DESC texDesc = {};

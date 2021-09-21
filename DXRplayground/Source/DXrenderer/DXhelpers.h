@@ -198,7 +198,6 @@ inline D3D12_GRAPHICS_PIPELINE_STATE_DESC GetDefaultOpaquePsoDescriptor(ID3D12Ro
     desc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
     desc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
     desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-
     D3D12_DEPTH_STENCIL_DESC dsDesc = {};
     dsDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
     dsDesc.DepthEnable = true;

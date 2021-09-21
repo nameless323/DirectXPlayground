@@ -17,8 +17,8 @@ MipGenerator::MipGenerator(RenderContext& ctx)
     CreateCommonRootSignature(ctx.Device, IID_PPV_ARGS(&m_commonRootSig)); // [a_vorontcov] TODO: Move it goddamn
     CreatePso(ctx);
 
-    m_constantBuffers = new UploadBuffer(*ctx.Device, sizeof(MipGenData), true, m_maxResourcesInFrame);
-    m_queuedMips.reserve(m_maxResourcesInFrame);
+    m_constantBuffers = new UploadBuffer(*ctx.Device, sizeof(MipGenData), true, m_maxBatchesInFrame);
+    m_queuedMips.reserve(m_maxBatchesInFrame);
 }
 
 void MipGenerator::GenerateMips(RenderContext& ctx, ID3D12Resource* resource)
@@ -30,19 +30,19 @@ void MipGenerator::GenerateMips(RenderContext& ctx, ID3D12Resource* resource)
     {
         MipGenData mipData{};
         mipData.BaseMip = baseMip + m_maxMipsPerInvocation * i;
-        mipData.NumMips = resource->GetDesc().MipLevels - m_maxMipsPerInvocation * i;
+        mipData.NumMips = std::min(m_maxMipsPerInvocation, resource->GetDesc().MipLevels - m_maxMipsPerInvocation * i);
         mipData.Width = static_cast<UINT>(resource->GetDesc().Width) / std::pow(2U, m_maxMipsPerInvocation * i);
         mipData.Height = resource->GetDesc().Height / std::pow(2U, m_maxMipsPerInvocation * i);
 
-        m_constantBuffers->UploadData(m_currentResourceInFrame++, mipData);
-        assert(m_currentResourceInFrame < m_maxResourcesInFrame);
+        m_constantBuffers->UploadData(m_currentBatches++, mipData);
+        assert(m_currentBatches < m_maxBatchesInFrame);
         m_queuedMips.push_back(std::move(mipData));
     }
 }
 
 void MipGenerator::Flush(RenderContext& ctx)
 {
-    if (m_currentResourceInFrame == 0)
+    if (m_currentBatches == 0)
         return;
     ctx.CommandList->SetComputeRootSignature(m_commonRootSig.Get());
     ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(m_psoName));
@@ -51,12 +51,12 @@ void MipGenerator::Flush(RenderContext& ctx)
     ctx.CommandList->SetDescriptorHeaps(1, descHeaps);
     ctx.CommandList->SetComputeRootDescriptorTable(UAVTableIndex, m_uavHeap->GetGPUDescriptorHandleForHeapStart());
 
-    for (UINT i = 0; i < m_currentResourceInFrame; ++i)
+    for (UINT i = 0; i < m_currentBatches; ++i)
     {
         ctx.CommandList->SetComputeRootConstantBufferView(GetCBRootParamIndex(0), m_constantBuffers->GetFrameDataGpuAddress(i));
-        ctx.CommandList->Dispatch(m_queuedMips[i].Width / 32, m_queuedMips[i].Height / 32, 1);
+        ctx.CommandList->Dispatch(m_queuedMips[i].Width / (32 * 2), m_queuedMips[i].Height / (32 * 2), 1);
     }
-    m_currentResourceInFrame = 0;
+    m_currentBatches = 0;
     m_queuedMips.clear();
     ctx.Pipeline->Flush();
 }
