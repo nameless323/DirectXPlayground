@@ -17,32 +17,33 @@ MipGenerator::MipGenerator(RenderContext& ctx)
     CreateCommonRootSignature(ctx.Device, IID_PPV_ARGS(&m_commonRootSig)); // [a_vorontcov] TODO: Move it goddamn
     CreatePso(ctx);
 
-    m_constantBuffers = new UploadBuffer(*ctx.Device, sizeof(MipGenData), true, m_maxBatchesInFrame);
-    m_queuedMips.reserve(m_maxBatchesInFrame);
+    m_constantBuffers = new UploadBuffer(*ctx.Device, sizeof(MipGenData), true, m_maxTextureMipsInFrame);
+    m_queuedMips.reserve(m_maxTextureMipsInFrame);
 }
 
 void MipGenerator::GenerateMips(RenderContext& ctx, ID3D12Resource* resource)
 {
-    UINT numInvocations = (resource->GetDesc().MipLevels + (m_maxMipsPerInvocation - 1)) / m_maxMipsPerInvocation;
     UINT baseMip = CreateMipViews(ctx, resource);
-
-    for (UINT i = 0; i < numInvocations; ++i)
+    UINT halfWidth = static_cast<UINT>(resource->GetDesc().Width) / 2;
+    UINT halfHeight = resource->GetDesc().Height / 2;
+    for (UINT i = 0; i < resource->GetDesc().MipLevels - 1U; ++i)
     {
         MipGenData mipData{};
-        mipData.BaseMip = baseMip + m_maxMipsPerInvocation * i;
-        mipData.NumMips = std::min(m_maxMipsPerInvocation, resource->GetDesc().MipLevels - m_maxMipsPerInvocation * i);
-        mipData.Width = static_cast<UINT>(resource->GetDesc().Width) / std::pow(2U, m_maxMipsPerInvocation * i);
-        mipData.Height = resource->GetDesc().Height / std::pow(2U, m_maxMipsPerInvocation * i);
+        mipData.BaseMip = baseMip + i;
+        mipData.Width = halfWidth;
+        mipData.Height = halfHeight;
+        halfWidth /= 2;
+        halfHeight /= 2;
 
-        m_constantBuffers->UploadData(m_currentBatches++, mipData);
-        assert(m_currentBatches < m_maxBatchesInFrame);
+        m_constantBuffers->UploadData(m_queuedMipsToGenerateNumber++, mipData);
+        assert(m_queuedMipsToGenerateNumber < m_maxTextureMipsInFrame);
         m_queuedMips.push_back(std::move(mipData));
     }
 }
 
 void MipGenerator::Flush(RenderContext& ctx)
 {
-    if (m_currentBatches == 0)
+    if (m_queuedMipsToGenerateNumber == 0)
         return;
     ctx.CommandList->SetComputeRootSignature(m_commonRootSig.Get());
     ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(m_psoName));
@@ -51,12 +52,12 @@ void MipGenerator::Flush(RenderContext& ctx)
     ctx.CommandList->SetDescriptorHeaps(1, descHeaps);
     ctx.CommandList->SetComputeRootDescriptorTable(UAVTableIndex, m_uavHeap->GetGPUDescriptorHandleForHeapStart());
 
-    for (UINT i = 0; i < m_currentBatches; ++i)
+    for (UINT i = 0; i < m_queuedMipsToGenerateNumber; ++i)
     {
         ctx.CommandList->SetComputeRootConstantBufferView(GetCBRootParamIndex(0), m_constantBuffers->GetFrameDataGpuAddress(i));
-        ctx.CommandList->Dispatch(m_queuedMips[i].Width / (32 * 2), m_queuedMips[i].Height / (32 * 2), 1);
+        ctx.CommandList->Dispatch(m_queuedMips[i].Width / 32, m_queuedMips[i].Height / 32, 1);
     }
-    m_currentBatches = 0;
+    m_queuedMipsToGenerateNumber = 0;
     m_queuedMips.clear();
     ctx.Pipeline->Flush();
 }

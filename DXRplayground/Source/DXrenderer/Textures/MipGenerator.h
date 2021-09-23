@@ -24,10 +24,8 @@ private:
         UINT BaseMip = 0;
         UINT Width = 0;
         UINT Height = 0;
-        UINT NumMips = 0;
     };
-    static constexpr UINT m_maxBatchesInFrame = 256U;
-    static constexpr UINT m_maxMipsPerInvocation = 4U;
+    static constexpr UINT m_maxTextureMipsInFrame = 1024U;
 
     void CreateUavHeap(RenderContext& ctx);
     void CreatePso(RenderContext& ctx);
@@ -37,7 +35,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
     UINT m_currViewsCount = 0;
-    UINT m_currentBatches = 0;
+    UINT m_queuedMipsToGenerateNumber = 0;
     const std::string m_psoName = "Generate_Mips";
     UploadBuffer* m_constantBuffers = nullptr;
 };
