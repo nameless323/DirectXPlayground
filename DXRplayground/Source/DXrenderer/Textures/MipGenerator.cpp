@@ -19,6 +19,7 @@ MipGenerator::MipGenerator(RenderContext& ctx)
 
     m_constantBuffers = new UploadBuffer(*ctx.Device, sizeof(MipGenData), true, m_maxTextureMipsInFrame);
     m_queuedMips.reserve(m_maxTextureMipsInFrame);
+    m_resourcesPtrs.reserve(m_maxTextureMipsInFrame);
 }
 
 void MipGenerator::GenerateMips(RenderContext& ctx, ID3D12Resource* resource)
@@ -39,6 +40,7 @@ void MipGenerator::GenerateMips(RenderContext& ctx, ID3D12Resource* resource)
         assert(m_queuedMipsToGenerateNumber < m_maxTextureMipsInFrame);
         m_queuedMips.push_back(std::move(mipData));
     }
+    m_resourcesPtrs.push_back(resource);
 }
 
 void MipGenerator::Flush(RenderContext& ctx)
@@ -55,10 +57,17 @@ void MipGenerator::Flush(RenderContext& ctx)
     for (UINT i = 0; i < m_queuedMipsToGenerateNumber; ++i)
     {
         ctx.CommandList->SetComputeRootConstantBufferView(GetCBRootParamIndex(0), m_constantBuffers->GetFrameDataGpuAddress(i));
-        ctx.CommandList->Dispatch(m_queuedMips[i].Width / 32, m_queuedMips[i].Height / 32, 1);
+        ctx.CommandList->Dispatch(DISPATCH_TG_COUNT_2D(m_queuedMips[i].Width, 32, m_queuedMips[i].Height, 32));
     }
+    std::vector<CD3DX12_RESOURCE_BARRIER> barriers;
+    barriers.reserve(m_resourcesPtrs.size());
+    for (size_t i = 0; i < m_resourcesPtrs.size(); ++i)
+        barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_resourcesPtrs[i], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+    ctx.CommandList->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+
     m_queuedMipsToGenerateNumber = 0;
     m_queuedMips.clear();
+    m_resourcesPtrs.clear();
     ctx.Pipeline->Flush();
 }
 

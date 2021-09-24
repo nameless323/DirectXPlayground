@@ -32,6 +32,7 @@ private:
     UINT CreateMipViews(RenderContext& ctx, ID3D12Resource* resource);
 
     std::vector<MipGenData> m_queuedMips;
+    std::vector<ID3D12Resource*> m_resourcesPtrs;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
     UINT m_currViewsCount = 0;

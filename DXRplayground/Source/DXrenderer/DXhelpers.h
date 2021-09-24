@@ -236,4 +236,6 @@ inline constexpr DirectX::XMFLOAT4X4 IdentityMatrix{
     0.0f, 0.0f, 0.0f, 1.0f
     };
 
+#define DISPATCH_TG_COUNT_2D(domainX, threadNumX, domainY, threadNumY) (domainX + threadNumX - 1) / threadNumX, (domainY + threadNumY - 1) / threadNumY, 1
+
 }

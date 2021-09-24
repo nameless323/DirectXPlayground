@@ -11,6 +11,8 @@ ConstantBuffer<CbTexData> cbTexData : register(b0);
 [numthreads(32, 32, 1)]
 void cs(uint3 tId : SV_DispatchThreadID, uint2 indexInGroup : SV_GroupThreadID)
 {
+    if (tId.x > cbTexData.W || tId.y > cbTexData.H)
+        return;
     float4 c0 = Textures[cbTexData.BaseMip][tId.xy * 2 + float2(0, 0)];
     float4 c1 = Textures[cbTexData.BaseMip][tId.xy * 2 + float2(0, 1)];
     float4 c2 = Textures[cbTexData.BaseMip][tId.xy * 2 + float2(1, 0)];
