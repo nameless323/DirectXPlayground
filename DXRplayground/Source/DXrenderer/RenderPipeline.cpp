@@ -14,6 +14,7 @@
 
 #include "Scene/Scene.h"
 
+#include "Utils/PixProfiler.h"
 #include "Utils/Logger.h"
 
 namespace DirectxPlayground
@@ -28,6 +29,7 @@ RenderPipeline::~RenderPipeline()
 
 void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
 {
+    PixProfiler::InitGpuProfiler(hwnd);
     m_context.Pipeline = this;
     UINT dxgiFactoryFlags = 0;
 #ifdef _DEBUG
