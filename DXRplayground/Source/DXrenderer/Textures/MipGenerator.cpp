@@ -7,6 +7,8 @@
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "DXrenderer/RenderPipeline.h"
 
+#include "Utils/PixProfiler.h"
+
 namespace DirectxPlayground
 {
 // [a_vorontcov] TODO: create pairing UAV resource, no need for ALLOW_UAV flag for every texture. Also too many descs and buffers.
@@ -54,18 +56,35 @@ void MipGenerator::Flush(RenderContext& ctx)
     ctx.CommandList->SetDescriptorHeaps(1, descHeaps);
     ctx.CommandList->SetComputeRootDescriptorTable(UAVTableIndex, m_uavHeap->GetGPUDescriptorHandleForHeapStart());
 
+    std::vector<CD3DX12_RESOURCE_BARRIER> barriers;
+    barriers.reserve(m_resourcesPtrs.size());
+    for (size_t i = 0; i < m_resourcesPtrs.size(); ++i)
+        barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_resourcesPtrs[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+    ctx.CommandList->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
+    barriers.clear();
+
+    UINT currTexInd = 0;
+    ID3D12Resource* currTex = m_resourcesPtrs[currTexInd++];
+    UINT dispatchesLeft = currTex->GetDesc().MipLevels - 1;
     for (UINT i = 0; i < m_queuedMipsToGenerateNumber; ++i)
     {
         ctx.CommandList->SetComputeRootConstantBufferView(GetCBRootParamIndex(0), m_constantBuffers->GetFrameDataGpuAddress(i));
         ctx.CommandList->Dispatch(DISPATCH_TG_COUNT_2D(m_queuedMips[i].Width, 32, m_queuedMips[i].Height, 32));
+        ctx.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(currTex));
+
+        --dispatchesLeft;
+        if (dispatchesLeft == 0 && i < m_queuedMipsToGenerateNumber - 1)
+        {
+            currTex = m_resourcesPtrs[currTexInd++];
+            dispatchesLeft = currTex->GetDesc().MipLevels - 1;
+        }
     }
-    std::vector<CD3DX12_RESOURCE_BARRIER> barriers;
-    barriers.reserve(m_resourcesPtrs.size());
     for (size_t i = 0; i < m_resourcesPtrs.size(); ++i)
         barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_resourcesPtrs[i], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
     ctx.CommandList->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
 
     m_queuedMipsToGenerateNumber = 0;
+    m_currViewsCount = 0;
     m_queuedMips.clear();
     m_resourcesPtrs.clear();
     ctx.Pipeline->Flush();

@@ -111,8 +111,7 @@ RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std
     texData.SlicePitch = texData.RowPitch * h;
 
     UpdateSubresources(ctx.CommandList, resource.Get(), uploadResource.Get(), 0, 0, 1, &texData);
-
-    CD3DX12_RESOURCE_BARRIER toDest = generateMips ? CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS) : CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    CD3DX12_RESOURCE_BARRIER toDest = CD3DX12_RESOURCE_BARRIER::Transition(resource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     ctx.CommandList->ResourceBarrier(1, &toDest);
 
     D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};

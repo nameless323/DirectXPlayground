@@ -60,6 +60,8 @@ public:
 
     void FlushMipsQueue(RenderContext& ctx);
 
+    MipGenerator* GetMipGenerator();
+
 private:
     void CreateSRVHeap(RenderContext& ctx);
     void CreateRTVHeap(RenderContext& ctx);
@@ -114,6 +116,11 @@ inline D3D12_CPU_DESCRIPTOR_HANDLE TextureManager::GetRtHandle(RenderContext& ct
 inline ID3D12Resource* TextureManager::GetResource(UINT index) const
 {
     return m_resources[index].Get();
+}
+
+inline MipGenerator* TextureManager::GetMipGenerator()
+{
+    return m_mipGenerator;
 }
 
 //////////////////////////////////////////////////////////////////////////

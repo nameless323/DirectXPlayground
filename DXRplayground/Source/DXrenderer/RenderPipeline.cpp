@@ -65,7 +65,7 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
     queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 
     ThrowIfFailed(m_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_commandQueue)));
-    AUTO_NAME_D3D12_OBJECT(m_commandQueue);
+    NAME_D3D12_OBJECT(m_commandQueue, L"main_cmd_queue");
 
     m_swapChain.Init(m_isTearingSupported, hwnd, m_context, m_factory.Get(), m_device.Get(), m_commandQueue.Get());
     m_context.SwapChain = &m_swapChain;
@@ -73,14 +73,15 @@ void RenderPipeline::Init(HWND hwnd, int width, int height, Scene* scene)
     for (int i = 0; i < RenderContext::AllocatorsCount; ++i)
     {
         ThrowIfFailed(m_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocators[i])));
-        AUTO_NAME_D3D12_OBJECT(m_commandAllocators[i]);
+        std::wstring name = L"command_allocator_" + std::to_wstring(i);
+        NAME_D3D12_OBJECT(m_commandAllocators[i], name.c_str());
     }
     ThrowIfFailed(m_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_commandAllocators[m_currentAllocatorIdx].Get(), nullptr, IID_PPV_ARGS(&m_commandList)));
-    AUTO_NAME_D3D12_OBJECT(m_commandList);
+    NAME_D3D12_OBJECT(m_commandList, L"main_command_list");
     m_commandList->Close();
 
     ThrowIfFailed(m_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-    AUTO_NAME_D3D12_OBJECT(m_fence);
+    NAME_D3D12_OBJECT(m_fence, L"frame_fence");
 
     m_context.CbvSrvUavDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     m_context.RtvDescriptorSize = m_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
