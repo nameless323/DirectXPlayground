@@ -14,6 +14,7 @@
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "DXrenderer/Textures/EnvironmentMap.h"
 
+#include "Utils/PixProfiler.h"
 #include "External/IMGUI/imgui.h"
 
 namespace DirectxPlayground
@@ -59,6 +60,7 @@ void GltfViewer::InitResources(RenderContext& context)
 
 void GltfViewer::Render(RenderContext& context)
 {
+    GPU_SCOPED_EVENT(context, "Render frame");
     m_cameraController->Update();
     UpdateLights(context);
     //m_envMap->ConvertToCubemap(context);

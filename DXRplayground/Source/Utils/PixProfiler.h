@@ -7,7 +7,7 @@
 
 namespace DirectxPlayground::PixProfiler
 {
-void InitGpuProfiler(HWND hwnd)
+inline void InitGpuProfiler(HWND hwnd)
 {
     PIXLoadLatestWinPixGpuCapturerLibrary();
     PIXSetTargetWindow(hwnd);
@@ -23,30 +23,31 @@ private:
     ID3D12GraphicsCommandList* m_cmdList = nullptr;
 };
 
-ScopedGpuEvent::ScopedGpuEvent(ID3D12GraphicsCommandList* commandList, const std::string& name) : m_cmdList(commandList)
+inline ScopedGpuEvent::ScopedGpuEvent(ID3D12GraphicsCommandList* commandList, const std::string& name) : m_cmdList(commandList)
 {
     PIXBeginEvent(m_cmdList, PIX_COLOR(0, 0, 254), name.c_str());
 }
 
-ScopedGpuEvent::~ScopedGpuEvent()
+inline ScopedGpuEvent::~ScopedGpuEvent()
 {
     PIXEndEvent(m_cmdList);
 }
 
-void BeginCaptureGpuFrame()
+inline void BeginCaptureGpuFrame()
 {
     PIXCaptureParameters params{};
     PIXBeginCapture(PIX_CAPTURE_GPU, &params);
 }
 
-void EndCaptureGpuFrame()
+inline void EndCaptureGpuFrame()
 {
     PIXEndCapture(false);
 }
 
-void CaptureNextFrame()
+inline void CaptureNextFrame()
 {
     PIXGpuCaptureNextFrames(L"", 1);
 }
-
 }
+
+#define GPU_SCOPED_EVENT(ctx, name) DirectxPlayground::PixProfiler::ScopedGpuEvent pix__scoped_profile___(context.CommandList, name)
