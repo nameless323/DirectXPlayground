@@ -182,6 +182,7 @@
     <ClInclude Include="Source\DXrenderer\DirectXRaytracingHelper.h" />
     <ClInclude Include="Source\DXrenderer\DXhelpers.h" />
     <ClInclude Include="Source\DXrenderer\DXR\AccelerationStructure.h" />
+    <ClInclude Include="Source\DXrenderer\ResourceDX.h" />
     <ClInclude Include="Source\DXrenderer\Textures\EnvironmentMap.h" />
     <ClInclude Include="Source\DXrenderer\Light.h" />
     <ClInclude Include="Source\DXrenderer\LightManager.h" />
