@@ -8,6 +8,7 @@
 #include "External/Dx12Helpers/d3dx12.h"
 #include "DXrenderer/RenderContext.h"
 #include "DXrenderer/Textures/MipGenerator.h"
+#include "DXrenderer/ResourceDX.h"
 
 namespace DirectxPlayground
 {
@@ -47,14 +48,14 @@ public:
     //{
     //    return m_rtSrvHeap.Get();
     //}
-    ID3D12Resource* GetDXRResource() const
+    ID3D12Resource* GetDXRResource()
     {
         return m_rtResource.Get();
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetRtHandle(RenderContext& ctx, UINT index) const;
 
-    ID3D12Resource* GetResource(UINT index) const;
+    ID3D12Resource* GetResource(UINT index);
 
     UINT CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC desc);
 
@@ -71,8 +72,8 @@ private:
     bool ParseEXR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
     bool ParseHDR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
 
-    std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_resources;
-    std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> m_uploadResources;
+    std::vector<ResourceDX> m_resources;
+    std::vector<ResourceDX> m_uploadResources;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvCubeHeap = nullptr;
@@ -81,7 +82,7 @@ private:
     // DXR
     //Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtSrvHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtUavHeap = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_rtResource = nullptr;
+    ResourceDX m_rtResource{ D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
     //
     MipGenerator* m_mipGenerator = nullptr;
 
@@ -113,7 +114,7 @@ inline D3D12_CPU_DESCRIPTOR_HANDLE TextureManager::GetRtHandle(RenderContext& ct
     return handle;
 }
 
-inline ID3D12Resource* TextureManager::GetResource(UINT index) const
+inline ID3D12Resource* TextureManager::GetResource(UINT index)
 {
     return m_resources[index].Get();
 }

@@ -8,14 +8,15 @@ namespace DirectxPlayground
 class ResourceDX
 {
 public:
-    ResourceDX() = default;
-    ~ResourceDX() = delete;
+    ResourceDX(D3D12_RESOURCE_STATES initialState);
+    ~ResourceDX() = default;
 
     const ID3D12Resource* Get() const;
     ID3D12Resource* Get();
     ID3D12Resource** GetAddressOf();
 
     void SetName(const std::string& name);
+    void SetName(const std::wstring& name);
 
     D3D12_RESOURCE_STATES GetCurrentState() const;
     bool GetBarrier(D3D12_RESOURCE_STATES after, CD3DX12_RESOURCE_BARRIER& transition);
@@ -26,6 +27,9 @@ private:
     Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
     D3D12_RESOURCE_STATES m_state = D3D12_RESOURCE_STATE_GENERIC_READ;
 };
+
+inline ResourceDX::ResourceDX(D3D12_RESOURCE_STATES initialState) : m_state(initialState)
+{}
 
 inline const ID3D12Resource* ResourceDX::Get() const
 {
@@ -45,7 +49,12 @@ inline ID3D12Resource** ResourceDX::GetAddressOf()
 inline void ResourceDX::SetName(const std::string& name)
 {
     std::wstring n{ name.begin(), name.end() };
-    SetDXobjectName(Get(), n.c_str());
+    SetName(n);
+}
+
+inline void ResourceDX::SetName(const std::wstring& name)
+{
+    SetDXobjectName(Get(), name.c_str());
 }
 
 inline D3D12_RESOURCE_STATES ResourceDX::GetCurrentState() const
