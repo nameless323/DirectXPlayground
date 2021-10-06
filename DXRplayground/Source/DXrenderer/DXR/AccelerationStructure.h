@@ -5,6 +5,7 @@
 #include <DirectXMath.h>
 
 #include "DXrenderer/DXhelpers.h"
+#include "DXrenderer/ResourceDX.h"
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
@@ -103,7 +104,7 @@ private:
    std::vector<Model*> m_models;
    UINT m_aabbsCount = 0;
 
-   Microsoft::WRL::ComPtr<ID3D12Resource> m_aabbResource;
+   ResourceDX m_aabbResource{ D3D12_RESOURCE_STATE_COPY_DEST };
    UploadBuffer* m_aabbUploadBuffer = nullptr;
 
    std::vector<CD3DX12_RESOURCE_BARRIER> m_toNonPixelTransitions;

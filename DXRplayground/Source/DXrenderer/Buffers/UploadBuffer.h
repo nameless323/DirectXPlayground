@@ -4,6 +4,7 @@
 #include <cassert>
 #include <wrl.h>
 #include "DXrenderer/DXhelpers.h"
+#include "DXrenderer/ResourceDX.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
@@ -31,8 +32,8 @@ public:
 
     void Unmap()
     {
-        if (m_resource != nullptr)
-            m_resource->Unmap(0, nullptr);
+        if (m_resource.Get() != nullptr)
+            m_resource.Get()->Unmap(0, nullptr);
     }
 
 private:
@@ -41,7 +42,7 @@ private:
     size_t m_rawDataSize = 0;
     size_t m_bufferSize = 0;
     UINT m_framesCount = 0;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_resource;
+    ResourceDX m_resource{ D3D12_RESOURCE_STATE_GENERIC_READ };
     byte* m_data = nullptr;
 
     static constexpr UINT GetConstantBufferByteSize(UINT byteSize);
@@ -96,8 +97,8 @@ private:
     UINT m_bufferSize = 0;
     byte* m_data = nullptr;
 
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_buffer;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_uploadBuffer;
+    ResourceDX m_buffer;
+    ResourceDX m_uploadBuffer{ D3D12_RESOURCE_STATE_GENERIC_READ };
     byte* m_mappedData = nullptr;
 
     bool m_isStaging = false;
@@ -123,11 +124,11 @@ inline void UnorderedAccessBuffer::UploadData(const byte* data)
 
 inline D3D12_GPU_VIRTUAL_ADDRESS UnorderedAccessBuffer::GetGpuAddress() const
 {
-    return m_buffer->GetGPUVirtualAddress();
+    return m_buffer.Get()->GetGPUVirtualAddress();
 }
 
 inline void UnorderedAccessBuffer::SetName(const std::wstring& name)
 {
-    SetDXobjectName(m_buffer.Get(), name.c_str());
+    m_buffer.SetName(name.c_str());
 }
 }

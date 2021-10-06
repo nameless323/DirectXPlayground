@@ -5,6 +5,7 @@
 
 #include "External/Dx12Helpers/d3dx12.h"
 #include "DXrenderer/DXhelpers.h"
+#include "DXrenderer/ResourceDX.h"
 
 namespace DirectxPlayground
 {
@@ -21,8 +22,8 @@ public:
     ID3D12Resource* GetBuffer() const;
 
 private:
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_buffer;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_uploadBuffer; // [a_vorontcov] TODO:: Check if command list was executed and release ptr. But maybe its not nessesary.
+    ResourceDX m_buffer{ D3D12_RESOURCE_STATE_COPY_DEST };
+    ResourceDX m_uploadBuffer{ D3D12_RESOURCE_STATE_GENERIC_READ }; // [a_vorontcov] TODO:: Check if command list was executed and release ptr. But maybe its not nessesary.
 };
 
 inline ID3D12Resource* HeapBuffer::GetBuffer() const
@@ -38,28 +39,27 @@ inline HeapBuffer::HeapBuffer(const byte* data, UINT dataSize, ID3D12GraphicsCom
         &uploadHeapProps,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
-        D3D12_RESOURCE_STATE_GENERIC_READ,
+        m_uploadBuffer.GetCurrentState(),
         nullptr,
-        IID_PPV_ARGS(&m_uploadBuffer)));
+        IID_PPV_ARGS(m_uploadBuffer.GetAddressOf())));
 
     UINT8* mappedBuffer = nullptr;
     CD3DX12_RANGE range(0, 0);
-    m_uploadBuffer->Map(0, &range, reinterpret_cast<void**>(&mappedBuffer));
+    m_uploadBuffer.Get()->Map(0, &range, reinterpret_cast<void**>(&mappedBuffer));
     memcpy(mappedBuffer, data, dataSize);
-    m_uploadBuffer->Unmap(0, nullptr);
+    m_uploadBuffer.Get()->Unmap(0, nullptr);
 
     CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
     ThrowIfFailed(device->CreateCommittedResource(
         &heapProps,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
-        D3D12_RESOURCE_STATE_COPY_DEST,
+        m_buffer.GetCurrentState(),
         nullptr,
-        IID_PPV_ARGS(&m_buffer)));
+        IID_PPV_ARGS(m_buffer.GetAddressOf())));
 
     commandList->CopyResource(m_buffer.Get(), m_uploadBuffer.Get());
-    CD3DX12_RESOURCE_BARRIER toDest = CD3DX12_RESOURCE_BARRIER::Transition(m_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, destinationState);
-    commandList->ResourceBarrier(1, &toDest);
+    m_buffer.Transition(commandList, destinationState);
 }
 
 //////////////////////////////////////////////////////////////////////////

@@ -48,9 +48,10 @@ void Swapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandL
 {
     m_currentFrameIndex = 0;
 
-    m_dsResource.Reset();
+    m_dsResource.GetWrlPtr().Reset();
+    m_dsResource.SetInitialState(D3D12_RESOURCE_STATE_COMMON);
     for (auto& backBufferRes : m_backBufferResources)
-        backBufferRes.Reset();
+        backBufferRes.GetWrlPtr().Reset();
 
     UINT flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
     if (m_isTearingSupported)
@@ -64,7 +65,7 @@ void Swapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandL
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
     for (UINT i = 0; i < RenderContext::FramesCount; ++i)
     {
-        ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(&m_backBufferResources[i])));
+        ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(m_backBufferResources[i].GetAddressOf())));
         device->CreateRenderTargetView(m_backBufferResources[i].Get(), nullptr, rtvHandle);
         rtvHandle.Offset(ctx.RtvDescriptorSize);
     }
@@ -102,8 +103,7 @@ void Swapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandL
 
     device->CreateDepthStencilView(m_dsResource.Get(), &dsViewDesc, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
 
-    auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_dsResource.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE);
-    commandList->ResourceBarrier(1, &transition);
+    m_dsResource.Transition(commandList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 }
 
 void Swapchain::Present()

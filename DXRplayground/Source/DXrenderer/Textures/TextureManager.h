@@ -55,7 +55,7 @@ public:
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetRtHandle(RenderContext& ctx, UINT index) const;
 
-    ID3D12Resource* GetResource(UINT index);
+    ID3D12Resource* GetResource(UINT index) const;
 
     UINT CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC desc);
 
@@ -114,7 +114,7 @@ inline D3D12_CPU_DESCRIPTOR_HANDLE TextureManager::GetRtHandle(RenderContext& ct
     return handle;
 }
 
-inline ID3D12Resource* TextureManager::GetResource(UINT index)
+inline ID3D12Resource* TextureManager::GetResource(UINT index) const
 {
     return m_resources[index].Get();
 }

@@ -25,21 +25,21 @@ UploadBuffer::UploadBuffer(ID3D12Device& device, UINT elementSize, bool isConsta
         &hProps,
         D3D12_HEAP_FLAG_NONE,
         &rDesc,
-        D3D12_RESOURCE_STATE_GENERIC_READ,
+        m_resource.GetCurrentState(),
         nullptr,
-        IID_PPV_ARGS(&m_resource)
+        IID_PPV_ARGS(m_resource.GetAddressOf())
     );
     if (!SUCCEEDED(hr))
         return;
 
     CD3DX12_RANGE readRange(0, 0);
-    m_resource->Map(0, &readRange, reinterpret_cast<void**>(&m_data));
+    m_resource.Get()->Map(0, &readRange, reinterpret_cast<void**>(&m_data));
 }
 
 UploadBuffer::~UploadBuffer()
 {
-    if (m_resource != nullptr)
-        m_resource->Unmap(0, nullptr);
+    if (m_resource.Get() != nullptr)
+        m_resource.Get()->Unmap(0, nullptr);
     m_data = nullptr;
 }
 
@@ -57,7 +57,7 @@ void UploadBuffer::UploadData(UINT frameIndex, const byte* data)
 D3D12_GPU_VIRTUAL_ADDRESS UploadBuffer::GetFrameDataGpuAddress(UINT frame) const
 {
     assert(frame < m_framesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
-    return m_resource->GetGPUVirtualAddress() + frame * m_frameDataSize;
+    return m_resource.Get()->GetGPUVirtualAddress() + frame * m_frameDataSize;
 }
 
 constexpr UINT UploadBuffer::GetConstantBufferByteSize(UINT byteSize)
@@ -80,13 +80,14 @@ UnorderedAccessBuffer::UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandL
     D3D12_RESOURCE_STATES state = initialData == nullptr ? D3D12_RESOURCE_STATE_UNORDERED_ACCESS : D3D12_RESOURCE_STATE_COPY_DEST;
     if (isRtAccelerationStruct)
         state = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+    m_buffer.SetInitialState(state);
     ThrowIfFailed(device.CreateCommittedResource(
         &heapProps,
         D3D12_HEAP_FLAG_NONE,
         &bufferDesc,
-        state,
+        m_buffer.GetCurrentState(),
         nullptr,
-        IID_PPV_ARGS(&m_buffer)));
+        IID_PPV_ARGS(m_buffer.GetAddressOf())));
 
     if (initialData != nullptr)
     {
@@ -96,24 +97,23 @@ UnorderedAccessBuffer::UnorderedAccessBuffer(ID3D12GraphicsCommandList* commandL
             &uploadHeapProps,
             D3D12_HEAP_FLAG_NONE,
             &bufferDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
+            m_uploadBuffer.GetCurrentState(),
             nullptr,
-            IID_PPV_ARGS(&m_uploadBuffer)));
+            IID_PPV_ARGS(m_uploadBuffer.GetAddressOf())));
 
         UINT8* mappedBuffer = nullptr;
         CD3DX12_RANGE range(0, 0);
-        m_uploadBuffer->Map(0, &range, reinterpret_cast<void**>(&mappedBuffer));
+        m_uploadBuffer.Get()->Map(0, &range, reinterpret_cast<void**>(&mappedBuffer));
         memcpy(mappedBuffer, initialData, dataSize);
-        m_uploadBuffer->Unmap(0, nullptr);
+        m_uploadBuffer.Get()->Unmap(0, nullptr);
         commandList->CopyResource(m_buffer.Get(), m_uploadBuffer.Get());
-        CD3DX12_RESOURCE_BARRIER toDest = CD3DX12_RESOURCE_BARRIER::Transition(m_buffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-        commandList->ResourceBarrier(1, &toDest);
+        m_buffer.Transition(commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     }
 
     if (isStagingBuffer)
     {
         CD3DX12_RANGE readRange(0, 0);
-        m_buffer->Map(0, &readRange, reinterpret_cast<void**>(&m_data));
+        m_buffer.Get()->Map(0, &readRange, reinterpret_cast<void**>(&m_data));
     }
 }
 
@@ -121,8 +121,8 @@ UnorderedAccessBuffer::~UnorderedAccessBuffer()
 {
     if (m_isStaging)
     {
-        if (m_buffer != nullptr)
-            m_buffer->Unmap(0, nullptr);
+        if (m_buffer.Get() != nullptr)
+            m_buffer.Get()->Unmap(0, nullptr);
         m_data = nullptr;
     }
 }

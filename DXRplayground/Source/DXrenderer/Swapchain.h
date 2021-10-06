@@ -5,6 +5,7 @@
 #include "External/Dx12Helpers/d3dx12.h"
 
 #include "DXrenderer/RenderContext.h"
+#include "DXrenderer/ResourceDX.h"
 
 namespace DirectxPlayground
 {
@@ -47,8 +48,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
 
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_dsResource;
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_backBufferResources[RenderContext::FramesCount];
+    ResourceDX m_dsResource;
+    ResourceDX m_backBufferResources[RenderContext::FramesCount];
 };
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE Swapchain::GetCurrentBackBufferCPUhandle(const RenderContext& state) const

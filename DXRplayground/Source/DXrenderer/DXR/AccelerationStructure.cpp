@@ -51,14 +51,14 @@ BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(RenderContext
             &hProps,
             D3D12_HEAP_FLAG_NONE,
             &rDesc,
-            D3D12_RESOURCE_STATE_COPY_DEST,
+            m_aabbResource.GetCurrentState(),
             nullptr,
-            IID_PPV_ARGS(&m_aabbResource)
+            IID_PPV_ARGS(m_aabbResource.GetAddressOf())
         );
         context.CommandList->CopyResource(m_aabbResource.Get(), m_aabbUploadBuffer->GetResource());
 
         std::vector<CD3DX12_RESOURCE_BARRIER> transitions;
-        transitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_aabbResource.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+        transitions.push_back(m_aabbResource.GetBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
         context.CommandList->ResourceBarrier(UINT(transitions.size()), transitions.data());
     }
 }
@@ -132,7 +132,7 @@ void BottomLevelAccelerationStructure::Prebuild(RenderContext& context, const D3
         aabbDesc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS;
         aabbDesc.AABBs.AABBCount = m_aabbsCount;
         aabbDesc.AABBs.AABBs.StrideInBytes = sizeof(D3D12_RAYTRACING_AABB);
-        aabbDesc.AABBs.AABBs.StartAddress = m_aabbResource->GetGPUVirtualAddress();
+        aabbDesc.AABBs.AABBs.StartAddress = m_aabbResource.Get()->GetGPUVirtualAddress();
         aabbDesc.Flags = D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE;
 
         m_desc.push_back(aabbDesc);

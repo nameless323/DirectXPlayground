@@ -5,6 +5,7 @@
 #include "External/Dx12Helpers/d3dx12.h"
 
 #include "DXrenderer/Shader.h"
+#include "DXrenderer/ResourceDX.h"
 
 #include "CameraController.h"
 #include "Camera.h"
@@ -105,7 +106,6 @@ private:
     UploadBuffer* m_rayGenShaderTable = nullptr;
     UploadBuffer* m_instanceDescs = nullptr; // todo: after flush should be ok to delete, but it's not.
 
-    Microsoft::WRL::ComPtr<ID3D12Resource> m_aabbResource;
     UnorderedAccessBuffer* m_scratchBuffer = nullptr; // todo: same shit as above
     UINT m_shadowMapIndex = 0;
     UINT m_hitGroupStride = 0;
