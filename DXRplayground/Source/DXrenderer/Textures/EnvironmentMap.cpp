@@ -111,4 +111,32 @@ void EnvironmentMap::CreateRootSig(RenderContext& ctx)
     ctx.Device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&m_rootSig));
 }
 
+void EnvironmentMap::CreateDescriptorHeap(RenderContext& ctx)
+{
+    D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
+    heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    heapDesc.NumDescriptors = 2;
+    ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_heap)));
+    NAME_D3D12_OBJECT(m_heap, L"EnvMap heap");
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_heap->GetCPUDescriptorHandleForHeapStart());
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC src{};
+    src.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    src.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    src.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    src.Texture2D.MipLevels = 1;
+    src.Texture2D.MostDetailedMip = 0;
+    src.Texture2D.ResourceMinLODClamp = 0.0f;
+    ctx.Device->CreateShaderResourceView(nullptr, &src, handle);
+
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
+    viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+    viewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    ctx.Device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, handle);
+}
+
 }
