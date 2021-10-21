@@ -26,9 +26,13 @@ private:
         UINT CubemapIndex;
     } m_texturesIndices;
 
+    void CreateRootSig(RenderContext& ctx);
+    void CreateDescriptorHeap(RenderContext& ctx);
+
     RtvSrvUavResourceIdx m_cubemapIndex;
     RtvSrvUavResourceIdx m_envMapIndex;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSig;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;
     UploadBuffer* m_indicesBuffer = nullptr;
     const std::string m_psoName = "CubemapConvertor_PBR";
     bool m_converted = false;

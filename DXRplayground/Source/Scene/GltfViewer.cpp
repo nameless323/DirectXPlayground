@@ -124,7 +124,7 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
     m_gltfMesh = new Model(context, path);
 }
 
