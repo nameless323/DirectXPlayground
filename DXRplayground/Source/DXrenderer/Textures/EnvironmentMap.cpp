@@ -12,20 +12,20 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     : m_cubemapWidth(width)
     , m_cubemapHeight(height)
 {
-    CreateCommonRootSignature(ctx.Device, IID_PPV_ARGS(&m_commonRootSig));
-    D3D12_COMPUTE_PIPELINE_STATE_DESC desc = GetDefaultComputePsoDescriptor(m_commonRootSig.Get());
+    CreateRootSig(ctx);
+    D3D12_COMPUTE_PIPELINE_STATE_DESC desc = GetDefaultComputePsoDescriptor(m_rootSig.Get());
 
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//EnvMapConvertion.hlsl");
     ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
 
-    m_envMapIndex = ctx.TexManager->CreateTexture(ctx, path, true);
-    m_cubemapIndex = ctx.TexManager->CreateCubemap(ctx, m_cubemapWidth, m_cubemapHeight, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
+    m_envMapData = ctx.TexManager->CreateTexture(ctx, path, true);
+    m_cubemapData = ctx.TexManager->CreateCubemap(ctx, m_cubemapWidth, m_cubemapHeight, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
 
-    m_texturesIndices.CubemapIndex = m_cubemapIndex.UAVOffset;
-    m_texturesIndices.EnvMapIndex = m_envMapIndex.SRVOffset;
+    m_graphicsData.CubemapIndex = m_cubemapData.UAVOffset;
+    m_graphicsData.EnvMapIndex = m_envMapData.SRVOffset;
 
-    m_indicesBuffer = new UploadBuffer(*ctx.Device, sizeof(m_texturesIndices), true, 1);
-    m_indicesBuffer->UploadData(0, m_texturesIndices);
+    m_indicesBuffer = new UploadBuffer(*ctx.Device, sizeof(m_graphicsData), true, 1);
+    m_indicesBuffer->UploadData(0, m_graphicsData);
 }
 
 EnvironmentMap::~EnvironmentMap()
@@ -35,20 +35,29 @@ EnvironmentMap::~EnvironmentMap()
 
 void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
 {
-    ctx.CommandList->SetComputeRootSignature(m_commonRootSig.Get());
+    D3D12_RESOURCE_STATES cubeState = m_cubemapData.Resource->GetCurrentState();
+    D3D12_RESOURCE_STATES texState = m_envMapData.Resource->GetCurrentState();
+    std::array<CD3DX12_RESOURCE_BARRIER, 2> barriers;
+    barriers[0] = m_cubemapData.Resource->GetBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    barriers[1] = m_envMapData.Resource->GetBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    ctx.CommandList->ResourceBarrier(barriers.size(), barriers.data());
+
+    ctx.CommandList->SetComputeRootSignature(m_rootSig.Get());
     ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(m_psoName));
 
-    ID3D12DescriptorHeap* descHeaps[] = { ctx.TexManager->GetDescriptorHeap() };
+    ID3D12DescriptorHeap* descHeaps[] = { m_heap.Get() };
     ctx.CommandList->SetDescriptorHeaps(1, descHeaps);
 
-    ctx.CommandList->SetComputeRootConstantBufferView(GetCBRootParamIndex(0), m_indicesBuffer->GetFrameDataGpuAddress(0));
-    ctx.CommandList->SetComputeRootDescriptorTable(TextureTableIndex, ctx.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+    ctx.CommandList->SetComputeRootConstantBufferView(0, m_indicesBuffer->GetFrameDataGpuAddress(0));
+    CD3DX12_GPU_DESCRIPTOR_HANDLE tableHandle(m_heap->GetGPUDescriptorHandleForHeapStart());
+    ctx.CommandList->SetComputeRootDescriptorTable(1, tableHandle);
+    tableHandle.Offset(ctx.CbvSrvUavDescriptorSize);
+    ctx.CommandList->SetComputeRootDescriptorTable(1, tableHandle);
 
-    descHeaps[0] = { ctx.TexManager->GetCubemapUAVHeap() };
-    ctx.CommandList->SetDescriptorHeaps(1, descHeaps);
-    ctx.CommandList->SetComputeRootDescriptorTable(UAVTableIndex, ctx.TexManager->GetCubemapUAVHeap()->GetGPUDescriptorHandleForHeapStart());
-
-    ctx.CommandList->Dispatch(m_cubemapWidth / 32, m_cubemapHeight / 32, 6);
+    ctx.CommandList->Dispatch(m_envMapData.Resource->Get()->GetDesc().Width / 32, m_envMapData.Resource->Get()->GetDesc().Height / 32, 6);
+    barriers[0] = m_cubemapData.Resource->GetBarrier(cubeState);
+    barriers[1] = m_envMapData.Resource->GetBarrier(texState);
+    ctx.CommandList->ResourceBarrier(barriers.size(), barriers.data());
 }
 
 bool EnvironmentMap::IsConvertedToCubemap() const
@@ -76,7 +85,7 @@ void EnvironmentMap::CreateRootSig(RenderContext& ctx)
     cubeMap.NumDescriptors = 1;
     cubeMap.BaseShaderRegister = 0;
     cubeMap.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-    cubeMap.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE; // Double check perf
+    cubeMap.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
     cubeMap.RegisterSpace = 0;
     cubeMap.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
     params.emplace_back();
@@ -139,4 +148,27 @@ void EnvironmentMap::CreateDescriptorHeap(RenderContext& ctx)
     ctx.Device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, handle);
 }
 
+void EnvironmentMap::CreateViews(RenderContext& ctx)
+{
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_heap->GetCPUDescriptorHandleForHeapStart());
+
+    D3D12_RESOURCE_DESC envRDesc = m_envMapData.Resource->Get()->GetDesc();
+    D3D12_SHADER_RESOURCE_VIEW_DESC envRtvD{};
+    envRtvD.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    envRtvD.Format = envRDesc.Format;
+    envRtvD.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    envRtvD.Texture2D.MipLevels = envRDesc.MipLevels;
+    envRtvD.Texture2D.MostDetailedMip = 0;
+    envRtvD.Texture2D.ResourceMinLODClamp = 0.0f;
+    ctx.Device->CreateShaderResourceView(m_envMapData.Resource->Get(), &envRtvD, handle);
+
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
+    viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+    viewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    viewDesc.Texture2DArray.ArraySize = 6;
+
+    ctx.Device->CreateUnorderedAccessView(m_cubemapData.Resource->Get(), nullptr, &viewDesc, handle);
+};
 }

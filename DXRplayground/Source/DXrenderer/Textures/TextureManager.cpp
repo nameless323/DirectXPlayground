@@ -37,7 +37,7 @@ TextureManager::~TextureManager()
     SafeDelete(m_mipGenerator);
 }
 
-RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips /*= true*/, bool allowUAV /*= false*/)
+TexResourceData TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips /*= true*/, bool allowUAV /*= false*/)
 {
     std::vector<byte> buffer;
 
@@ -128,9 +128,10 @@ RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std
     m_resources.push_back(resource);
     m_uploadResources.push_back(uploadResource);
 
-    RtvSrvUavResourceIdx res{};
+    TexResourceData res{};
     res.SRVOffset = m_currentTexCount++;
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
+    res.Resource = &m_resources.back();
 
     if (generateMips)
         m_mipGenerator->GenerateMips(ctx, resource.Get());
@@ -138,7 +139,7 @@ RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, const std
     return res;
 }
 
-DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState)
+DirectxPlayground::TexResourceData TextureManager::CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState)
 {
     ResourceDX resource{ initialState };
 
@@ -152,7 +153,7 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderCont
 #if defined(_DEBUG)
     SetDXobjectName(resource.Get(), name.c_str());
 #endif
-    RtvSrvUavResourceIdx res{};
+    TexResourceData res{};
     
     D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {};
     viewDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -170,11 +171,12 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateTexture(RenderCont
 
     m_resources.push_back(resource);
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
+    res.Resource = &m_resources.back();
 
     return res;
 }
 
-DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV /*= false*/, const byte* data /*= nullptr*/)
+DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV /*= false*/, const byte* data /*= nullptr*/)
 {
     ResourceDX resource{ D3D12_RESOURCE_STATE_COMMON };
 
@@ -217,7 +219,7 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderCont
     ctx.Device->CreateShaderResourceView(resource.Get(), &viewDesc, handle);
 
 
-    RtvSrvUavResourceIdx res{};
+    TexResourceData res{};
     res.SRVOffset = m_currentCubemapsCount++;
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
 
@@ -239,6 +241,7 @@ DirectxPlayground::RtvSrvUavResourceIdx TextureManager::CreateCubemap(RenderCont
     }
 
     m_resources.push_back(resource);
+    res.Resource = &m_resources.back();
 
     return res;
 }
@@ -383,7 +386,7 @@ bool TextureManager::ParseHDR(const std::string& filename, std::vector<byte>& bu
     return true;
 }
 
-RtvSrvUavResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue /*= nullptr*/, bool createSRV /*= true*/, bool allowUAV /*= false*/)
+TexResourceData TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue /*= nullptr*/, bool createSRV /*= true*/, bool allowUAV /*= false*/)
 {
     ResourceDX resource{ D3D12_RESOURCE_STATE_RENDER_TARGET };
 
@@ -406,7 +409,7 @@ RtvSrvUavResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE
     rtvHandle.Offset(m_currentRTCount, ctx.RtvDescriptorSize);
     ctx.Device->CreateRenderTargetView(resource.Get(), &rtDesc, rtvHandle);
 
-    RtvSrvUavResourceIdx res;
+    TexResourceData res;
     res.RTVOffset = m_currentRTCount++;
 
     if (createSRV)
@@ -427,6 +430,7 @@ RtvSrvUavResourceIdx TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE
     }
     m_resources.push_back(resource);
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
+    res.Resource = &m_resources.back();
 
     return res;
 }

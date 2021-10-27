@@ -24,13 +24,14 @@ private:
     {
         UINT EnvMapIndex;
         UINT CubemapIndex;
-    } m_texturesIndices;
+    } m_graphicsData;
 
     void CreateRootSig(RenderContext& ctx);
     void CreateDescriptorHeap(RenderContext& ctx);
-
-    RtvSrvUavResourceIdx m_cubemapIndex;
-    RtvSrvUavResourceIdx m_envMapIndex;
+    void CreateViews(RenderContext& ctx);
+    
+    TexResourceData m_cubemapData;
+    TexResourceData m_envMapData;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSig;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;
     UploadBuffer* m_indicesBuffer = nullptr;

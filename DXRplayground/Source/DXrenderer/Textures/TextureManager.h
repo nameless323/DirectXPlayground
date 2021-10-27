@@ -16,12 +16,14 @@ struct RenderContext;
 
 constexpr UINT InvalidOffset = 0xFFFFFFFF;
 
-struct RtvSrvUavResourceIdx
+struct TexResourceData
 {
     UINT RTVOffset = InvalidOffset;
     UINT SRVOffset = InvalidOffset;
     UINT UAVOffset = InvalidOffset;
     UINT ResourceIdx = InvalidOffset;
+
+    ResourceDX* Resource = nullptr;
 };
 
 class TextureManager
@@ -30,11 +32,11 @@ public:
     TextureManager(RenderContext& ctx);
     ~TextureManager();
 
-    RtvSrvUavResourceIdx CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips = false, bool allowUAV = false);
-    RtvSrvUavResourceIdx CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-    RtvSrvUavResourceIdx CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true, bool allowUAV = false);
+    TexResourceData CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips = false, bool allowUAV = false);
+    TexResourceData CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+    TexResourceData CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true, bool allowUAV = false);
 
-    RtvSrvUavResourceIdx CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
+    TexResourceData CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
 
     ID3D12DescriptorHeap* GetDescriptorHeap() const;
     ID3D12DescriptorHeap* GetCubemapHeap() const;
