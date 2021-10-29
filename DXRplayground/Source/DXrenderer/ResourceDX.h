@@ -76,7 +76,6 @@ inline D3D12_RESOURCE_STATES ResourceDX::GetCurrentState() const
 
 inline bool ResourceDX::GetBarrier(D3D12_RESOURCE_STATES after, CD3DX12_RESOURCE_BARRIER& transition)
 {
-
     assert(m_initialStateSet);
     if (after == m_state)
         return false;
@@ -89,8 +88,9 @@ inline CD3DX12_RESOURCE_BARRIER ResourceDX::GetBarrier(D3D12_RESOURCE_STATES aft
 {
     assert(m_initialStateSet);
     assert(m_state != after);
+    D3D12_RESOURCE_STATES before = m_state;
     m_state = after;
-    return CD3DX12_RESOURCE_BARRIER::Transition(Get(), m_state, after);
+    return CD3DX12_RESOURCE_BARRIER::Transition(Get(), before, after);
 }
 
 inline void ResourceDX::Transition(ID3D12GraphicsCommandList* cmdList, D3D12_RESOURCE_STATES after)
