@@ -1,5 +1,5 @@
-RWTexture2DArray<float4> cubemaps[64] : register(u0, space2);
-Texture2D<float4> Textures[10000] : register(t0);
+RWTexture2DArray<float4> cubemap : register(u0);
+Texture2D<float4> envMap : register(t0);
 
 struct CbTIndices
 {
@@ -11,5 +11,10 @@ ConstantBuffer<CbTIndices> cbTIndices : register(b0);
 [numthreads(32, 32, 1)]
 void cs(uint3 tId : SV_DispatchThreadID)
 {
-    cubemaps[cbTIndices.CubemapIndex][tId] = float4(tId.z / 6.0, 0, 0, 1);
+    cubemap[float3(tId.xy / 512.0f, 0)] = float4(1, 0, 0, 1);
+    cubemap[float3(tId.xy / 512.0f, 1)] = float4(0, 1, 0, 1);
+    cubemap[float3(tId.xy / 512.0f, 2)] = float4(0, 0, 1, 1);
+    cubemap[float3(tId.xy / 512.0f, 3)] = float4(1, 1, 0, 1);
+    cubemap[float3(tId.xy / 512.0f, 4)] = float4(0, 0, 0, 1);
+    cubemap[float3(tId.xy / 512.0f, 5)] = float4(1, 1, 1, 1);
 }

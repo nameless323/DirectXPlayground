@@ -63,4 +63,4 @@ inline void CaptureNextFrame()
 }
 }
 
-#define GPU_SCOPED_EVENT(ctx, name) DirectxPlayground::PixProfiler::ScopedGpuEvent pix__scoped_profile___(context.CommandList, name)
+#define GPU_SCOPED_EVENT(ctx, name) DirectxPlayground::PixProfiler::ScopedGpuEvent pix__scoped_profile___(ctx.CommandList, name)

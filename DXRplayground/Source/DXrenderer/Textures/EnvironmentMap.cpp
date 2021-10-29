@@ -3,7 +3,9 @@
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "DXrenderer/Shader.h"
 #include "DXrenderer/PsoManager.h"
+#include "DXrenderer/RenderPipeline.h"
 #include "Utils/Helpers.h"
+#include "Utils/PixProfiler.h"
 
 namespace DirectxPlayground
 {
@@ -13,6 +15,7 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     , m_cubemapHeight(height)
 {
     CreateRootSig(ctx);
+    CreateDescriptorHeap(ctx);
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc = GetDefaultComputePsoDescriptor(m_rootSig.Get());
 
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//EnvMapConvertion.hlsl");
@@ -23,6 +26,8 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
 
     m_graphicsData.CubemapIndex = m_cubemapData.UAVOffset;
     m_graphicsData.EnvMapIndex = m_envMapData.SRVOffset;
+
+    CreateViews(ctx);
 
     m_indicesBuffer = new UploadBuffer(*ctx.Device, sizeof(m_graphicsData), true, 1);
     m_indicesBuffer->UploadData(0, m_graphicsData);
@@ -35,12 +40,16 @@ EnvironmentMap::~EnvironmentMap()
 
 void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
 {
+    return;
+    GPU_SCOPED_EVENT(ctx, "ConverToCubemap");
+    ctx.Pipeline->Flush();
+
     D3D12_RESOURCE_STATES cubeState = m_cubemapData.Resource->GetCurrentState();
     D3D12_RESOURCE_STATES texState = m_envMapData.Resource->GetCurrentState();
     std::array<CD3DX12_RESOURCE_BARRIER, 2> barriers;
     barriers[0] = m_cubemapData.Resource->GetBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     barriers[1] = m_envMapData.Resource->GetBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-    ctx.CommandList->ResourceBarrier(barriers.size(), barriers.data());
+    ctx.CommandList->ResourceBarrier(UINT(barriers.size()), barriers.data());
 
     ctx.CommandList->SetComputeRootSignature(m_rootSig.Get());
     ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(m_psoName));
@@ -54,10 +63,13 @@ void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
     tableHandle.Offset(ctx.CbvSrvUavDescriptorSize);
     ctx.CommandList->SetComputeRootDescriptorTable(1, tableHandle);
 
-    ctx.CommandList->Dispatch(m_envMapData.Resource->Get()->GetDesc().Width / 32, m_envMapData.Resource->Get()->GetDesc().Height / 32, 6);
+    //ctx.CommandList->Dispatch(m_envMapData.Resource->Get()->GetDesc().Width / 32, m_envMapData.Resource->Get()->GetDesc().Height / 32, 6);
+    ctx.CommandList->Dispatch(UINT(m_cubemapData.Resource->Get()->GetDesc().Width / 32), UINT(m_cubemapData.Resource->Get()->GetDesc().Height / 32), 1);
     barriers[0] = m_cubemapData.Resource->GetBarrier(cubeState);
     barriers[1] = m_envMapData.Resource->GetBarrier(texState);
-    ctx.CommandList->ResourceBarrier(barriers.size(), barriers.data());
+    ctx.CommandList->ResourceBarrier(UINT(barriers.size()), barriers.data());
+
+    ctx.Pipeline->Flush();
 }
 
 bool EnvironmentMap::IsConvertedToCubemap() const

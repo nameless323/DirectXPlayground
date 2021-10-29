@@ -22,11 +22,13 @@ namespace DirectxPlayground
 namespace
 {
 static constexpr UINT MaxImguiTexturesCount = 128;
+static constexpr UINT MaxResources = 32768;
 }
 
 TextureManager::TextureManager(RenderContext& ctx)
 {
     m_mipGenerator = new MipGenerator(ctx);
+    m_resources.resize(MaxResources);
     CreateSRVHeap(ctx);
     CreateRTVHeap(ctx);
     CreateUAVHeap(ctx);
@@ -236,8 +238,6 @@ DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& 
         handle.Offset(m_currentUAVCount * ctx.CbvSrvUavDescriptorSize);
         ctx.Device->CreateUnorderedAccessView(resource.Get(), nullptr, &uavDesc, handle);
         res.UAVOffset = m_currentUAVCount++;
-
-        resource.Transition(ctx.CommandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     }
 
     m_resources.push_back(resource);

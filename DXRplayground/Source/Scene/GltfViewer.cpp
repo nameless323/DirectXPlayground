@@ -63,7 +63,7 @@ void GltfViewer::Render(RenderContext& context)
     GPU_SCOPED_EVENT(context, "Render frame");
     m_cameraController->Update();
     UpdateLights(context);
-    //m_envMap->ConvertToCubemap(context);
+    m_envMap->ConvertToCubemap(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
