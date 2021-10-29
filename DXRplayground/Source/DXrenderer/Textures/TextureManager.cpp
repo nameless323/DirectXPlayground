@@ -136,7 +136,7 @@ TexResourceData TextureManager::CreateTexture(RenderContext& ctx, const std::str
     res.Resource = &m_resources.back();
 
     if (generateMips)
-        m_mipGenerator->GenerateMips(ctx, resource.Get());
+        m_mipGenerator->GenerateMips(ctx, &m_resources.back());
 
     return res;
 }

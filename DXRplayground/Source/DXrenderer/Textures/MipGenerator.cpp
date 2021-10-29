@@ -24,12 +24,12 @@ MipGenerator::MipGenerator(RenderContext& ctx)
     m_resourcesPtrs.reserve(m_maxTextureMipsInFrame);
 }
 
-void MipGenerator::GenerateMips(RenderContext& ctx, ID3D12Resource* resource)
+void MipGenerator::GenerateMips(RenderContext& ctx, ResourceDX* resource)
 {
     UINT baseMip = CreateMipViews(ctx, resource);
-    UINT halfWidth = static_cast<UINT>(resource->GetDesc().Width) / 2;
-    UINT halfHeight = resource->GetDesc().Height / 2;
-    for (UINT i = 0; i < resource->GetDesc().MipLevels - 1U; ++i)
+    UINT halfWidth = static_cast<UINT>(resource->Get()->GetDesc().Width) / 2;
+    UINT halfHeight = resource->Get()->GetDesc().Height / 2;
+    for (UINT i = 0; i < resource->Get()->GetDesc().MipLevels - 1U; ++i)
     {
         MipGenData mipData{};
         mipData.BaseMip = baseMip + i;
@@ -59,12 +59,12 @@ void MipGenerator::Flush(RenderContext& ctx)
     std::vector<CD3DX12_RESOURCE_BARRIER> barriers;
     barriers.reserve(m_resourcesPtrs.size());
     for (size_t i = 0; i < m_resourcesPtrs.size(); ++i)
-        barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_resourcesPtrs[i], D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
+        barriers.push_back(m_resourcesPtrs[i]->GetBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS));
     ctx.CommandList->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
     barriers.clear();
 
     UINT currTexInd = 0;
-    ID3D12Resource* currTex = m_resourcesPtrs[currTexInd++];
+    ID3D12Resource* currTex = m_resourcesPtrs[currTexInd++]->Get();
     UINT dispatchesLeft = currTex->GetDesc().MipLevels - 1;
     for (UINT i = 0; i < m_queuedMipsToGenerateNumber; ++i)
     {
@@ -75,12 +75,12 @@ void MipGenerator::Flush(RenderContext& ctx)
         --dispatchesLeft;
         if (dispatchesLeft == 0 && i < m_queuedMipsToGenerateNumber - 1)
         {
-            currTex = m_resourcesPtrs[currTexInd++];
+            currTex = m_resourcesPtrs[currTexInd++]->Get();
             dispatchesLeft = currTex->GetDesc().MipLevels - 1;
         }
     }
     for (size_t i = 0; i < m_resourcesPtrs.size(); ++i)
-        barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(m_resourcesPtrs[i], D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+        barriers.push_back(m_resourcesPtrs[i]->GetBarrier(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
     ctx.CommandList->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
 
     m_queuedMipsToGenerateNumber = 0;
@@ -119,21 +119,21 @@ void MipGenerator::CreatePso(RenderContext& ctx)
     ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
 }
 
-UINT MipGenerator::CreateMipViews(RenderContext& ctx, ID3D12Resource* resource)
+UINT MipGenerator::CreateMipViews(RenderContext& ctx, ResourceDX* resource)
 {
     UINT baseOffset = m_currViewsCount;
-    UINT mipsCount = resource->GetDesc().MipLevels;
+    UINT mipsCount = resource->Get()->GetDesc().MipLevels;
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_uavHeap->GetCPUDescriptorHandleForHeapStart());
     handle.Offset(ctx.CbvSrvUavDescriptorSize * m_currViewsCount);
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc{};
     viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    viewDesc.Format = resource->GetDesc().Format;
+    viewDesc.Format = resource->Get()->GetDesc().Format;
 
     for (UINT i = 0; i < mipsCount; ++i)
     {
         viewDesc.Texture2D.MipSlice = i;
-        ctx.Device->CreateUnorderedAccessView(resource, nullptr, &viewDesc, handle);
+        ctx.Device->CreateUnorderedAccessView(resource->Get(), nullptr, &viewDesc, handle);
 
         handle.Offset(ctx.CbvSrvUavDescriptorSize);
         ++m_currViewsCount;

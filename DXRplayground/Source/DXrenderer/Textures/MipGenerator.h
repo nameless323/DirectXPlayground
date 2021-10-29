@@ -3,6 +3,7 @@
 #include <map>
 
 #include <wrl.h>
+#include "DXrenderer/ResourceDX.h"
 #include "External/Dx12Helpers/d3dx12.h"
 
 namespace DirectxPlayground
@@ -15,7 +16,7 @@ class MipGenerator
 public:
     MipGenerator(RenderContext& ctx);
 
-    void GenerateMips(RenderContext& ctx, ID3D12Resource* resource);
+    void GenerateMips(RenderContext& ctx, ResourceDX* resource);
     void Flush(RenderContext& ctx);
 
 private:
@@ -29,10 +30,10 @@ private:
 
     void CreateUavHeap(RenderContext& ctx);
     void CreatePso(RenderContext& ctx);
-    UINT CreateMipViews(RenderContext& ctx, ID3D12Resource* resource);
+    UINT CreateMipViews(RenderContext& ctx, ResourceDX* resource);
 
     std::vector<MipGenData> m_queuedMips;
-    std::vector<ID3D12Resource*> m_resourcesPtrs;
+    std::vector<ResourceDX*> m_resourcesPtrs;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
     UINT m_currViewsCount = 0;
