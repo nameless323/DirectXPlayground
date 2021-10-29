@@ -40,7 +40,6 @@ EnvironmentMap::~EnvironmentMap()
 
 void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
 {
-    return;
     GPU_SCOPED_EVENT(ctx, "ConverToCubemap");
     ctx.Pipeline->Flush();
 
@@ -61,7 +60,7 @@ void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
     CD3DX12_GPU_DESCRIPTOR_HANDLE tableHandle(m_heap->GetGPUDescriptorHandleForHeapStart());
     ctx.CommandList->SetComputeRootDescriptorTable(1, tableHandle);
     tableHandle.Offset(ctx.CbvSrvUavDescriptorSize);
-    ctx.CommandList->SetComputeRootDescriptorTable(1, tableHandle);
+    ctx.CommandList->SetComputeRootDescriptorTable(2, tableHandle);
 
     //ctx.CommandList->Dispatch(m_envMapData.Resource->Get()->GetDesc().Width / 32, m_envMapData.Resource->Get()->GetDesc().Height / 32, 6);
     ctx.CommandList->Dispatch(UINT(m_cubemapData.Resource->Get()->GetDesc().Width / 32), UINT(m_cubemapData.Resource->Get()->GetDesc().Height / 32), 1);
