@@ -22,8 +22,7 @@ public:
 private:
     struct
     {
-        UINT EnvMapIndex;
-        UINT CubemapIndex;
+        DirectX::XMFLOAT4 EqMapCubeMapWH{};
     } m_graphicsData;
 
     void CreateRootSig(RenderContext& ctx);

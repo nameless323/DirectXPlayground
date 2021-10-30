@@ -3,8 +3,7 @@ Texture2D<float4> envMap : register(t0);
 
 struct CbTIndices
 {
-    uint CubemapIndex;
-    uint EnvMapIndex;
+    float4 eqMapCubeMapWH;
 };
 ConstantBuffer<CbTIndices> cbTIndices : register(b0);
 

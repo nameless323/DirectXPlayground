@@ -24,8 +24,10 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     m_envMapData = ctx.TexManager->CreateTexture(ctx, path, true);
     m_cubemapData = ctx.TexManager->CreateCubemap(ctx, m_cubemapWidth, m_cubemapHeight, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
 
-    m_graphicsData.CubemapIndex = m_cubemapData.UAVOffset;
-    m_graphicsData.EnvMapIndex = m_envMapData.SRVOffset;
+    m_graphicsData.EqMapCubeMapWH.x = m_envMapData.Resource->Get()->GetDesc().Width;
+    m_graphicsData.EqMapCubeMapWH.y = m_envMapData.Resource->Get()->GetDesc().Height;
+    m_graphicsData.EqMapCubeMapWH.z = m_cubemapData.Resource->Get()->GetDesc().Width;
+    m_graphicsData.EqMapCubeMapWH.w = m_cubemapData.Resource->Get()->GetDesc().Height;
 
     CreateViews(ctx);
 
