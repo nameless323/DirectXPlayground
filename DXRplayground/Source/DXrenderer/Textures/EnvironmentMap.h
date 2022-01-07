@@ -33,7 +33,7 @@ private:
     TexResourceData m_envMapData;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSig;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;
-    UploadBuffer* m_indicesBuffer = nullptr;
+    UploadBuffer* m_dataBuffer = nullptr;
     const std::string m_psoName = "CubemapConvertor_PBR";
     bool m_converted = false;
     UINT m_cubemapHeight = 0;

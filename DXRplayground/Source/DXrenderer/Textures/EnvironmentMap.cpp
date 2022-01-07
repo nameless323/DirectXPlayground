@@ -31,13 +31,13 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
 
     CreateViews(ctx);
 
-    m_indicesBuffer = new UploadBuffer(*ctx.Device, sizeof(m_graphicsData), true, 1);
-    m_indicesBuffer->UploadData(0, m_graphicsData);
+    m_dataBuffer = new UploadBuffer(*ctx.Device, sizeof(m_graphicsData), true, 1);
+    m_dataBuffer->UploadData(0, m_graphicsData);
 }
 
 EnvironmentMap::~EnvironmentMap()
 {
-    SafeDelete(m_indicesBuffer);
+    SafeDelete(m_dataBuffer);
 }
 
 void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
@@ -58,7 +58,7 @@ void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
     ID3D12DescriptorHeap* descHeaps[] = { m_heap.Get() };
     ctx.CommandList->SetDescriptorHeaps(1, descHeaps);
 
-    ctx.CommandList->SetComputeRootConstantBufferView(0, m_indicesBuffer->GetFrameDataGpuAddress(0));
+    ctx.CommandList->SetComputeRootConstantBufferView(0, m_dataBuffer->GetFrameDataGpuAddress(0));
     CD3DX12_GPU_DESCRIPTOR_HANDLE tableHandle(m_heap->GetGPUDescriptorHandleForHeapStart());
     ctx.CommandList->SetComputeRootDescriptorTable(1, tableHandle);
     tableHandle.Offset(ctx.CbvSrvUavDescriptorSize);
