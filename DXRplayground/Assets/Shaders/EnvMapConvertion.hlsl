@@ -19,15 +19,15 @@ float3 OutImgToXYZ(uint i, uint j, uint face, uint edge)
     if (face == 0) // back
         res = float3(-1.0f, 1.0f - a, 3.0f - b);
     else if (face == 1)
-        res = float3(a - 3.0f, -1.0f, 3.0f - b)
+        res = float3(a - 3.0f, -1.0f, 3.0f - b);
     else if (face == 2)
-        res = float3(1.0f, a - 5.0f, 3.0f - b)
+        res = float3(1.0f, a - 5.0f, 3.0f - b);
     else if (face == 3)
-        res = float3(7.0f - a, 1.0f, 3.0f - b)
+        res = float3(7.0f - a, 1.0f, 3.0f - b);
     else if (face == 4)
-        res = float3(b - 1.0f, a - 5.0f, 1.0f)
+        res = float3(b - 1.0f, a - 5.0f, 1.0f);
     else
-        res = float3(5.0f - b, a - 5.0f, -1.0f)
+        res = float3(5.0f - b, a - 5.0f, -1.0f);
     return res;
 }
 
@@ -37,7 +37,7 @@ void cs(uint3 tId : SV_DispatchThreadID)
     uint2 inSize = cbData.eqMapCubeMapWH.xy;
     uint2 edge = cbData.eqMapCubeMapWH.zw;
     uint face = uint(tId.z);
-    float3 coord = OutImgToXYZ(tId.x, tId.y, face);
+    float3 coord = OutImgToXYZ(tId.x, tId.y, face, edge);
     float theta = atan2(coord.y, coord.x);
     float r = length(coord.xy);
     float phi = atan2(coord.z, r);
@@ -45,6 +45,10 @@ void cs(uint3 tId : SV_DispatchThreadID)
     // to rasterizer
     float uf = 2.0f * edge.x * (theta + PI) / PI;
     float vf = 2.0f * edge.y * (PI / 2.0f - phi) / PI;
+    float2 uv = float2(uf % inSize.x, clamp(vf, 0.0f, inSize.y - 1.0f));
+    float4 color = envMap.Sample(LinearClampSampler, uv);
+    cubemap[float3(tId.xyz)] = color;
+/*
     uint u1 = floor(uf);
     uint v1 = floor(vf);
     uint u2 = u1 + 1;
@@ -65,5 +69,5 @@ void cs(uint3 tId : SV_DispatchThreadID)
     {
         float2 uv = tId.xy / cbData.eqMapCubeMapWH.zw;
         cubemap[float3(tId.xyz)] = envMap.Sample(LinearClampSampler, uv);
-    }
+    }*/
 }
