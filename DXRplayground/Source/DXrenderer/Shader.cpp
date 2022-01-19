@@ -52,7 +52,15 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
     shader.m_compiled = false;
 
     Microsoft::WRL::ComPtr<IDxcBlobEncoding> sourceBlob;
-    HRESULT hr = DxcLibrary->CreateBlobFromFile(fileName, &CodePage, &sourceBlob);
+    HRESULT hr{};
+    UINT maxRetryCount = 100000;
+    UINT i = 0;
+    do 
+    {
+        hr = DxcLibrary->CreateBlobFromFile(fileName, &CodePage, &sourceBlob);
+        ++i;
+    } while (hr == HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION) && i < maxRetryCount);
+
     if (hr == HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
     {
         LOG_W("ERROR_SHARING_VIOLATION occurred while compiling ", fileName, " please retry \n");
