@@ -56,6 +56,7 @@ void GltfViewer::InitResources(RenderContext& context)
     CreatePSOs(context);
 
     context.TexManager->FlushMipsQueue(context);
+    m_envMap->ConvertToCubemap(context);
 }
 
 void GltfViewer::Render(RenderContext& context)
@@ -63,7 +64,6 @@ void GltfViewer::Render(RenderContext& context)
     GPU_SCOPED_EVENT(context, "Render frame");
     m_cameraController->Update();
     UpdateLights(context);
-    m_envMap->ConvertToCubemap(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
@@ -106,6 +106,10 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), m_lightManager->GetLightsBufferGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
+    CD3DX12_GPU_DESCRIPTOR_HANDLE cubeHeapBegin(context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+    cubeHeapBegin.Offset(context.CbvSrvUavDescriptorSize * RenderContext::MaxTextures);
+    context.CommandList->SetGraphicsRootDescriptorTable(CubemapTableIndex, cubeHeapBegin);
+
     for (const auto mesh : m_gltfMesh->GetMeshes())
     {
         context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
@@ -124,7 +128,8 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
+    //auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
+    auto path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
     m_gltfMesh = new Model(context, path);
 }
 

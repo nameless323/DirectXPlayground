@@ -39,7 +39,6 @@ public:
     TexResourceData CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
 
     ID3D12DescriptorHeap* GetDescriptorHeap() const;
-    ID3D12DescriptorHeap* GetCubemapHeap() const;
     ID3D12DescriptorHeap* GetCubemapUAVHeap() const;
 
     ID3D12DescriptorHeap* GetDXRUavHeap() const
@@ -78,7 +77,6 @@ private:
     std::vector<ResourceDX> m_uploadResources;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvCubeHeap = nullptr;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap = nullptr;
 
     // DXR
@@ -89,7 +87,7 @@ private:
     MipGenerator* m_mipGenerator = nullptr;
 
     UINT m_currentTexCount = 0;
-    UINT m_currentCubemapsCount = 0;
+    UINT m_currentCubemapCount = 0;
     UINT m_currentRTCount = 0;
     UINT m_currentUAVCount = 0;
 };
@@ -97,11 +95,6 @@ private:
 inline ID3D12DescriptorHeap* TextureManager::GetDescriptorHeap() const
 {
     return m_srvHeap.Get();
-}
-
-inline ID3D12DescriptorHeap* TextureManager::GetCubemapHeap() const
-{
-    return m_srvCubeHeap.Get();
 }
 
 inline ID3D12DescriptorHeap* TextureManager::GetCubemapUAVHeap() const

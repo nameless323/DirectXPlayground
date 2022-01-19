@@ -216,13 +216,13 @@ DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& 
     viewDesc.Texture2D.MostDetailedMip = 0;
     viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvCubeHeap->GetCPUDescriptorHandleForHeapStart());
-    handle.Offset(m_currentCubemapsCount * ctx.CbvSrvUavDescriptorSize);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
+    handle.Offset((m_currentCubemapCount + RenderContext::MaxTextures) * ctx.CbvSrvUavDescriptorSize);
     ctx.Device->CreateShaderResourceView(resource.Get(), &viewDesc, handle);
 
-
     TexResourceData res{};
-    res.SRVOffset = m_currentCubemapsCount++;
+    res.SRVOffset = m_currentCubemapCount++;
+    res.SRVOffset += RenderContext::MaxTextures;
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
 
     if (allowUAV)
@@ -440,7 +440,7 @@ void TextureManager::CreateSRVHeap(RenderContext& ctx)
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = RenderContext::MaxTextures;
+    heapDesc.NumDescriptors = RenderContext::MaxTextures + RenderContext::MaxCubemaps;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_srvHeap)));
     AUTO_NAME_D3D12_OBJECT(m_srvHeap);
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
@@ -453,18 +453,7 @@ void TextureManager::CreateSRVHeap(RenderContext& ctx)
     viewDesc.Texture2D.MostDetailedMip = 0;
     viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-    for (UINT i = 0; i < RenderContext::MaxTextures; ++i)
-    {
-        ctx.Device->CreateShaderResourceView(nullptr, &viewDesc, handle);
-        handle.Offset(ctx.CbvSrvUavDescriptorSize);
-    }
-
-    heapDesc.NumDescriptors = RenderContext::MaxCubemaps;
-    ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_srvCubeHeap)));
-    handle = m_srvCubeHeap->GetCPUDescriptorHandleForHeapStart();
-    viewDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-
-    for (UINT i = 0; i < RenderContext::MaxCubemaps; ++i)
+    for (UINT i = 0; i < (RenderContext::MaxTextures + RenderContext::MaxCubemaps); ++i)
     {
         ctx.Device->CreateShaderResourceView(nullptr, &viewDesc, handle);
         handle.Offset(ctx.CbvSrvUavDescriptorSize);
