@@ -15,6 +15,7 @@ struct RenderContext
     static constexpr UINT FramesCount = 3;
     static constexpr UINT MaxTextures = 10000;
     static constexpr UINT MaxCubemaps = 100;
+    static constexpr UINT CubemapsRangeStarts = MaxTextures;
     static constexpr UINT MaxUAVTextures = 10000;
     static constexpr UINT MaxRT = 100;
     static constexpr UINT AllocatorsCount = 6;

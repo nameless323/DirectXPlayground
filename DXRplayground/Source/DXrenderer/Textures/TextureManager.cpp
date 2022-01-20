@@ -217,13 +217,13 @@ DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& 
     viewDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_srvHeap->GetCPUDescriptorHandleForHeapStart());
-    handle.Offset((m_currentCubemapCount + RenderContext::MaxTextures) * ctx.CbvSrvUavDescriptorSize);
+    handle.Offset((m_currentCubemapCount + RenderContext::CubemapsRangeStarts) * ctx.CbvSrvUavDescriptorSize);
     ctx.Device->CreateShaderResourceView(resource.Get(), &viewDesc, handle);
 
     TexResourceData res{};
-    res.SRVOffset = m_currentCubemapCount++;
-    res.SRVOffset += RenderContext::MaxTextures;
+    res.SRVOffset = RenderContext::CubemapsRangeStarts + m_currentCubemapCount;
     res.ResourceIdx = static_cast<UINT>(m_resources.size()) - 1;
+    ++m_currentCubemapCount;
 
     if (allowUAV)
     {

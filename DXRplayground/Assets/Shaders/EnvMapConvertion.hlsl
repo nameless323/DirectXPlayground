@@ -17,18 +17,18 @@ float3 OutImgToXYZ(uint i, uint j, uint face, uint2 edge)
     float a = 2.0f * float(i) / float(edge.x) - 1.0f;
     float b = 2.0f * float(j) / float(edge.y) - 1.0f;
     float3 res;
-    if (face == 0)
-        res = float3(-1.0f, -a, -b);
-    else if (face == 1)
-        res = float3(a, -1.0f, -b);
-    else if (face == 2)
-        res = float3(1.0f, a, -b);
-    else if (face == 3)
+    if (face == 0) // right
         res = float3(-a, 1.0f, -b);
-    else if (face == 4)
+    else if (face == 1) // left
+        res = float3(a, -1.0f, -b);
+    else if (face == 2) // top
         res = float3(b, a, 1.0f);
-    else
+    else if (face == 3) // bottom
         res = float3(-b, a, -1.0f);
+    else if (face == 4) // back
+        res = float3(1.0f, a, -b);
+    else // fwd
+        res = float3(-1.0f, -a, -b);
     return res;
 }
 
