@@ -9,6 +9,7 @@ using namespace DirectX;
 struct CameraShaderData
 {
     XMFLOAT4X4 ViewProj;
+    XMFLOAT4X4 View;
     XMFLOAT3 Position;
     float Padding;
 };

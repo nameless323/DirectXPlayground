@@ -31,12 +31,15 @@ private:
     void CreateRootSignature(RenderContext& context);
     void CreatePSOs(RenderContext& context);
     void UpdateLights(RenderContext& context);
+    void DrawSkybox(RenderContext& context);
 
     Model* m_gltfMesh = nullptr;
+    Model* m_skybox = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
     UploadBuffer* m_cameraCb = nullptr;
     UploadBuffer* m_objectCb = nullptr;
     const std::string m_psoName = "Opaque_PBR";
+    const std::string m_skyboxPsoName = "Skybox";
 
     Camera* m_camera = nullptr;
     CameraController* m_cameraController = nullptr;

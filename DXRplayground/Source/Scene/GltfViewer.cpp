@@ -27,6 +27,7 @@ GltfViewer::~GltfViewer()
     SafeDelete(m_cameraController);
     SafeDelete(m_objectCb);
     SafeDelete(m_gltfMesh);
+    SafeDelete(m_skybox);
     SafeDelete(m_tonemapper);
     SafeDelete(m_lightManager);
     SafeDelete(m_envMap);
@@ -72,6 +73,7 @@ void GltfViewer::Render(RenderContext& context)
     m_cameraData.ViewProj = TransposeMatrix(m_camera->GetViewProjection());
     XMFLOAT4 camPos = m_camera->GetPosition();
     m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
+    m_cameraData.View = TransposeMatrix(m_camera->GetView());
     m_cameraCb->UploadData(frameIndex, m_cameraData);
     m_objectCb->UploadData(frameIndex, toWorld);
     m_gltfMesh->UpdateMeshes(frameIndex);
@@ -120,6 +122,9 @@ void GltfViewer::Render(RenderContext& context)
         context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
     }
+
+    DrawSkybox(context);
+
     m_tonemapper->Render(context);
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -131,6 +136,7 @@ void GltfViewer::LoadGeometry(RenderContext& context)
     //auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
     auto path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
     m_gltfMesh = new Model(context, path);
+    m_skybox = new Model(context, path);
 }
 
 void GltfViewer::CreateRootSignature(RenderContext& context)
@@ -150,6 +156,9 @@ void GltfViewer::CreatePSOs(RenderContext& context)
 
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
     context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
+
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Skybox.hlsl");
+    context.PsoManager->CreatePso(context, m_skyboxPsoName, shaderPath, desc);
 }
 
 void GltfViewer::UpdateLights(RenderContext& context)
@@ -161,6 +170,17 @@ void GltfViewer::UpdateLights(RenderContext& context)
     ImGui::End();
 
     m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
+}
+
+void GltfViewer::DrawSkybox(RenderContext& context)
+{
+    context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_skyboxPsoName));
+    const Model::Mesh* skybox = m_skybox->GetMesh();
+    context.CommandList->IASetVertexBuffers(0, 1, &skybox->GetVertexBufferView());
+    context.CommandList->IASetIndexBuffer(&skybox->GetIndexBufferView());
+
+    context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context.CommandList->DrawIndexedInstanced(skybox->GetIndexCount(), 1, 0, 0, 0);
 }
 
 }

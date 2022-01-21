@@ -3,7 +3,9 @@
 struct CbCamera
 {
     float4x4 ViewProjection;
+    float4x4 View;
     float3 Position;
+    float Padding;
 };
 struct CbObject
 {

@@ -133,6 +133,7 @@ public:
 
     const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const;
     const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const;
+    const Mesh* GetMesh() const;
 
     const std::vector<Mesh*>& GetMeshes() const;
     void UpdateMeshes(UINT frame);
@@ -163,6 +164,11 @@ inline const D3D12_VERTEX_BUFFER_VIEW& Model::GetVertexBufferView() const
 inline const D3D12_INDEX_BUFFER_VIEW& Model::GetIndexBufferView() const
 {
     return m_meshes[0]->GetIndexBufferView();
+}
+
+inline const Model::Mesh* Model::GetMesh() const
+{
+    return m_meshes.at(0);
 }
 
 inline const std::vector<Model::Mesh*>& Model::GetMeshes() const
