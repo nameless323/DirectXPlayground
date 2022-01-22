@@ -44,7 +44,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_lightManager = new LightManager(context);
 
     auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
-    m_envMap = new EnvironmentMap(context, path, 512, 512);
+    m_envMap = new EnvironmentMap(context, path, 2048, 2048);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 
@@ -74,6 +74,7 @@ void GltfViewer::Render(RenderContext& context)
     XMFLOAT4 camPos = m_camera->GetPosition();
     m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
     m_cameraData.View = TransposeMatrix(m_camera->GetView());
+    m_cameraData.Proj = TransposeMatrix(m_camera->GetProjection());
     m_cameraCb->UploadData(frameIndex, m_cameraData);
     m_objectCb->UploadData(frameIndex, toWorld);
     m_gltfMesh->UpdateMeshes(frameIndex);
@@ -134,8 +135,9 @@ void GltfViewer::Render(RenderContext& context)
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
     //auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
-    auto path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
+    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     m_gltfMesh = new Model(context, path);
+    path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
     m_skybox = new Model(context, path);
 }
 
@@ -157,6 +159,8 @@ void GltfViewer::CreatePSOs(RenderContext& context)
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
     context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
 
+    desc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+
     shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Skybox.hlsl");
     context.PsoManager->CreatePso(context, m_skyboxPsoName, shaderPath, desc);
 }
@@ -174,6 +178,7 @@ void GltfViewer::UpdateLights(RenderContext& context)
 
 void GltfViewer::DrawSkybox(RenderContext& context)
 {
+    GPU_SCOPED_EVENT(context, "Skybox");
     context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_skyboxPsoName));
     const Model::Mesh* skybox = m_skybox->GetMesh();
     context.CommandList->IASetVertexBuffers(0, 1, &skybox->GetVertexBufferView());

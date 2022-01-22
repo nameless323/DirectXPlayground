@@ -10,6 +10,7 @@ struct CameraShaderData
 {
     XMFLOAT4X4 ViewProj;
     XMFLOAT4X4 View;
+    XMFLOAT4X4 Proj;
     XMFLOAT3 Position;
     float Padding;
 };
