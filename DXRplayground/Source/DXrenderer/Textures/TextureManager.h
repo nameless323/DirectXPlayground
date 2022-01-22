@@ -36,7 +36,7 @@ public:
     TexResourceData CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     TexResourceData CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue = nullptr, bool createSRV = true, bool allowUAV = false);
 
-    TexResourceData CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
+    TexResourceData CreateCubemap(RenderContext& ctx, UINT size, DXGI_FORMAT format, bool allowUAV = false, const byte* data = nullptr);
 
     ID3D12DescriptorHeap* GetDescriptorHeap() const;
     ID3D12DescriptorHeap* GetCubemapUAVHeap() const;

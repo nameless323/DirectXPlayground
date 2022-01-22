@@ -13,7 +13,7 @@ class UploadBuffer;
 class EnvironmentMap
 {
 public:
-    EnvironmentMap(RenderContext& ctx, const std::string& path, UINT width, UINT height);
+    EnvironmentMap(RenderContext& ctx, const std::string& path, UINT cubemapSize, UINT irradianceMapSize);
     ~EnvironmentMap();
 
     void ConvertToCubemap(RenderContext& ctx);
@@ -31,13 +31,14 @@ private:
     
     TexResourceData m_cubemapData;
     TexResourceData m_envMapData;
+    TexResourceData m_irradianceMapData;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSig;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;
     UploadBuffer* m_dataBuffer = nullptr;
     const std::string m_psoName = "CubemapConvertor_PBR";
     bool m_converted = false;
-    UINT m_cubemapHeight = 0;
-    UINT m_cubemapWidth = 0;
+    UINT m_cubemapSize = 0;
+    UINT m_irradianceMapSize = 0;
 };
 
 }

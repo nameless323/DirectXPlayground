@@ -178,7 +178,7 @@ DirectxPlayground::TexResourceData TextureManager::CreateTexture(RenderContext& 
     return res;
 }
 
-DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& ctx, UINT w, UINT h, DXGI_FORMAT format, bool allowUAV /*= false*/, const byte* data /*= nullptr*/)
+DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& ctx, UINT size, DXGI_FORMAT format, bool allowUAV /*= false*/, const byte* data /*= nullptr*/)
 {
     ResourceDX resource{ D3D12_RESOURCE_STATE_COMMON };
 
@@ -187,8 +187,8 @@ DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.MipLevels = 1;
     texDesc.Format = format;
-    texDesc.Width = w;
-    texDesc.Height = h;
+    texDesc.Width = size;
+    texDesc.Height = size;
     texDesc.Flags = resourceFlags;
     texDesc.DepthOrArraySize = 6;
     texDesc.SampleDesc.Count = 1;

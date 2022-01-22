@@ -10,9 +10,9 @@
 namespace DirectxPlayground
 {
 
-EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT width, UINT height)
-    : m_cubemapWidth(width)
-    , m_cubemapHeight(height)
+EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT cubemapSize, UINT irradianceMapSize)
+    : m_cubemapSize(cubemapSize)
+    , m_irradianceMapSize(irradianceMapSize)
 {
     CreateRootSig(ctx);
     CreateDescriptorHeap(ctx);
@@ -22,7 +22,8 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
 
     m_envMapData = ctx.TexManager->CreateTexture(ctx, path, true);
-    m_cubemapData = ctx.TexManager->CreateCubemap(ctx, m_cubemapWidth, m_cubemapHeight, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
+    m_cubemapData = ctx.TexManager->CreateCubemap(ctx, m_cubemapSize, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
+    m_irradianceMapData = ctx.TexManager->CreateCubemap(ctx, m_irradianceMapSize, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
 
     m_graphicsData.EqMapCubeMapWH.x = static_cast<float>(m_envMapData.Resource->Get()->GetDesc().Width);
     m_graphicsData.EqMapCubeMapWH.y = static_cast<float>(m_envMapData.Resource->Get()->GetDesc().Height);
@@ -88,7 +89,7 @@ void EnvironmentMap::CreateRootSig(RenderContext& ctx)
     envMap.NumDescriptors = 1;
     envMap.BaseShaderRegister = 0;
     envMap.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-    envMap.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE; // Double check perf
+    envMap.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
     envMap.RegisterSpace = 0;
     envMap.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
     params.emplace_back();
@@ -135,10 +136,14 @@ void EnvironmentMap::CreateRootSig(RenderContext& ctx)
 
 void EnvironmentMap::CreateDescriptorHeap(RenderContext& ctx)
 {
+    // 2d eqmap
+    // uav envmap target
+    // srv envmap src
+    // irradiance map target
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = 2;
+    heapDesc.NumDescriptors = 4;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&m_heap)));
     NAME_D3D12_OBJECT(m_heap, L"EnvMap heap");
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_heap->GetCPUDescriptorHandleForHeapStart());
@@ -157,6 +162,14 @@ void EnvironmentMap::CreateDescriptorHeap(RenderContext& ctx)
     D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
     viewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
     viewDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    ctx.Device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, handle);
+
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
+
+    src.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    ctx.Device->CreateShaderResourceView(nullptr, &src, handle);
+
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
 
     ctx.Device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, handle);
 }
@@ -174,7 +187,6 @@ void EnvironmentMap::CreateViews(RenderContext& ctx)
     envRtvD.Texture2D.MostDetailedMip = 0;
     envRtvD.Texture2D.ResourceMinLODClamp = 0.0f;
     ctx.Device->CreateShaderResourceView(m_envMapData.Resource->Get(), &envRtvD, handle);
-
     handle.Offset(ctx.CbvSrvUavDescriptorSize);
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {};
@@ -183,5 +195,19 @@ void EnvironmentMap::CreateViews(RenderContext& ctx)
     viewDesc.Texture2DArray.ArraySize = 6;
 
     ctx.Device->CreateUnorderedAccessView(m_cubemapData.Resource->Get(), nullptr, &viewDesc, handle);
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
+
+    D3D12_RESOURCE_DESC envCubeRDesc = m_cubemapData.Resource->Get()->GetDesc();
+    D3D12_SHADER_RESOURCE_VIEW_DESC envCubeRView{};
+    envCubeRView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    envCubeRView.Format = envCubeRDesc.Format;
+    envCubeRView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+    envCubeRView.TextureCube.MipLevels = envCubeRDesc.MipLevels;
+    envCubeRView.TextureCube.MostDetailedMip = 0;
+    envCubeRView.TextureCube.ResourceMinLODClamp = 0.0f;
+    ctx.Device->CreateShaderResourceView(m_cubemapData.Resource->Get(), &envCubeRView, handle);
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
+
+    ctx.Device->CreateUnorderedAccessView(m_irradianceMapData.Resource->Get(), nullptr, &viewDesc, handle);
 };
 }
