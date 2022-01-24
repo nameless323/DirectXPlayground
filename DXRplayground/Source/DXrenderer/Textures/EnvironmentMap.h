@@ -24,10 +24,15 @@ private:
     {
         DirectX::XMFLOAT4 EqMapCubeMapWH{};
     } m_graphicsData;
+    struct
+    {
+        float size;
+    } m_convolutionData;
 
     void CreateRootSig(RenderContext& ctx);
     void CreateDescriptorHeap(RenderContext& ctx);
     void CreateViews(RenderContext& ctx);
+    void Convolute(RenderContext& ctx);
     
     TexResourceData m_cubemapData;
     TexResourceData m_envMapData;
@@ -35,6 +40,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSig;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;
     UploadBuffer* m_dataBuffer = nullptr;
+    UploadBuffer* m_convolutionDataBuffer = nullptr;
     const std::string m_psoName = "CubemapConvertor_PBR";
     bool m_converted = false;
     UINT m_cubemapSize = 0;

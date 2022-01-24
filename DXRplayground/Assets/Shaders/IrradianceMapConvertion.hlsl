@@ -11,7 +11,7 @@ ConstantBuffer<Data> data : register(b0);
 
 float3 RemapToXYZ(uint3 tId)
 {
-    float2 coord = tId.xy / float(data.size);
+    float2 coord = tId.xy / data.size;
     coord = coord * 0.5f - 0.5f;
     if (face == 0) // right
         res = float3(-0.5f, coord);
@@ -32,4 +32,5 @@ float3 RemapToXYZ(uint3 tId)
 void cs(uint3 tId : SV_DispatchThreadID)
 {
     float3 N = normalize(RemapToXYZ(tId));
+    irrMap[tId] = envMap.SampleLevel(LinearClampSampler, N, 0);
 }
