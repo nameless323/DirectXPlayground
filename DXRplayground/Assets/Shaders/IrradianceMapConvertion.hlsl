@@ -12,19 +12,22 @@ ConstantBuffer<Data> data : register(b0);
 float3 RemapToXYZ(uint3 tId)
 {
     float2 coord = tId.xy / data.size;
-    coord = coord * 0.5f - 0.5f;
-    if (face == 0) // right
-        res = float3(-0.5f, coord);
-    else if (face == 1) // left
-        res = float3(0.5, coord);
-    else if (face == 2) // top
-        res = float3(coord.x, 0.5f, coord.y);
-    else if (face == 3) // bottom
-        res = float3(coord.x, -0.5f, coord.y);
-    else if (face == 4) // back
-        res = float3(coord, -0.5f);
-    else // fwd
-        res = float3(coord, 0.5);
+    uint face = uint(tId.z);
+    coord = coord * 2.0f - 1.0f;
+
+    float3 res;
+    if (face == 0)
+        res = float3(1.0f, coord.yx);
+    else if (face == 1)
+        res = float3(-1.0f, coord.yx);
+    else if (face == 2)
+        res = float3(coord.x, -1.0f, coord.y);
+    else if (face == 3)
+        res = float3(coord.x, 1.0f, -coord.y);
+    else if (face == 4)
+        res = float3(coord.xy, 1.0f);
+    else
+        res = float3(coord.xy, -1.0f);
     return res;
 }
 
@@ -32,5 +35,7 @@ float3 RemapToXYZ(uint3 tId)
 void cs(uint3 tId : SV_DispatchThreadID)
 {
     float3 N = normalize(RemapToXYZ(tId));
+    N.y *= -1.0f;
     irrMap[tId] = envMap.SampleLevel(LinearClampSampler, N, 0);
+    //irrMap[tId] = float4(N, 1);
 }

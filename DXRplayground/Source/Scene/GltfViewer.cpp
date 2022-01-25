@@ -44,7 +44,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_lightManager = new LightManager(context);
 
     auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
-    m_envMap = new EnvironmentMap(context, path, 2048, 2048);
+    m_envMap = new EnvironmentMap(context, path, 2048, 1024);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 
@@ -63,6 +63,7 @@ void GltfViewer::InitResources(RenderContext& context)
 void GltfViewer::Render(RenderContext& context)
 {
     GPU_SCOPED_EVENT(context, "Render frame");
+    m_envMap->ConvertToCubemap(context);
     m_cameraController->Update();
     UpdateLights(context);
 
@@ -134,8 +135,8 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    //auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
-    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
+    //auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     m_gltfMesh = new Model(context, path);
     path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
     m_skybox = new Model(context, path);

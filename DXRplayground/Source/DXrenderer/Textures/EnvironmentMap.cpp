@@ -21,6 +21,9 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//EnvMapConvertion.hlsl");
     ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
 
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//IrradianceMapConvertion.hlsl");
+    ctx.PsoManager->CreatePso(ctx, m_convolutionPsoName, shaderPath, desc);
+
     m_envMapData = ctx.TexManager->CreateTexture(ctx, path, true);
     m_envMapData.Resource->SetName(L"EnvEquirectMap");
     m_cubemapData = ctx.TexManager->CreateCubemap(ctx, m_cubemapSize, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
@@ -229,6 +232,7 @@ void EnvironmentMap::CreateViews(RenderContext& ctx)
 void EnvironmentMap::Convolute(RenderContext& ctx)
 {
     GPU_SCOPED_EVENT(ctx, "Convolution");
+    ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(m_convolutionPsoName));
     ctx.CommandList->SetComputeRootConstantBufferView(0, m_convolutionDataBuffer->GetFrameDataGpuAddress(0));
     CD3DX12_GPU_DESCRIPTOR_HANDLE tableHandle(m_heap->GetGPUDescriptorHandleForHeapStart());
     tableHandle.Offset(ctx.CbvSrvUavDescriptorSize * 2);

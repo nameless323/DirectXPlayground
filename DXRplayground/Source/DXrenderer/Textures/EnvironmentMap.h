@@ -42,6 +42,7 @@ private:
     UploadBuffer* m_dataBuffer = nullptr;
     UploadBuffer* m_convolutionDataBuffer = nullptr;
     const std::string m_psoName = "CubemapConvertor_PBR";
+    const std::string m_convolutionPsoName = "CubemapConvolution_PBR";
     bool m_converted = false;
     UINT m_cubemapSize = 0;
     UINT m_irradianceMapSize = 0;
