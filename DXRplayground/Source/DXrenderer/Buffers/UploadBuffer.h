@@ -32,18 +32,18 @@ public:
 
     void Unmap()
     {
-        if (m_resource.Get() != nullptr)
-            m_resource.Get()->Unmap(0, nullptr);
+        if (mResource.Get() != nullptr)
+            mResource.Get()->Unmap(0, nullptr);
     }
 
 private:
-    bool m_isConstantBuffer = false;
-    size_t m_frameDataSize = 0;
-    size_t m_rawDataSize = 0;
-    size_t m_bufferSize = 0;
-    UINT m_framesCount = 0;
-    ResourceDX m_resource{ D3D12_RESOURCE_STATE_GENERIC_READ };
-    byte* m_data = nullptr;
+    bool mIsConstantBuffer = false;
+    size_t mFrameDataSize = 0;
+    size_t mRawDataSize = 0;
+    size_t mBufferSize = 0;
+    UINT mFramesCount = 0;
+    ResourceDX mResource{ D3D12_RESOURCE_STATE_GENERIC_READ };
+    byte* mData = nullptr;
 
     static constexpr UINT GetConstantBufferByteSize(UINT byteSize);
 };
@@ -51,23 +51,23 @@ private:
 template <typename T>
 void UploadBuffer::UploadData(UINT frameIndex, T& data)
 {
-    assert(frameIndex < m_framesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
+    assert(frameIndex < mFramesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
     UploadData(frameIndex, reinterpret_cast<byte*>(&data));
 }
 
 inline void UploadBuffer::SetName(const std::wstring& name)
 {
-    SetDXobjectName(m_resource.Get(), name.c_str());
+    SetDXobjectName(mResource.Get(), name.c_str());
 }
 
 inline size_t UploadBuffer::GetFrameDataSize() const
 {
-    return m_frameDataSize;
+    return mFrameDataSize;
 }
 
 inline size_t UploadBuffer::GetBufferSize() const
 {
-    return m_bufferSize;
+    return mBufferSize;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -94,41 +94,41 @@ public:
     D3D12_GPU_VIRTUAL_ADDRESS GetGpuAddress() const;
 
 private:
-    UINT m_bufferSize = 0;
-    byte* m_data = nullptr;
+    UINT mBufferSize = 0;
+    byte* mData = nullptr;
 
-    ResourceDX m_buffer;
-    ResourceDX m_uploadBuffer{ D3D12_RESOURCE_STATE_GENERIC_READ };
-    byte* m_mappedData = nullptr;
+    ResourceDX mBuffer;
+    ResourceDX mUploadBuffer{ D3D12_RESOURCE_STATE_GENERIC_READ };
+    byte* mMappedData = nullptr;
 
-    bool m_isStaging = false;
+    bool mIsStaging = false;
 };
 
 template <typename T>
 void UnorderedAccessBuffer::UploadData(T& data)
 {
-    assert(sizof(T) == m_bufferSize);
+    assert(sizof(T) == mBufferSize);
     UploadData(reinterpret_cast<byte*>(&data));
 }
 
 inline ID3D12Resource* UnorderedAccessBuffer::GetResource() const
 {
-    return m_buffer.Get();
+    return mBuffer.Get();
 }
 
 inline void UnorderedAccessBuffer::UploadData(const byte* data)
 {
-    assert(m_isStaging && "The buffer isn't staging.");
-    memcpy(m_mappedData, data, m_bufferSize);
+    assert(mIsStaging && "The buffer isn't staging.");
+    memcpy(mMappedData, data, mBufferSize);
 }
 
 inline D3D12_GPU_VIRTUAL_ADDRESS UnorderedAccessBuffer::GetGpuAddress() const
 {
-    return m_buffer.Get()->GetGPUVirtualAddress();
+    return mBuffer.Get()->GetGPUVirtualAddress();
 }
 
 inline void UnorderedAccessBuffer::SetName(const std::wstring& name)
 {
-    m_buffer.SetName(name.c_str());
+    mBuffer.SetName(name.c_str());
 }
 }
