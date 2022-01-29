@@ -34,54 +34,54 @@ public:
     DXGI_FORMAT GetDepthStencilFormat() const;
 
 private:
-    const DXGI_FORMAT m_backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-    const DXGI_FORMAT m_depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    const DXGI_FORMAT mBackBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    const DXGI_FORMAT mDepthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-    UINT m_width = -1;
-    UINT m_height = -1;
-    UINT m_currentFrameIndex = 0;
+    UINT mWidth = -1;
+    UINT mHeight = -1;
+    UINT mCurrentFrameIndex = 0;
 
-    bool m_isSwapChainChainInFullScreen = false;
-    bool m_isTearingSupported = false;
+    bool mIsSwapChainChainInFullScreen = false;
+    bool mIsTearingSupported = false;
 
-    Microsoft::WRL::ComPtr<IDXGISwapChain4> m_swapChain;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
+    Microsoft::WRL::ComPtr<IDXGISwapChain4> mSwapChain;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvHeap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mDsvHeap;
 
-    ResourceDX m_dsResource;
-    ResourceDX m_backBufferResources[RenderContext::FramesCount];
+    ResourceDX mDsResource;
+    ResourceDX mBackBufferResources[RenderContext::FramesCount];
 };
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE Swapchain::GetCurrentBackBufferCPUhandle(const RenderContext& state) const
 {
-    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
     handle.Offset(GetCurrentBackBufferIndex() * state.RtvDescriptorSize);
     return handle;
 }
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE Swapchain::GetDSCPUhandle() const
 {
-    return m_dsvHeap->GetCPUDescriptorHandleForHeapStart();
+    return mDsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
 inline UINT Swapchain::GetCurrentBackBufferIndex() const
 {
-    return m_swapChain->GetCurrentBackBufferIndex();
+    return mSwapChain->GetCurrentBackBufferIndex();
 }
 
 inline ID3D12Resource* Swapchain::GetCurrentBackBuffer() const
 {
-    return m_backBufferResources[GetCurrentBackBufferIndex()].Get();
+    return mBackBufferResources[GetCurrentBackBufferIndex()].Get();
 }
 
 inline DXGI_FORMAT Swapchain::GetBackBufferFormat() const
 {
-    return m_backBufferFormat;
+    return mBackBufferFormat;
 }
 
 inline DXGI_FORMAT Swapchain::GetDepthStencilFormat() const
 {
-    return m_depthStencilFormat;
+    return mDepthStencilFormat;
 }
 
 }

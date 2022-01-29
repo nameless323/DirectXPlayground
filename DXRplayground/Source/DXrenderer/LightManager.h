@@ -32,34 +32,34 @@ private:
     {
         Light Lights[MaxLightsCount] = {};
         UINT UsedLights = 0;
-    } m_lights;
-    UploadBuffer* m_lightsBuffer = nullptr;
+    } mLights;
+    UploadBuffer* mLightsBuffer = nullptr;
 };
 
 inline D3D12_GPU_VIRTUAL_ADDRESS LightManager::GetLightsBufferGpuAddress(UINT frame) const
 {
-    return m_lightsBuffer->GetFrameDataGpuAddress(frame);
+    return mLightsBuffer->GetFrameDataGpuAddress(frame);
 }
 
 inline UINT LightManager::AddLight(const Light& light)
 {
-    m_lights.Lights[m_lights.UsedLights] = light;
-    return m_lights.UsedLights++;
+    mLights.Lights[mLights.UsedLights] = light;
+    return mLights.UsedLights++;
 }
 
 inline Light& LightManager::GetLightRef(UINT ind)
 {
-    return m_lights.Lights[ind];
+    return mLights.Lights[ind];
 }
 
 inline void LightManager::SetLight(UINT ind, const Light& light)
 {
-    m_lights.Lights[ind] = light;
+    mLights.Lights[ind] = light;
 }
 
 
 inline Light* LightManager::GetLights()
 {
-    return m_lights.Lights;
+    return mLights.Lights;
 }
 }

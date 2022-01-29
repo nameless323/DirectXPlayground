@@ -33,29 +33,29 @@ private:
     void CreateGeometry(RenderContext& context);
     void CreatePSO(RenderContext& ctx, ID3D12RootSignature* rootSig);
 
-    std::string m_psoName = "Tonemapper";
-    Model* m_model = nullptr;
-    TonemapperData m_tonemapperData{};
-    UINT m_rtvOffset = 0;
-    UINT m_resourceIdx = 0;
-    DXGI_FORMAT m_rtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-    UploadBuffer* m_hdrRtBuffer = nullptr;
+    std::string mPsoName = "Tonemapper";
+    Model* mModel = nullptr;
+    TonemapperData mTonemapperData{};
+    UINT mRtvOffset = 0;
+    UINT mResourceIdx = 0;
+    DXGI_FORMAT mRtFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    UploadBuffer* mHdrRtBuffer = nullptr;
 
-    const float m_clearColor[4] = { 0.001f, 0.001f, 0.001f, 1.0f };
+    const float mClearColor[4] = { 0.001f, 0.001f, 0.001f, 1.0f };
 };
 
 inline DXGI_FORMAT Tonemapper::GetHDRTargetFormat() const
 {
-    return m_rtFormat;
+    return mRtFormat;
 }
 
 inline UINT Tonemapper::GetRtIndex() const
 {
-    return m_rtvOffset;
+    return mRtvOffset;
 }
 
 inline const float* Tonemapper::GetClearColor() const
 {
-    return m_clearColor;
+    return mClearColor;
 }
 }

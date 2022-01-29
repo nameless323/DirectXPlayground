@@ -44,7 +44,7 @@ void GltfViewer::InitResources(RenderContext& context)
     m_lightManager = new LightManager(context);
 
     auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
-    m_envMap = new EnvironmentMap(context, path, 2048, 1024);
+    m_envMap = new EnvironmentMap(context, path, 2048, 256);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
     m_directionalLightInd = m_lightManager->AddLight(l);
 

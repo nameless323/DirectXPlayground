@@ -52,30 +52,30 @@ private:
     void ShutdownImGui();
     void IncrementAllocatorIndex();
 
-    bool m_isTearingSupported = false;
+    bool mIsTearingSupported = false;
 
-    RenderContext m_context;
+    RenderContext mContext;
 
-    Swapchain m_swapChain;
-    TextureManager* m_textureManager = nullptr;
-    PsoManager* m_psoManager = nullptr;
+    Swapchain mSwapChain;
+    TextureManager* mTextureManager = nullptr;
+    PsoManager* mPsoManager = nullptr;
 
-    ImguiTextureManager* m_imguiTextureManager = nullptr;
+    ImguiTextureManager* mImguiTextureManager = nullptr;
 
-    Microsoft::WRL::ComPtr<IDXGIFactory7> m_factory;
-    Microsoft::WRL::ComPtr<ID3D12Device5> m_device;
-    Microsoft::WRL::ComPtr<ID3D12CommandQueue> m_commandQueue;
+    Microsoft::WRL::ComPtr<IDXGIFactory7> mFactory;
+    Microsoft::WRL::ComPtr<ID3D12Device5> mDevice;
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue;
 
-    Microsoft::WRL::ComPtr<ID3D12Fence> m_fence;
-    std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, RenderContext::AllocatorsCount> m_commandAllocators;
-    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> m_commandList;
-    UINT64 m_fenceValues[RenderContext::FramesCount]{};
-    UINT64 m_currentFence = 0;
-    UINT64 m_currentAllocatorIdx = 0; // TODO: recheck allocators
+    Microsoft::WRL::ComPtr<ID3D12Fence> mFence;
+    std::array<Microsoft::WRL::ComPtr<ID3D12CommandAllocator>, RenderContext::AllocatorsCount> mCommandAllocators;
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList5> mCommandList;
+    UINT64 mFenceValues[RenderContext::FramesCount]{};
+    UINT64 mCurrentFence = 0;
+    UINT64 mCurrentAllocatorIdx = 0; // TODO: recheck allocators
 };
 
 inline void RenderPipeline::IncrementAllocatorIndex()
 {
-    m_currentAllocatorIdx = (m_currentAllocatorIdx + 1) % RenderContext::AllocatorsCount;
+    mCurrentAllocatorIdx = (mCurrentAllocatorIdx + 1) % RenderContext::AllocatorsCount;
 }
 }

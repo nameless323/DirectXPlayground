@@ -49,7 +49,7 @@ bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry
 
 HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHADER_MACRO* defines, ID3DInclude* includes, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags)
 {
-    shader.m_compiled = false;
+    shader.mCompiled = false;
 
     Microsoft::WRL::ComPtr<IDxcBlobEncoding> sourceBlob;
     HRESULT hr{};
@@ -91,10 +91,10 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
         return hr;
     }
 
-    result->GetResult(&shader.m_shaderBlob);
-    shader.m_compiled = true;
-    shader.m_bytecode.BytecodeLength = shader.m_shaderBlob->GetBufferSize();
-    shader.m_bytecode.pShaderBytecode = shader.m_shaderBlob->GetBufferPointer();
+    result->GetResult(&shader.mShaderBlob);
+    shader.mCompiled = true;
+    shader.mBytecode.BytecodeLength = shader.mShaderBlob->GetBufferSize();
+    shader.mBytecode.pShaderBytecode = shader.mShaderBlob->GetBufferPointer();
 
     return hr;
 }

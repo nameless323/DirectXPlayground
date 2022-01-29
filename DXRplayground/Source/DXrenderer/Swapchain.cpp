@@ -9,7 +9,7 @@ using Microsoft::WRL::ComPtr;
 void Swapchain::Init(bool isTearingSupported, HWND hwnd, const RenderContext& ctx,
     IDXGIFactory7* factory, ID3D12Device* device, ID3D12CommandQueue* commandQueue)
 {
-    m_isTearingSupported = isTearingSupported;
+    mIsTearingSupported = isTearingSupported;
     DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
     swapChainDesc.BufferCount = RenderContext::FramesCount;
     swapChainDesc.Width = ctx.Width;
@@ -19,54 +19,54 @@ void Swapchain::Init(bool isTearingSupported, HWND hwnd, const RenderContext& ct
     swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     swapChainDesc.SampleDesc.Count = 1;
 
-    swapChainDesc.Flags = m_isTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+    swapChainDesc.Flags = mIsTearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
     ComPtr<IDXGISwapChain1> swapChain;
     factory->CreateSwapChainForHwnd(commandQueue, hwnd, &swapChainDesc, nullptr, nullptr, &swapChain);
 
-    if (m_isTearingSupported)
+    if (mIsTearingSupported)
         factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
-    ThrowIfFailed(swapChain.As(&m_swapChain));
+    ThrowIfFailed(swapChain.As(&mSwapChain));
 
     D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
     rtvHeapDesc.NumDescriptors = RenderContext::FramesCount;
     rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 
-    ThrowIfFailed(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_rtvHeap)));
+    ThrowIfFailed(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&mRtvHeap)));
 
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
     dsvHeapDesc.NumDescriptors = 1;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 
-    ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&m_dsvHeap)));
+    ThrowIfFailed(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&mDsvHeap)));
 }
 
 
 void Swapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandList, const RenderContext& ctx)
 {
-    m_currentFrameIndex = 0;
+    mCurrentFrameIndex = 0;
 
-    m_dsResource.GetWrlPtr().Reset();
-    m_dsResource.SetInitialState(D3D12_RESOURCE_STATE_COMMON);
-    for (auto& backBufferRes : m_backBufferResources)
+    mDsResource.GetWrlPtr().Reset();
+    mDsResource.SetInitialState(D3D12_RESOURCE_STATE_COMMON);
+    for (auto& backBufferRes : mBackBufferResources)
         backBufferRes.GetWrlPtr().Reset();
 
     UINT flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-    if (m_isTearingSupported)
+    if (mIsTearingSupported)
         flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-    ThrowIfFailed(m_swapChain->ResizeBuffers(RenderContext::FramesCount, ctx.Width, ctx.Height, m_backBufferFormat, flags));
+    ThrowIfFailed(mSwapChain->ResizeBuffers(RenderContext::FramesCount, ctx.Width, ctx.Height, mBackBufferFormat, flags));
 
     BOOL fullscreenState;
-    ThrowIfFailed(m_swapChain->GetFullscreenState(&fullscreenState, nullptr));
-    m_isSwapChainChainInFullScreen = fullscreenState;
+    ThrowIfFailed(mSwapChain->GetFullscreenState(&fullscreenState, nullptr));
+    mIsSwapChainChainInFullScreen = fullscreenState;
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
     for (UINT i = 0; i < RenderContext::FramesCount; ++i)
     {
-        ThrowIfFailed(m_swapChain->GetBuffer(i, IID_PPV_ARGS(m_backBufferResources[i].GetAddressOf())));
-        device->CreateRenderTargetView(m_backBufferResources[i].Get(), nullptr, rtvHandle);
+        ThrowIfFailed(mSwapChain->GetBuffer(i, IID_PPV_ARGS(mBackBufferResources[i].GetAddressOf())));
+        device->CreateRenderTargetView(mBackBufferResources[i].Get(), nullptr, rtvHandle);
         rtvHandle.Offset(ctx.RtvDescriptorSize);
     }
 
@@ -93,7 +93,7 @@ void Swapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandL
         &depthStencilDesc,
         D3D12_RESOURCE_STATE_COMMON,
         &dsClear,
-        IID_PPV_ARGS(m_dsResource.GetAddressOf())));
+        IID_PPV_ARGS(mDsResource.GetAddressOf())));
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesc = {};
     dsViewDesc.Flags = D3D12_DSV_FLAG_NONE;
@@ -101,20 +101,20 @@ void Swapchain::Resize(ID3D12Device* device, ID3D12GraphicsCommandList* commandL
     dsViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
     dsViewDesc.Texture2D.MipSlice = 0;
 
-    device->CreateDepthStencilView(m_dsResource.Get(), &dsViewDesc, m_dsvHeap->GetCPUDescriptorHandleForHeapStart());
+    device->CreateDepthStencilView(mDsResource.Get(), &dsViewDesc, mDsvHeap->GetCPUDescriptorHandleForHeapStart());
 
-    m_dsResource.Transition(commandList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
+    mDsResource.Transition(commandList, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 }
 
 void Swapchain::Present()
 {
-    UINT presentFlags = (m_isTearingSupported && !m_isSwapChainChainInFullScreen) ? DXGI_PRESENT_ALLOW_TEARING : 0;
-    ThrowIfFailed(m_swapChain->Present(0, presentFlags));
+    UINT presentFlags = (mIsTearingSupported && !mIsSwapChainChainInFullScreen) ? DXGI_PRESENT_ALLOW_TEARING : 0;
+    ThrowIfFailed(mSwapChain->Present(0, presentFlags));
 }
 
 void Swapchain::ProceedToNextFrame()
 {
-    m_currentFrameIndex = (m_currentFrameIndex + 1) % RenderContext::FramesCount;
+    mCurrentFrameIndex = (mCurrentFrameIndex + 1) % RenderContext::FramesCount;
 }
 
 }

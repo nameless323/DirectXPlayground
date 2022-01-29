@@ -56,73 +56,73 @@ public:
         Mesh() = default;
         ~Mesh()
         {
-            SafeDelete(m_indexBuffer);
-            SafeDelete(m_vertexBuffer);
-            SafeDelete(m_materialBuffer);
+            SafeDelete(mIndexBuffer);
+            SafeDelete(mVertexBuffer);
+            SafeDelete(mMaterialBuffer);
         }
 
         UINT GetIndexCount() const
         {
-            return UINT(m_indices.size());
+            return UINT(mIndices.size());
         }
         UINT GetVertexCount() const
         {
-            return UINT(m_vertices.size());
+            return UINT(mVertices.size());
         }
 
         const D3D12_VERTEX_BUFFER_VIEW& GetVertexBufferView() const
         {
-            return m_vertexBuffer->GetVertexBufferView();
+            return mVertexBuffer->GetVertexBufferView();
         }
 
         const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const
         {
-            return m_indexBuffer->GetIndexBufferView();
+            return mIndexBuffer->GetIndexBufferView();
         }
 
         D3D12_GPU_VIRTUAL_ADDRESS GetVertexBufferGpuAddress() const
         {
-            return m_vertexBuffer->GetVertexBuffer()->GetGPUVirtualAddress();
+            return mVertexBuffer->GetVertexBuffer()->GetGPUVirtualAddress();
         }
 
         D3D12_GPU_VIRTUAL_ADDRESS GetIndexBufferGpuAddress() const
         {
-            return m_indexBuffer->GetIndexBuffer()->GetGPUVirtualAddress();
+            return mIndexBuffer->GetIndexBuffer()->GetGPUVirtualAddress();
         }
 
         D3D12_GPU_VIRTUAL_ADDRESS GetMaterialBufferGpuAddress(UINT frame) const
         {
-            return m_materialBuffer->GetFrameDataGpuAddress(frame);
+            return mMaterialBuffer->GetFrameDataGpuAddress(frame);
         }
 
         ID3D12Resource* GetIndexBufferResource() const
         {
-            return m_indexBuffer->GetIndexBuffer();
+            return mIndexBuffer->GetIndexBuffer();
         }
 
         ID3D12Resource* GetVertexBufferResource() const
         {
-            return m_vertexBuffer->GetVertexBuffer();
+            return mVertexBuffer->GetVertexBuffer();
         }
 
         void UpdateMaterialBuffer(UINT frame)
         {
-            m_materialBuffer->UploadData(frame, m_material);
+            mMaterialBuffer->UploadData(frame, mMaterial);
         }
 
     private:
         friend class Model;
 
-        UINT m_indexCount = 0;
-        Material m_material{};
+        UINT mIndexCount = 0;
+        Material mMaterial{};
 
-        std::vector<Vertex> m_vertices;
-        std::vector<UINT> m_indices;
+        std::vector<Vertex> mVertices;
+        std::vector<UINT> mIndices;
 
-        VertexBuffer* m_vertexBuffer = nullptr;
-        IndexBuffer* m_indexBuffer = nullptr;
+        VertexBuffer* mVertexBuffer = nullptr;
+        IndexBuffer* mIndexBuffer = nullptr;
 
-        UploadBuffer* m_materialBuffer = nullptr;
+        UploadBuffer* mMaterialBuffer = nullptr;
     };
 
     Model(RenderContext& ctx, const std::string& path);
@@ -145,34 +145,34 @@ private:
     void ParseVertices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Primitive& primitive);
     void ParseIndices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
 
-    std::vector<Mesh*> m_meshes;
-    std::vector<Image> m_images;
-    std::vector<int> m_textures;
-    std::vector<Material> m_materials;
+    std::vector<Mesh*> mMeshes;
+    std::vector<Image> mImages;
+    std::vector<int> mTextures;
+    std::vector<Material> mMaterials;
 };
 
 inline UINT Model::GetIndexCount() const
 {
-    return m_meshes[0]->GetIndexCount();
+    return mMeshes[0]->GetIndexCount();
 }
 
 inline const D3D12_VERTEX_BUFFER_VIEW& Model::GetVertexBufferView() const
 {
-    return m_meshes[0]->GetVertexBufferView();
+    return mMeshes[0]->GetVertexBufferView();
 }
 
 inline const D3D12_INDEX_BUFFER_VIEW& Model::GetIndexBufferView() const
 {
-    return m_meshes[0]->GetIndexBufferView();
+    return mMeshes[0]->GetIndexBufferView();
 }
 
 inline const Model::Mesh* Model::GetMesh() const
 {
-    return m_meshes.at(0);
+    return mMeshes.at(0);
 }
 
 inline const std::vector<Model::Mesh*>& Model::GetMeshes() const
 {
-    return m_meshes;
+    return mMeshes;
 }
 }

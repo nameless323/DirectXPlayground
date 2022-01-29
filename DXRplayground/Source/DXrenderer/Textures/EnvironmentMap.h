@@ -23,29 +23,29 @@ private:
     struct
     {
         DirectX::XMFLOAT4 EqMapCubeMapWH{};
-    } m_graphicsData;
+    } mGraphicsData;
     struct
     {
         float size;
-    } m_convolutionData;
+    } mConvolutionData;
 
     void CreateRootSig(RenderContext& ctx);
     void CreateDescriptorHeap(RenderContext& ctx);
     void CreateViews(RenderContext& ctx);
     void Convolute(RenderContext& ctx);
     
-    TexResourceData m_cubemapData;
-    TexResourceData m_envMapData;
-    TexResourceData m_irradianceMapData;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rootSig;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_heap;
-    UploadBuffer* m_dataBuffer = nullptr;
-    UploadBuffer* m_convolutionDataBuffer = nullptr;
-    const std::string m_psoName = "CubemapConvertor_PBR";
-    const std::string m_convolutionPsoName = "CubemapConvolution_PBR";
-    bool m_converted = false;
-    UINT m_cubemapSize = 0;
-    UINT m_irradianceMapSize = 0;
+    TexResourceData mCubemapData;
+    TexResourceData mEnvMapData;
+    TexResourceData mIrradianceMapData;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> mRootSig;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mHeap;
+    UploadBuffer* mDataBuffer = nullptr;
+    UploadBuffer* mConvolutionDataBuffer = nullptr;
+    const std::string mPsoName = "CubemapConvertor_PBR";
+    const std::string mConvolutionPsoName = "CubemapConvolution_PBR";
+    bool mConverted = false;
+    UINT mCubemapSize = 0;
+    UINT mIrradianceMapSize = 0;
 };
 
 }

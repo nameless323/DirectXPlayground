@@ -39,47 +39,47 @@ public:
     static UINT64 GetMaxScratchSize(std::vector<AccelerationStructure*> structs);
 
 protected:
-    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO m_prebuildInfo = {};
-    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC m_buildDesc = {};
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO mPrebuildInfo = {};
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC mBuildDesc = {};
 
-    UnorderedAccessBuffer* m_buffer = nullptr;
+    UnorderedAccessBuffer* mBuffer = nullptr;
 
-    bool m_isPrebuilt = false;
-    bool m_isBuilt = false;
+    bool mIsPrebuilt = false;
+    bool mIsBuilt = false;
 };
 
 inline UnorderedAccessBuffer* AccelerationStructure::GetBuffer() const
 {
-    return m_buffer;
+    return mBuffer;
 }
 
 inline UINT64 AccelerationStructure::GetResultMaxSize() const
 {
-    assert(m_isPrebuilt);
-    return m_prebuildInfo.ResultDataMaxSizeInBytes;
+    assert(mIsPrebuilt);
+    return mPrebuildInfo.ResultDataMaxSizeInBytes;
 }
 
 inline UINT64 AccelerationStructure::GetScratchSize() const
 {
-    assert(m_isPrebuilt);
-    return m_prebuildInfo.ScratchDataSizeInBytes;
+    assert(mIsPrebuilt);
+    return mPrebuildInfo.ScratchDataSizeInBytes;
 }
 
 inline UINT64 AccelerationStructure::UpdateScratchSize(AccelerationStructure& other)
 {
-    assert(m_isPrebuilt);
-    assert(other.m_isPrebuilt);
+    assert(mIsPrebuilt);
+    assert(other.mIsPrebuilt);
     return std::max(other.GetScratchSize(), GetScratchSize());
 }
 
 inline void AccelerationStructure::SetName(const std::wstring& name)
 {
-    m_buffer->SetName(name);
+    mBuffer->SetName(name);
 }
 
 inline D3D12_GPU_VIRTUAL_ADDRESS AccelerationStructure::GetGpuAddress() const
 {
-    return m_buffer->GetGpuAddress();
+    return mBuffer->GetGpuAddress();
 }
 
 //////////////////////////////////////////////////////////////////////////

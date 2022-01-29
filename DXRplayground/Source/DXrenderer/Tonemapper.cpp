@@ -15,14 +15,14 @@ namespace DirectxPlayground
 
 Tonemapper::~Tonemapper()
 {
-    SafeDelete(m_model);
-    SafeDelete(m_hdrRtBuffer);
+    SafeDelete(mModel);
+    SafeDelete(mHdrRtBuffer);
 }
 
 void Tonemapper::InitResources(RenderContext& ctx, ID3D12RootSignature* rootSig)
 {
     CreateRenderTarget(ctx);
-    m_hdrRtBuffer = new UploadBuffer(*ctx.Device, sizeof(TonemapperData), true, RenderContext::FramesCount);
+    mHdrRtBuffer = new UploadBuffer(*ctx.Device, sizeof(TonemapperData), true, RenderContext::FramesCount);
     CreateGeometry(ctx);
     CreatePSO(ctx, rootSig);
 }
@@ -30,13 +30,13 @@ void Tonemapper::InitResources(RenderContext& ctx, ID3D12RootSignature* rootSig)
 void Tonemapper::Render(RenderContext& ctx)
 {
     ImGui::Begin("Tonemapping");
-    ImGui::SliderFloat("Exposure", &m_tonemapperData.Exposure, 0.0f, 10.0f);
+    ImGui::SliderFloat("Exposure", &mTonemapperData.Exposure, 0.0f, 10.0f);
     ImGui::End();
 
     UINT frameIndex = ctx.SwapChain->GetCurrentBackBufferIndex();
-    m_hdrRtBuffer->UploadData(frameIndex, m_tonemapperData);
+    mHdrRtBuffer->UploadData(frameIndex, mTonemapperData);
 
-    ID3D12Resource* hdrTex = ctx.TexManager->GetResource(m_resourceIdx);
+    ID3D12Resource* hdrTex = ctx.TexManager->GetResource(mResourceIdx);
     auto toPSResource = CD3DX12_RESOURCE_BARRIER::Transition(hdrTex, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
     ctx.CommandList->ResourceBarrier(1, &toPSResource);
 
@@ -54,14 +54,14 @@ void Tonemapper::Render(RenderContext& ctx)
 
     ctx.CommandList->OMSetRenderTargets(1, &ctx.SwapChain->GetCurrentBackBufferCPUhandle(ctx), false, nullptr);
 
-    ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(m_psoName));
-    ctx.CommandList->SetGraphicsRootConstantBufferView(0, m_hdrRtBuffer->GetFrameDataGpuAddress(frameIndex));
+    ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(mPsoName));
+    ctx.CommandList->SetGraphicsRootConstantBufferView(0, mHdrRtBuffer->GetFrameDataGpuAddress(frameIndex));
 
-    ctx.CommandList->IASetVertexBuffers(0, 1, &m_model->GetVertexBufferView());
-    ctx.CommandList->IASetIndexBuffer(&m_model->GetIndexBufferView());
+    ctx.CommandList->IASetVertexBuffers(0, 1, &mModel->GetVertexBufferView());
+    ctx.CommandList->IASetIndexBuffer(&mModel->GetIndexBufferView());
 
     ctx.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    ctx.CommandList->DrawIndexedInstanced(m_model->GetIndexCount(), 1, 0, 0, 0);
+    ctx.CommandList->DrawIndexedInstanced(mModel->GetIndexCount(), 1, 0, 0, 0);
 
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(hdrTex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
     ctx.CommandList->ResourceBarrier(1, &toRt);
@@ -71,7 +71,7 @@ void Tonemapper::CreateRenderTarget(RenderContext& ctx)
 {
     D3D12_RESOURCE_DESC desc{};
     desc.MipLevels = 1;
-    desc.Format = m_rtFormat;
+    desc.Format = mRtFormat;
     desc.Width = ctx.Width;
     desc.Height = ctx.Height;
     desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
@@ -81,16 +81,16 @@ void Tonemapper::CreateRenderTarget(RenderContext& ctx)
     desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
     D3D12_CLEAR_VALUE clearValue{};
-    clearValue.Color[0] = m_clearColor[0];
-    clearValue.Color[1] = m_clearColor[1];
-    clearValue.Color[2] = m_clearColor[2];
-    clearValue.Color[3] = m_clearColor[3];
-    clearValue.Format = m_rtFormat;
+    clearValue.Color[0] = mClearColor[0];
+    clearValue.Color[1] = mClearColor[1];
+    clearValue.Color[2] = mClearColor[2];
+    clearValue.Color[3] = mClearColor[3];
+    clearValue.Format = mRtFormat;
 
     TexResourceData p = ctx.TexManager->CreateRT(ctx, desc, L"HDRTexture", &clearValue);
-    m_rtvOffset = p.RTVOffset;
-    m_resourceIdx = p.ResourceIdx;
-    m_tonemapperData.HdrTexIndex = p.SRVOffset;
+    mRtvOffset = p.RTVOffset;
+    mResourceIdx = p.ResourceIdx;
+    mTonemapperData.HdrTexIndex = p.SRVOffset;
 }
 
 void Tonemapper::CreateGeometry(RenderContext& context)
@@ -102,7 +102,7 @@ void Tonemapper::CreateGeometry(RenderContext& context)
     verts[2].Pos = { 1.0f, -1.0f, 0.0f };
     verts[3].Pos = { -1.0f, -1.0f, 0.0f };
     std::vector<UINT> ind = { 0, 1, 2, 0, 2, 3};
-    m_model = new Model(context, verts, ind);
+    mModel = new Model(context, verts, ind);
 }
 
 void Tonemapper::CreatePSO(RenderContext& ctx, ID3D12RootSignature* rootSig)
@@ -134,7 +134,7 @@ void Tonemapper::CreatePSO(RenderContext& ctx, ID3D12RootSignature* rootSig)
     desc.SampleDesc.Count = 1;
 
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Tonemapper.hlsl");
-    ctx.PsoManager->CreatePso(ctx, m_psoName, shaderPath, desc);
+    ctx.PsoManager->CreatePso(ctx, mPsoName, shaderPath, desc);
 }
 
 }

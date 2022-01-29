@@ -32,13 +32,13 @@ private:
     void CreatePso(RenderContext& ctx);
     UINT CreateMipViews(RenderContext& ctx, ResourceDX* resource);
 
-    std::vector<MipGenData> m_queuedMips;
-    std::vector<ResourceDX*> m_resourcesPtrs;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig;
-    UINT m_currViewsCount = 0;
-    UINT m_queuedMipsToGenerateNumber = 0;
-    const std::string m_psoName = "Generate_Mips";
-    UploadBuffer* m_constantBuffers = nullptr;
+    std::vector<MipGenData> mQueuedMips;
+    std::vector<ResourceDX*> mResourcesPtrs;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mUavHeap;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> mCommonRootSig;
+    UINT mCurrViewsCount = 0;
+    UINT mQueuedMipsToGenerateNumber = 0;
+    const std::string mPsoName = "Generate_Mips";
+    UploadBuffer* mConstantBuffers = nullptr;
 };
 }

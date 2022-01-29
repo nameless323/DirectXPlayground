@@ -23,24 +23,24 @@ private:
     static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHADER_MACRO* defines, ID3DInclude* includes, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags);
     static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags);
 
-    CD3DX12_SHADER_BYTECODE m_bytecode;
-    Microsoft::WRL::ComPtr<IDxcBlob> m_shaderBlob;
-    bool m_compiled = false;
+    CD3DX12_SHADER_BYTECODE mBytecode;
+    Microsoft::WRL::ComPtr<IDxcBlob> mShaderBlob;
+    bool mCompiled = false;
 };
 
 inline const CD3DX12_SHADER_BYTECODE& Shader::GetBytecode() const
 {
-    return m_bytecode;
+    return mBytecode;
 }
 
 inline CD3DX12_SHADER_BYTECODE& Shader::GetBytecode()
 {
-    return m_bytecode;
+    return mBytecode;
 }
 
 inline bool Shader::GetIsCompiled() const
 {
-    return m_compiled;
+    return mCompiled;
 }
 
 }

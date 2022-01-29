@@ -43,7 +43,7 @@ public:
 
     ID3D12DescriptorHeap* GetDXRUavHeap() const
     {
-        return m_rtUavHeap.Get();
+        return mRtUavHeap.Get();
     }
     //ID3D12DescriptorHeap* GetDXRSrvHeap() const
     //{
@@ -51,7 +51,7 @@ public:
     //}
     ID3D12Resource* GetDXRResource()
     {
-        return m_rtResource.Get();
+        return mRtResource.Get();
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetRtHandle(RenderContext& ctx, UINT index) const;
@@ -73,50 +73,50 @@ private:
     bool ParseEXR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
     bool ParseHDR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
 
-    std::vector<ResourceDX> m_resources;
-    std::vector<ResourceDX> m_uploadResources;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_srvHeap = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtvHeap = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_uavHeap = nullptr;
+    std::vector<ResourceDX> mResources;
+    std::vector<ResourceDX> mUploadResources;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mSrvHeap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtvHeap = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mUavHeap = nullptr;
 
     // DXR
     //Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtSrvHeap = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> m_rtUavHeap = nullptr;
-    ResourceDX m_rtResource{ D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mRtUavHeap = nullptr;
+    ResourceDX mRtResource{ D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
     //
-    MipGenerator* m_mipGenerator = nullptr;
+    MipGenerator* mMipGenerator = nullptr;
 
-    UINT m_currentTexCount = 0;
-    UINT m_currentCubemapCount = 0;
-    UINT m_currentRTCount = 0;
-    UINT m_currentUAVCount = 0;
+    UINT mCurrentTexCount = 0;
+    UINT mCurrentCubemapCount = 0;
+    UINT mCurrentRtCount = 0;
+    UINT mCurrentUavCount = 0;
 };
 
 inline ID3D12DescriptorHeap* TextureManager::GetDescriptorHeap() const
 {
-    return m_srvHeap.Get();
+    return mSrvHeap.Get();
 }
 
 inline ID3D12DescriptorHeap* TextureManager::GetCubemapUAVHeap() const
 {
-    return m_uavHeap.Get();
+    return mUavHeap.Get();
 }
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE TextureManager::GetRtHandle(RenderContext& ctx, UINT index) const
 {
-    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(m_rtvHeap->GetCPUDescriptorHandleForHeapStart());
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
     handle.Offset(ctx.RtvDescriptorSize * index);
     return handle;
 }
 
 inline ID3D12Resource* TextureManager::GetResource(UINT index) const
 {
-    return m_resources[index].Get();
+    return mResources[index].Get();
 }
 
 inline MipGenerator* TextureManager::GetMipGenerator()
 {
-    return m_mipGenerator;
+    return mMipGenerator;
 }
 
 //////////////////////////////////////////////////////////////////////////

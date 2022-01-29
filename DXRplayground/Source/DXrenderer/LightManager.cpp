@@ -8,17 +8,17 @@ namespace DirectxPlayground
 
 LightManager::LightManager(RenderContext& ctx)
 {
-    m_lightsBuffer = new UploadBuffer(*ctx.Device, sizeof(m_lights), true, RenderContext::FramesCount);
+    mLightsBuffer = new UploadBuffer(*ctx.Device, sizeof(mLights), true, RenderContext::FramesCount);
 }
 
 LightManager::~LightManager()
 {
-    SafeDelete(m_lightsBuffer);
+    SafeDelete(mLightsBuffer);
 }
 
 void LightManager::UpdateLights(UINT frame)
 {
-    m_lightsBuffer->UploadData(frame, m_lights);
+    mLightsBuffer->UploadData(frame, mLights);
 }
 
 }
