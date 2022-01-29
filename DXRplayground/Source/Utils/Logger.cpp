@@ -17,9 +17,9 @@ void ImguiLogger::Draw(const char* title, bool* p_open /*= NULL*/)
         return;
     }
 
-    if (ImGui::Checkbox("Auto-scroll", &m_autoScroll))
-        if (m_autoScroll)
-            m_scrollToBottom = true;
+    if (ImGui::Checkbox("Auto-scroll", &mAutoScroll))
+        if (mAutoScroll)
+            mScrollToBottom = true;
     ImGui::SameLine();
     bool clear = ImGui::Button("Clear");
     ImGui::SameLine();
@@ -34,8 +34,8 @@ void ImguiLogger::Draw(const char* title, bool* p_open /*= NULL*/)
         ImGui::LogToClipboard();
 
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-    const char* buf = m_textBuffer.begin();
-    const char* buf_end = m_textBuffer.end();
+    const char* buf = mTextBuffer.begin();
+    const char* buf_end = mTextBuffer.end();
 
     // The simplest and easy way to display the entire buffer:
     //   ImGui::TextUnformatted(buf_begin, buf_end);
@@ -47,13 +47,13 @@ void ImguiLogger::Draw(const char* title, bool* p_open /*= NULL*/)
     // When using the filter (in the block of code above) we don't have random access into the data to display anymore, which is why we don't use the clipper.
     // Storing or skimming through the search result would make it possible (and would be recommended if you want to search through tens of thousands of entries)
     ImGuiListClipper clipper;
-    clipper.Begin(m_lineOffsets.Size);
+    clipper.Begin(mLineOffsets.Size);
     while (clipper.Step())
     {
         for (int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++)
         {
-            const char* line_start = buf + m_lineOffsets[line_no];
-            const char* line_end = (line_no + 1 < m_lineOffsets.Size) ? (buf + m_lineOffsets[line_no + 1] - 1) : buf_end;
+            const char* line_start = buf + mLineOffsets[line_no];
+            const char* line_end = (line_no + 1 < mLineOffsets.Size) ? (buf + mLineOffsets[line_no + 1] - 1) : buf_end;
             ImGui::TextUnformatted(line_start, line_end);
         }
     }
@@ -61,24 +61,24 @@ void ImguiLogger::Draw(const char* title, bool* p_open /*= NULL*/)
 
     ImGui::PopStyleVar();
 
-    if (m_scrollToBottom)
+    if (mScrollToBottom)
         ImGui::SetScrollHereY(1.0f);
-    m_scrollToBottom = false;
+    mScrollToBottom = false;
     ImGui::EndChild();
     ImGui::End();
 }
 
 void ImguiLogger::AddLogInternal(const char* fmt, ...)
 {
-    int old_size = m_textBuffer.size();
+    int old_size = mTextBuffer.size();
     va_list args;
     va_start(args, fmt);
-    m_textBuffer.appendfv(fmt, args);
+    mTextBuffer.appendfv(fmt, args);
     va_end(args);
-    for (int new_size = m_textBuffer.size(); old_size < new_size; old_size++)
-        if (m_textBuffer[old_size] == '\n')
-            m_lineOffsets.push_back(old_size + 1);
-    if (m_autoScroll)
-        m_scrollToBottom = true;
+    for (int new_size = mTextBuffer.size(); old_size < new_size; old_size++)
+        if (mTextBuffer[old_size] == '\n')
+            mLineOffsets.push_back(old_size + 1);
+    if (mAutoScroll)
+        mScrollToBottom = true;
 }
 }

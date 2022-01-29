@@ -12,18 +12,18 @@ static constexpr UINT CounterMaxValue = 10000;
 }
 
 FileWatcher::FileWatcher(std::wstring path, UINT watchFlags /*= FILE_NOTIFY_CHANGE_LAST_WRITE*/)
-    : m_path(std::move(path))
-    , m_watchFlags(watchFlags)
+    : mPath(std::move(path))
+    , mWatchFlags(watchFlags)
 {
 
-    ZeroMemory(&m_overlapped, sizeof(OVERLAPPED));
-    m_overlapped.hEvent = this;
+    ZeroMemory(&mOverlapped, sizeof(OVERLAPPED));
+    mOverlapped.hEvent = this;
 
-    m_buffer.resize(m_bufferSize);
-    m_backupBuffer.resize(m_bufferSize);
+    mBuffer.resize(BufferSize);
+    mBackupBuffer.resize(BufferSize);
 
-    m_dirHandle = CreateFile(
-        m_path.c_str(),
+    mDirHandle = CreateFile(
+        mPath.c_str(),
         FILE_LIST_DIRECTORY,
         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         NULL,
@@ -31,20 +31,20 @@ FileWatcher::FileWatcher(std::wstring path, UINT watchFlags /*= FILE_NOTIFY_CHAN
         FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
         NULL
     );
-    if (m_dirHandle == INVALID_HANDLE_VALUE)
+    if (mDirHandle == INVALID_HANDLE_VALUE)
         assert(false);
 }
 
 void FileWatcher::Shutdown()
 {
-    if (m_dirHandle == INVALID_HANDLE_VALUE)
+    if (mDirHandle == INVALID_HANDLE_VALUE)
     {
         assert(false);
         return;
     }
-    CancelIo(m_dirHandle);
-    CloseHandle(m_dirHandle);
-    m_dirHandle = INVALID_HANDLE_VALUE;
+    CancelIo(mDirHandle);
+    CloseHandle(mDirHandle);
+    mDirHandle = INVALID_HANDLE_VALUE;
 }
 
 VOID FileWatcher::DirectoryModificationCallback(DWORD errorCode, DWORD numberOfBytesTransfered, LPOVERLAPPED overlapped)
@@ -72,17 +72,17 @@ VOID FileWatcher::DirectoryModificationCallback(DWORD errorCode, DWORD numberOfB
 
 void FileWatcher::ProcessDirectoryNotification()
 {
-    BYTE* data = m_backupBuffer.data();
+    BYTE* data = mBackupBuffer.data();
     UINT i = 0;
     while (i < CounterMaxValue) // Do some check with counter
     {
         FILE_NOTIFY_INFORMATION& fni = (FILE_NOTIFY_INFORMATION&)*data;
 
         std::wstring filename(fni.FileName, fni.FileNameLength / sizeof(wchar_t));
-        if (m_path.back() != L'\\')
-            filename = m_path + L"\\" + filename;
+        if (mPath.back() != L'\\')
+            filename = mPath + L"\\" + filename;
         else
-            filename = m_path + filename;
+            filename = mPath + filename;
 
         LPCWSTR wszFilename = PathFindFileNameW(filename.c_str());
         int len = lstrlenW(wszFilename);
@@ -93,7 +93,7 @@ void FileWatcher::ProcessDirectoryNotification()
             if (GetLongPathNameW(filename.c_str(), wbuf, _countof(wbuf)) > 0)
                 filename = wbuf;
         }
-        m_modifiedFilesQueue.Push(std::move(filename));
+        mModifiedFilesQueue.Push(std::move(filename));
         if (!fni.NextEntryOffset)
             break;
         data += fni.NextEntryOffset;

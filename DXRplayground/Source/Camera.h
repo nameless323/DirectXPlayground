@@ -35,68 +35,68 @@ public:
     void SetWorldPosition(const XMFLOAT3& pos, bool updateViewAndVP = true);
 
 private:
-    XMFLOAT4X4 m_projection;
-    XMFLOAT4X4 m_view;
-    XMFLOAT4X4 m_toWorld;
-    XMFLOAT4X4 m_viewProjection;
-    bool m_dirty;
+    XMFLOAT4X4 mProjection;
+    XMFLOAT4X4 mView;
+    XMFLOAT4X4 mToWorld;
+    XMFLOAT4X4 mViewProjection;
+    bool mDirty;
 };
 
 inline const XMFLOAT4X4& Camera::GetView() const
 {
-    return m_view;
+    return mView;
 }
 
 inline const XMFLOAT4X4& Camera::GetProjection() const
 {
-    return m_projection;
+    return mProjection;
 }
 
 inline const XMFLOAT4X4& Camera::GetViewProjection() const
 {
-    return m_viewProjection;
+    return mViewProjection;
 }
 
 inline const XMFLOAT4X4& Camera::GetToWorld() const
 {
-    return m_toWorld;
+    return mToWorld;
 }
 
 inline XMFLOAT4 Camera::GetForward() const
 {
-    return XMFLOAT4{ m_view(0, 2), m_view(1, 2), m_view(2, 2), 0.0f };
+    return XMFLOAT4{ mView(0, 2), mView(1, 2), mView(2, 2), 0.0f };
 }
 
 inline XMFLOAT4 Camera::GetRight() const
 {
-    return XMFLOAT4{ m_view(0, 0), m_view(1, 0), m_view(2, 0), 0.0f };
+    return XMFLOAT4{ mView(0, 0), mView(1, 0), mView(2, 0), 0.0f };
 }
 
 inline XMFLOAT4 Camera::GetUp() const
 {
-    return XMFLOAT4{ m_view(0, 1), m_view(1, 1), m_view(2, 1), 0.0f };
+    return XMFLOAT4{ mView(0, 1), mView(1, 1), mView(2, 1), 0.0f };
 }
 
 inline XMFLOAT4 Camera::GetPosition() const
 {
-    return XMFLOAT4{ m_toWorld(3, 0), m_toWorld(3, 1), m_toWorld(3, 2), 1.0f };
+    return XMFLOAT4{ mToWorld(3, 0), mToWorld(3, 1), mToWorld(3, 2), 1.0f };
 }
 
 inline void Camera::UpdateViewProjection()
 {
-    if (!m_dirty)
+    if (!mDirty)
         return;
-    XMMATRIX view = XMLoadFloat4x4(&m_view);
-    XMMATRIX proj = XMLoadFloat4x4(&m_projection);
-    XMStoreFloat4x4(&m_viewProjection, view * proj);
-    m_dirty = false;
+    XMMATRIX view = XMLoadFloat4x4(&mView);
+    XMMATRIX proj = XMLoadFloat4x4(&mProjection);
+    XMStoreFloat4x4(&mViewProjection, view * proj);
+    mDirty = false;
 }
 
 inline void Camera::SetView(const XMFLOAT4X4& view, const XMFLOAT4X4& toWorld, bool updateViewProjection /* = false */)
 {
-    m_view = view;
-    m_toWorld = toWorld;
-    m_dirty = true;
+    mView = view;
+    mToWorld = toWorld;
+    mDirty = true;
     if (updateViewProjection)
         UpdateViewProjection();
 }

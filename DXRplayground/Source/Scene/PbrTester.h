@@ -50,20 +50,20 @@ private:
     void CreatePSOs(RenderContext& context);
     void UpdateLights(RenderContext& context);
 
-    Model* m_gltfMesh = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
-    UploadBuffer* m_cameraCb = nullptr;
-    UploadBuffer* m_objectCbs = nullptr;
-    UploadBuffer* m_materials = nullptr;
+    Model* mGltfMesh = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> mCommonRootSig; // Move to ctx. It's common after all
+    UploadBuffer* mCameraCb = nullptr;
+    UploadBuffer* mObjectCbs = nullptr;
+    UploadBuffer* mMaterials = nullptr;
 
-    const std::string m_psoName = "Opaque_PBR";
+    const std::string mPsoName = "Opaque_PBR";
 
-    Camera* m_camera = nullptr;
-    CameraController* m_cameraController = nullptr;
-    Tonemapper* m_tonemapper = nullptr;
-    LightManager* m_lightManager = nullptr;
-    CameraShaderData m_cameraData{};
+    Camera* mCamera = nullptr;
+    CameraController* mCameraController = nullptr;
+    Tonemapper* mTonemapper = nullptr;
+    LightManager* mLightManager = nullptr;
+    CameraShaderData mCameraData{};
 
-    InstanceMaterials m_instanceMaterials;
+    InstanceMaterials mInstanceMaterials;
 };
 }

@@ -25,17 +25,17 @@ public:
 private:
     void AddLogInternal(const char* fmt, ...);
 
-    ImGuiTextBuffer m_textBuffer;
-    ImVector<int> m_lineOffsets; // Index to lines offset. We maintain this with AddLog() calls, allowing us to have a random access on lines
-    bool m_autoScroll = true;
-    bool m_scrollToBottom = false;
+    ImGuiTextBuffer mTextBuffer;
+    ImVector<int> mLineOffsets; // Index to lines offset. We maintain this with AddLog() calls, allowing us to have a random access on lines
+    bool mAutoScroll = true;
+    bool mScrollToBottom = false;
 };
 
 inline void ImguiLogger::Clear()
 {
-    m_textBuffer.clear();
-    m_lineOffsets.clear();
-    m_lineOffsets.push_back(0);
+    mTextBuffer.clear();
+    mLineOffsets.clear();
+    mLineOffsets.push_back(0);
 }
 
 inline void ImguiLogger::AddLog(const std::string& msg)

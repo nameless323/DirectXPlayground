@@ -33,20 +33,20 @@ private:
     void UpdateLights(RenderContext& context);
     void DrawSkybox(RenderContext& context);
 
-    Model* m_gltfMesh = nullptr;
-    Model* m_skybox = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
-    UploadBuffer* m_cameraCb = nullptr;
-    UploadBuffer* m_objectCb = nullptr;
-    const std::string m_psoName = "Opaque_PBR";
-    const std::string m_skyboxPsoName = "Skybox";
+    Model* mGltfMesh = nullptr;
+    Model* mSkybox = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> mCommonRootSig; // Move to ctx. It's common after all
+    UploadBuffer* mCameraCb = nullptr;
+    UploadBuffer* mObjectCb = nullptr;
+    const std::string mPsoName = "Opaque_PBR";
+    const std::string mSkyboxPsoName = "Skybox";
 
-    Camera* m_camera = nullptr;
-    CameraController* m_cameraController = nullptr;
-    Tonemapper* m_tonemapper = nullptr;
-    LightManager* m_lightManager = nullptr;
-    EnvironmentMap* m_envMap = nullptr;
-    UINT m_directionalLightInd = 0;
-    CameraShaderData m_cameraData{};
+    Camera* mCamera = nullptr;
+    CameraController* mCameraController = nullptr;
+    Tonemapper* mTonemapper = nullptr;
+    LightManager* mLightManager = nullptr;
+    EnvironmentMap* mEnvMap = nullptr;
+    UINT mDirectionalLightInd = 0;
+    CameraShaderData mCameraData{};
 };
 }

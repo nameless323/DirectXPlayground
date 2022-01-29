@@ -26,12 +26,12 @@ enum KeyboardKeys
 }
 
 CameraController::CameraController(Camera* camera, float scrollMult /*= 1.0f*/, float keyMoveMult /*= 3.0f*/, float mouseDeltaMult /*= 30.0f*/, float shiftMoveMult /*= 4.0f*/, float ctrlMoveMult /*= 0.25f*/)
-    : m_camera(camera)
-    , m_scrollMultiplier(scrollMult)
-    , m_keyMoveMultiplier(keyMoveMult)
-    , m_mouseDeltaMultiplier(mouseDeltaMult)
-    , m_shiftMoveMultiplier(shiftMoveMult)
-    , m_ctrlMoveMultiplier(ctrlMoveMult)
+    : mCamera(camera)
+    , mScrollMultiplier(scrollMult)
+    , mKeyMoveMultiplier(keyMoveMult)
+    , mMouseDeltaMultiplier(mouseDeltaMult)
+    , mShiftMoveMultiplier(shiftMoveMult)
+    , mCtrlMoveMultiplier(ctrlMoveMult)
 {
 }
 
@@ -44,38 +44,38 @@ void CameraController::Update()
     float dt = io.DeltaTime;
 
     float scroll = io.MouseWheel;
-    thisFrameOffset.z = scroll * m_scrollMultiplier;
+    thisFrameOffset.z = scroll * mScrollMultiplier;
 
     XMFLOAT2 mouseDelta = { io.MouseDelta.x, io.MouseDelta.y };
     if (io.MouseDown[2])
     {
-        thisFrameOffset.x = -mouseDelta.x * m_keyMoveMultiplier * dt;
-        thisFrameOffset.y = mouseDelta.y * m_keyMoveMultiplier * dt;
+        thisFrameOffset.x = -mouseDelta.x * mKeyMoveMultiplier * dt;
+        thisFrameOffset.y = mouseDelta.y * mKeyMoveMultiplier * dt;
     }
-    thisFrameOffset.x += io.KeysDown[KEY_D] * m_keyMoveMultiplier * dt;
-    thisFrameOffset.x -= io.KeysDown[KEY_A] * m_keyMoveMultiplier * dt;
-    thisFrameOffset.z += io.KeysDown[KEY_W] * m_keyMoveMultiplier * dt;
-    thisFrameOffset.z -= io.KeysDown[KEY_S] * m_keyMoveMultiplier * dt;
+    thisFrameOffset.x += io.KeysDown[KEY_D] * mKeyMoveMultiplier * dt;
+    thisFrameOffset.x -= io.KeysDown[KEY_A] * mKeyMoveMultiplier * dt;
+    thisFrameOffset.z += io.KeysDown[KEY_W] * mKeyMoveMultiplier * dt;
+    thisFrameOffset.z -= io.KeysDown[KEY_S] * mKeyMoveMultiplier * dt;
 
     if (io.KeysDown[KEY_SHIFT])
     {
-        thisFrameOffset.x *= m_shiftMoveMultiplier;
-        thisFrameOffset.y *= m_shiftMoveMultiplier;
-        thisFrameOffset.z *= m_shiftMoveMultiplier;
+        thisFrameOffset.x *= mShiftMoveMultiplier;
+        thisFrameOffset.y *= mShiftMoveMultiplier;
+        thisFrameOffset.z *= mShiftMoveMultiplier;
     }
     if (io.KeysDown[KEY_CTRL])
     {
-        thisFrameOffset.x *= m_ctrlMoveMultiplier;
-        thisFrameOffset.y *= m_ctrlMoveMultiplier;
-        thisFrameOffset.z *= m_ctrlMoveMultiplier;
+        thisFrameOffset.x *= mCtrlMoveMultiplier;
+        thisFrameOffset.y *= mCtrlMoveMultiplier;
+        thisFrameOffset.z *= mCtrlMoveMultiplier;
     }
 
     float x = 0;
     float y = 0;
     if (!io.MouseDown[2] && io.MouseDown[1])
     {
-        x = XMConvertToRadians(mouseDelta.x) * m_mouseDeltaMultiplier * dt;
-        y = XMConvertToRadians(mouseDelta.y) * m_mouseDeltaMultiplier * dt;
+        x = XMConvertToRadians(mouseDelta.x) * mMouseDeltaMultiplier * dt;
+        y = XMConvertToRadians(mouseDelta.y) * mMouseDeltaMultiplier * dt;
     }
 
     UpdateCameraMatrices(x, y, thisFrameOffset);
@@ -84,13 +84,13 @@ void CameraController::Update()
 
 void CameraController::UpdateCameraMatrices(float xRotation, float yRotation, const XMFLOAT3& localOffsets)
 {
-    XMVECTOR camRight = XMLoadFloat4(&m_camera->GetRight());
+    XMVECTOR camRight = XMLoadFloat4(&mCamera->GetRight());
 
     XMMATRIX pitch = XMMatrixRotationAxis(camRight, yRotation);
     XMMATRIX yaw = XMMatrixRotationY(xRotation);
     XMMATRIX frameRot = pitch * yaw;
 
-    XMMATRIX cameraToWorld = XMLoadFloat4x4(&m_camera->GetToWorld());
+    XMMATRIX cameraToWorld = XMLoadFloat4x4(&mCamera->GetToWorld());
     XMVECTOR offset = XMVector4Transform(XMVECTOR{ localOffsets.x, localOffsets.y, localOffsets.z, 1.0f }, cameraToWorld);
     XMFLOAT4 storedOffset;
     XMStoreFloat4(&storedOffset, offset);
@@ -107,17 +107,17 @@ void CameraController::UpdateCameraMatrices(float xRotation, float yRotation, co
     XMFLOAT4X4 newViewStored;
     XMStoreFloat4x4(&newViewStored, newView);
 
-    m_camera->SetView(newViewStored, storedToWorld, true);
+    mCamera->SetView(newViewStored, storedToWorld, true);
 }
 
 void CameraController::DrawImgui()
 {
     ImGui::Begin("Camera Controls");
-    ImGui::InputFloat("Scroll Multiplier", &m_scrollMultiplier);
-    ImGui::InputFloat("Keys Move Multiplier", &m_keyMoveMultiplier);
-    ImGui::InputFloat("Mouse Delta Multiplier", &m_mouseDeltaMultiplier);
-    ImGui::InputFloat("Shift Move Multiplier", &m_shiftMoveMultiplier);
-    ImGui::InputFloat("Ctrl Move Multiplier", &m_ctrlMoveMultiplier);
+    ImGui::InputFloat("Scroll Multiplier", &mScrollMultiplier);
+    ImGui::InputFloat("Keys Move Multiplier", &mKeyMoveMultiplier);
+    ImGui::InputFloat("Mouse Delta Multiplier", &mMouseDeltaMultiplier);
+    ImGui::InputFloat("Shift Move Multiplier", &mShiftMoveMultiplier);
+    ImGui::InputFloat("Ctrl Move Multiplier", &mCtrlMoveMultiplier);
     ImGui::End();
 }
 

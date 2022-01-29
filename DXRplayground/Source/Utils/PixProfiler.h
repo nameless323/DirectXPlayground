@@ -31,17 +31,17 @@ public:
     ~ScopedGpuEvent();
 
 private:
-    ID3D12GraphicsCommandList* m_cmdList = nullptr;
+    ID3D12GraphicsCommandList* mCmdList = nullptr;
 };
 
-inline ScopedGpuEvent::ScopedGpuEvent(ID3D12GraphicsCommandList* commandList, const std::string& name) : m_cmdList(commandList)
+inline ScopedGpuEvent::ScopedGpuEvent(ID3D12GraphicsCommandList* commandList, const std::string& name) : mCmdList(commandList)
 {
-    PIXBeginEvent(m_cmdList, PIX_COLOR(0, 0, 254), name.c_str());
+    PIXBeginEvent(mCmdList, PIX_COLOR(0, 0, 254), name.c_str());
 }
 
 inline ScopedGpuEvent::~ScopedGpuEvent()
 {
-    PIXEndEvent(m_cmdList);
+    PIXEndEvent(mCmdList);
 }
 
 inline void BeginCaptureGpuFrame()

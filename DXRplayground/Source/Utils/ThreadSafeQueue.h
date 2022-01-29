@@ -22,54 +22,54 @@ public:
     std::optional<T> Front() const;
 
 private:
-    std::queue<T> m_queue;
-    mutable std::mutex m_mutex;
+    std::queue<T> mQueue;
+    mutable std::mutex mMutex;
 };
 
 template <typename T>
 inline ThreadSafeQueue<T>::ThreadSafeQueue(ThreadSafeQueue<T>&& other)
 {
-    std::scoped_lock l(m_mutex);
-    std::swap(m_queue, other.m_queue);
+    std::scoped_lock l(mMutex);
+    std::swap(mQueue, other.mQueue);
 }
 
 template <typename T>
 size_t ThreadSafeQueue<T>::Size() const
 {
-    std::scoped_lock l(m_mutex);
-    return m_queue.size();
+    std::scoped_lock l(mMutex);
+    return mQueue.size();
 }
 
 template <typename T>
 std::optional<T> ThreadSafeQueue<T>::Pop()
 {
-    std::scoped_lock l(m_mutex);
-    if (m_queue.empty())
+    std::scoped_lock l(mMutex);
+    if (mQueue.empty())
         return {};
-    T tmp = m_queue.front();
-    m_queue.pop();
+    T tmp = mQueue.front();
+    mQueue.pop();
     return tmp;
 }
 
 template <typename T>
 void ThreadSafeQueue<T>::Push(const T& item)
 {
-    std::scoped_lock l(m_mutex);
-    m_queue.push(item);
+    std::scoped_lock l(mMutex);
+    mQueue.push(item);
 }
 
 template <typename T>
 void ThreadSafeQueue<T>::Push(T&& item)
 {
-    std::scoped_lock l(m_mutex);
-    m_queue.push(std::forward<T>(item));
+    std::scoped_lock l(mMutex);
+    mQueue.push(std::forward<T>(item));
 }
 
 template <typename T>
 std::optional<T> ThreadSafeQueue<T>::Front() const
 {
-    std::scoped_lock l(m_mutex);
-    if (m_queue.empty())
+    std::scoped_lock l(mMutex);
+    if (mQueue.empty())
         return {};
-    return m_queue.front();
+    return mQueue.front();
 }

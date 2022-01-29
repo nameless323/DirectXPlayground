@@ -63,59 +63,59 @@ private:
     void RaytraceShadows(RenderContext& context);
     //
 
-    Model* m_suzanne = nullptr;
-    Model* m_floor = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_commonRootSig; // Move to ctx. It's common after all
-    UploadBuffer* m_cameraCb = nullptr;
-    UploadBuffer* m_objectCb = nullptr;
-    UploadBuffer* m_floorTransformCb = nullptr;
-    UploadBuffer* m_floorMaterialCb = nullptr;
-    const std::string m_psoName = "Opaque_PBR";
-    const std::string m_floorPsoName = "Opaque_Non_Textured_PBR";
-    const std::string m_depthPrepassPsoName = "Depth_Prepass";
+    Model* mSuzanne = nullptr;
+    Model* mFloor = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> mCommonRootSig; // Move to ctx. It's common after all
+    UploadBuffer* mCameraCb = nullptr;
+    UploadBuffer* mObjectCb = nullptr;
+    UploadBuffer* mFloorTransformCb = nullptr;
+    UploadBuffer* mFloorMaterialCb = nullptr;
+    const std::string mPsoName = "Opaque_PBR";
+    const std::string mFloorPsoName = "Opaque_Non_Textured_PBR";
+    const std::string mDepthPrepassPsoName = "Depth_Prepass";
 
-    Camera* m_camera = nullptr;
-    CameraController* m_cameraController = nullptr;
-    Tonemapper* m_tonemapper = nullptr;
-    LightManager* m_lightManager = nullptr;
-    UINT m_directionalLightInd = 0;
-    CameraShaderData m_cameraData{};
+    Camera* mCamera = nullptr;
+    CameraController* mCameraController = nullptr;
+    Tonemapper* mTonemapper = nullptr;
+    LightManager* mLightManager = nullptr;
+    UINT mDirectionalLightInd = 0;
+    CameraShaderData mCameraData{};
 
-    bool m_drawFloor = true;
-    bool m_drawSuzanne = true;
-    bool m_useRasterizer = true;
+    bool mDrawFloor = true;
+    bool mDrawSuzanne = true;
+    bool mUseRasterizer = true;
 
     // rt
     static constexpr UINT RootDescriptorSize = 8;
     static constexpr UINT NumHitGroups = 3;
-    UploadBuffer* m_shadowMapCB = nullptr;
-    UploadBuffer* m_rtShadowRaysBuffer = nullptr;
+    UploadBuffer* mShadowMapCb = nullptr;
+    UploadBuffer* mRtShadowRaysBuffer = nullptr;
     struct RtCb
     {
         XMFLOAT4X4 InvViewProj;
         XMFLOAT4 CamPosition;
     };
 
-    UploadBuffer* m_rtSceneDataCB = nullptr;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_rtGlobalRootSig;
-    Microsoft::WRL::ComPtr<ID3D12RootSignature> m_shadowLocalRootSig;
-    Microsoft::WRL::ComPtr<ID3D12StateObject> m_dxrStateObject;
+    UploadBuffer* mRtSceneDataCb = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> mRtGlobalRootSig;
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> mShadowLocalRootSig;
+    Microsoft::WRL::ComPtr<ID3D12StateObject> mDxrStateObject;
 
-    UploadBuffer* m_missShaderTable = nullptr;
-    UploadBuffer* m_hitGroupShaderTable = nullptr;
-    UploadBuffer* m_rayGenShaderTable = nullptr;
-    UploadBuffer* m_instanceDescs = nullptr; // todo: after flush should be ok to delete, but it's not.
+    UploadBuffer* mMissShaderTable = nullptr;
+    UploadBuffer* mHitGroupShaderTable = nullptr;
+    UploadBuffer* mRayGenShaderTable = nullptr;
+    UploadBuffer* mInstanceDescs = nullptr; // todo: after flush should be ok to delete, but it's not.
 
-    UnorderedAccessBuffer* m_scratchBuffer = nullptr; // todo: same shit as above
-    UINT m_shadowMapIndex = 0;
-    UINT m_hitGroupStride = 0;
+    UnorderedAccessBuffer* mScratchBuffer = nullptr; // todo: same shit as above
+    UINT mShadowMapIndex = 0;
+    UINT mHitGroupStride = 0;
 
-    Shader m_rayGenShader;
-    Shader m_closestHitShader;
-    Shader m_missShader;
-    DXR::BottomLevelAccelerationStructure* m_modelBlas = nullptr;
-    DXR::BottomLevelAccelerationStructure* m_floorBlas = nullptr;
-    DXR::BottomLevelAccelerationStructure* m_sdfBlas = nullptr;
-    DXR::TopLevelAccelerationStructure* m_tlas = nullptr;
+    Shader mRayGenShader;
+    Shader mClosestHitShader;
+    Shader mMissShader;
+    DXR::BottomLevelAccelerationStructure* mModelBlas = nullptr;
+    DXR::BottomLevelAccelerationStructure* mFloorBlas = nullptr;
+    DXR::BottomLevelAccelerationStructure* mSdfBlas = nullptr;
+    DXR::TopLevelAccelerationStructure* mTlas = nullptr;
 };
 }

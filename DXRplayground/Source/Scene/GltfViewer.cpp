@@ -22,68 +22,68 @@ namespace DirectxPlayground
 
 GltfViewer::~GltfViewer()
 {
-    SafeDelete(m_cameraCb);
-    SafeDelete(m_camera);
-    SafeDelete(m_cameraController);
-    SafeDelete(m_objectCb);
-    SafeDelete(m_gltfMesh);
-    SafeDelete(m_skybox);
-    SafeDelete(m_tonemapper);
-    SafeDelete(m_lightManager);
-    SafeDelete(m_envMap);
+    SafeDelete(mCameraCb);
+    SafeDelete(mCamera);
+    SafeDelete(mCameraController);
+    SafeDelete(mObjectCb);
+    SafeDelete(mGltfMesh);
+    SafeDelete(mSkybox);
+    SafeDelete(mTonemapper);
+    SafeDelete(mLightManager);
+    SafeDelete(mEnvMap);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
 {
     using Microsoft::WRL::ComPtr;
 
-    m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
-    m_cameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
-    m_objectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
-    m_cameraController = new CameraController(m_camera);
-    m_lightManager = new LightManager(context);
+    mCamera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
+    mCameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
+    mObjectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
+    mCameraController = new CameraController(mCamera);
+    mLightManager = new LightManager(context);
 
     auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
-    m_envMap = new EnvironmentMap(context, path, 2048, 256);
+    mEnvMap = new EnvironmentMap(context, path, 2048, 256);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
-    m_directionalLightInd = m_lightManager->AddLight(l);
+    mDirectionalLightInd = mLightManager->AddLight(l);
 
     LoadGeometry(context);
     CreateRootSignature(context);
 
-    m_tonemapper = new Tonemapper();
-    m_tonemapper->InitResources(context, m_commonRootSig.Get());
+    mTonemapper = new Tonemapper();
+    mTonemapper->InitResources(context, mCommonRootSig.Get());
 
     CreatePSOs(context);
 
     context.TexManager->FlushMipsQueue(context);
-    m_envMap->ConvertToCubemap(context);
+    mEnvMap->ConvertToCubemap(context);
 }
 
 void GltfViewer::Render(RenderContext& context)
 {
     GPU_SCOPED_EVENT(context, "Render frame");
-    m_envMap->ConvertToCubemap(context);
-    m_cameraController->Update();
+    mEnvMap->ConvertToCubemap(context);
+    mCameraController->Update();
     UpdateLights(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
     XMFLOAT4X4 toWorld;
     XMStoreFloat4x4(&toWorld, XMMatrixTranspose(XMMatrixTranslation(0.0f, 0.0f, 3.0f)));
-    m_cameraData.ViewProj = TransposeMatrix(m_camera->GetViewProjection());
-    XMFLOAT4 camPos = m_camera->GetPosition();
-    m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
-    m_cameraData.View = TransposeMatrix(m_camera->GetView());
-    m_cameraData.Proj = TransposeMatrix(m_camera->GetProjection());
-    m_cameraCb->UploadData(frameIndex, m_cameraData);
-    m_objectCb->UploadData(frameIndex, toWorld);
-    m_gltfMesh->UpdateMeshes(frameIndex);
+    mCameraData.ViewProj = TransposeMatrix(mCamera->GetViewProjection());
+    XMFLOAT4 camPos = mCamera->GetPosition();
+    mCameraData.Position = { camPos.x, camPos.y, camPos.z };
+    mCameraData.View = TransposeMatrix(mCamera->GetView());
+    mCameraData.Proj = TransposeMatrix(mCamera->GetProjection());
+    mCameraCb->UploadData(frameIndex, mCameraData);
+    mObjectCb->UploadData(frameIndex, toWorld);
+    mGltfMesh->UpdateMeshes(frameIndex);
 
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
 
-    auto rtCpuHandle = context.TexManager->GetRtHandle(context, m_tonemapper->GetRtIndex());
+    auto rtCpuHandle = context.TexManager->GetRtHandle(context, mTonemapper->GetRtIndex());
 
     D3D12_RECT scissorRect = { 0, 0, LONG(context.Width), LONG(context.Height) };
     D3D12_VIEWPORT viewport = {};
@@ -98,23 +98,23 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->RSSetViewports(1, &viewport);
 
     context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &context.SwapChain->GetDSCPUhandle());
-    context.CommandList->ClearRenderTargetView(rtCpuHandle, m_tonemapper->GetClearColor(), 0, nullptr);
+    context.CommandList->ClearRenderTargetView(rtCpuHandle, mTonemapper->GetClearColor(), 0, nullptr);
     context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-    context.CommandList->SetGraphicsRootSignature(m_commonRootSig.Get());
-    context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_psoName));
+    context.CommandList->SetGraphicsRootSignature(mCommonRootSig.Get());
+    context.CommandList->SetPipelineState(context.PsoManager->GetPso(mPsoName));
     ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
     context.CommandList->SetDescriptorHeaps(1, descHeap);
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), m_cameraCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_objectCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), m_lightManager->GetLightsBufferGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), mCameraCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), mObjectCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), mLightManager->GetLightsBufferGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
     CD3DX12_GPU_DESCRIPTOR_HANDLE cubeHeapBegin(context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
     cubeHeapBegin.Offset(context.CbvSrvUavDescriptorSize * RenderContext::MaxTextures);
     context.CommandList->SetGraphicsRootDescriptorTable(CubemapTableIndex, cubeHeapBegin);
 
-    for (const auto mesh : m_gltfMesh->GetMeshes())
+    for (const auto mesh : mGltfMesh->GetMeshes())
     {
         context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
 
@@ -127,7 +127,7 @@ void GltfViewer::Render(RenderContext& context)
 
     DrawSkybox(context);
 
-    m_tonemapper->Render(context);
+    mTonemapper->Render(context);
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     context.CommandList->ResourceBarrier(1, &toPresent);
@@ -137,51 +137,51 @@ void GltfViewer::LoadGeometry(RenderContext& context)
 {
     auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
     //auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
-    m_gltfMesh = new Model(context, path);
+    mGltfMesh = new Model(context, path);
     path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
-    m_skybox = new Model(context, path);
+    mSkybox = new Model(context, path);
 }
 
 void GltfViewer::CreateRootSignature(RenderContext& context)
 {
-    CreateCommonRootSignature(context.Device, IID_PPV_ARGS(&m_commonRootSig));
-    AUTO_NAME_D3D12_OBJECT(m_commonRootSig);
+    CreateCommonRootSignature(context.Device, IID_PPV_ARGS(&mCommonRootSig));
+    AUTO_NAME_D3D12_OBJECT(mCommonRootSig);
 }
 
 void GltfViewer::CreatePSOs(RenderContext& context)
 {
     auto& inputLayout = GetInputLayoutUV_N_T();
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = GetDefaultOpaquePsoDescriptor(m_commonRootSig.Get(), 1);
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = GetDefaultOpaquePsoDescriptor(mCommonRootSig.Get(), 1);
     desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
 
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
-    desc.RTVFormats[0] = m_tonemapper->GetHDRTargetFormat();
+    desc.RTVFormats[0] = mTonemapper->GetHDRTargetFormat();
 
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
-    context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
+    context.PsoManager->CreatePso(context, mPsoName, shaderPath, desc);
 
     desc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 
     shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Skybox.hlsl");
-    context.PsoManager->CreatePso(context, m_skyboxPsoName, shaderPath, desc);
+    context.PsoManager->CreatePso(context, mSkyboxPsoName, shaderPath, desc);
 }
 
 void GltfViewer::UpdateLights(RenderContext& context)
 {
-    Light& dirLight = m_lightManager->GetLightRef(m_directionalLightInd);
+    Light& dirLight = mLightManager->GetLightRef(mDirectionalLightInd);
     ImGui::Begin("Lights");
     ImGui::InputFloat4("Color", reinterpret_cast<float*>(&dirLight.Color));
     ImGui::InputFloat3("Direction", reinterpret_cast<float*>(&dirLight.Direction));
     ImGui::End();
 
-    m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
+    mLightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
 }
 
 void GltfViewer::DrawSkybox(RenderContext& context)
 {
     GPU_SCOPED_EVENT(context, "Skybox");
-    context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_skyboxPsoName));
-    const Model::Mesh* skybox = m_skybox->GetMesh();
+    context.CommandList->SetPipelineState(context.PsoManager->GetPso(mSkyboxPsoName));
+    const Model::Mesh* skybox = mSkybox->GetMesh();
     context.CommandList->IASetVertexBuffers(0, 1, &skybox->GetVertexBufferView());
     context.CommandList->IASetIndexBuffer(&skybox->GetIndexBufferView());
 

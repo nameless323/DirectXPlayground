@@ -19,11 +19,11 @@ private:
     void UpdateCameraMatrices(float xRotation, float yRotation, const DirectX::XMFLOAT3& localOffsets);
     void DrawImgui();
 
-    Camera* m_camera = nullptr;
-    float m_scrollMultiplier = 1.0f;
-    float m_keyMoveMultiplier = 3.0f;
-    float m_mouseDeltaMultiplier = 30.0f;
-    float m_shiftMoveMultiplier = 4.0f;
-    float m_ctrlMoveMultiplier = 0.25f;
+    Camera* mCamera = nullptr;
+    float mScrollMultiplier = 1.0f;
+    float mKeyMoveMultiplier = 3.0f;
+    float mMouseDeltaMultiplier = 30.0f;
+    float mShiftMoveMultiplier = 4.0f;
+    float mCtrlMoveMultiplier = 0.25f;
 };
 }

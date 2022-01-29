@@ -31,20 +31,20 @@ private:
     void BackupBuffer(DWORD size);
     void ReadDirectoryChanges();
 
-    static constexpr DWORD m_bufferSize = 16384;
+    static constexpr DWORD BufferSize = 16384;
 
-    UINT m_watchFlags;
-    HANDLE m_dirHandle;
-    OVERLAPPED m_overlapped;
-    std::wstring m_path;
-    std::vector<BYTE> m_buffer;
-    std::vector<BYTE> m_backupBuffer;
-    ThreadSafeQueue<std::wstring> m_modifiedFilesQueue;
+    UINT mWatchFlags;
+    HANDLE mDirHandle;
+    OVERLAPPED mOverlapped;
+    std::wstring mPath;
+    std::vector<BYTE> mBuffer;
+    std::vector<BYTE> mBackupBuffer;
+    ThreadSafeQueue<std::wstring> mModifiedFilesQueue;
 };
 
 inline ThreadSafeQueue<std::wstring>& FileWatcher::GetModifiedFilesQueue()
 {
-    return m_modifiedFilesQueue;
+    return mModifiedFilesQueue;
 }
 
 inline void FileWatcher::SleepAlertable()
@@ -55,12 +55,12 @@ inline void FileWatcher::SleepAlertable()
 inline void FileWatcher::ReadDirectoryChanges()
 {
     DWORD dwBytes = 0;
-    BOOL sucess = ReadDirectoryChangesW(m_dirHandle, &m_buffer[0], DWORD(m_buffer.size()), true, m_watchFlags, &dwBytes, &m_overlapped, &DirectoryModificationCallback);
+    BOOL sucess = ReadDirectoryChangesW(mDirHandle, &mBuffer[0], DWORD(mBuffer.size()), true, mWatchFlags, &dwBytes, &mOverlapped, &DirectoryModificationCallback);
 }
 
 inline void FileWatcher::BackupBuffer(DWORD size)
 {
-    memcpy(&m_backupBuffer[0], &m_buffer[0], size);
+    memcpy(&mBackupBuffer[0], &mBuffer[0], size);
 }
 
 inline void FileWatcher::operator()()

@@ -20,34 +20,34 @@ namespace DirectxPlayground
 
 PbrTester::~PbrTester()
 {
-    SafeDelete(m_cameraCb);
-    SafeDelete(m_camera);
-    SafeDelete(m_cameraController);
-    SafeDelete(m_objectCbs);
-    SafeDelete(m_materials);
-    SafeDelete(m_gltfMesh);
-    SafeDelete(m_tonemapper);
-    SafeDelete(m_lightManager);
+    SafeDelete(mCameraCb);
+    SafeDelete(mCamera);
+    SafeDelete(mCameraController);
+    SafeDelete(mObjectCbs);
+    SafeDelete(mMaterials);
+    SafeDelete(mGltfMesh);
+    SafeDelete(mTonemapper);
+    SafeDelete(mLightManager);
 }
 
 void PbrTester::InitResources(RenderContext& context)
 {
     using Microsoft::WRL::ComPtr;
 
-    m_camera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
-    m_cameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
-    m_objectCbs = new UploadBuffer(*context.Device, sizeof(InstanceBuffers), true, context.FramesCount);
-    m_materials = new UploadBuffer(*context.Device, sizeof(InstanceMaterials), true, context.FramesCount);
-    m_cameraController = new CameraController(m_camera, 1.0f, 12.0f);
-    m_lightManager = new LightManager(context);
+    mCamera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
+    mCameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
+    mObjectCbs = new UploadBuffer(*context.Device, sizeof(InstanceBuffers), true, context.FramesCount);
+    mMaterials = new UploadBuffer(*context.Device, sizeof(InstanceMaterials), true, context.FramesCount);
+    mCameraController = new CameraController(mCamera, 1.0f, 12.0f);
+    mLightManager = new LightManager(context);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 5.0f, 5.0f, 5.0f } };
-    m_lightManager->AddLight(l);
+    mLightManager->AddLight(l);
     l.Direction = { -5.0f, 5.0f, 5.0f };
-    m_lightManager->AddLight(l);
+    mLightManager->AddLight(l);
     l.Direction = { 5.0f, -5.0f, 5.0f };
-    m_lightManager->AddLight(l);
+    mLightManager->AddLight(l);
     l.Direction = { -5.0f, -5.0f, 5.0f };
-    m_lightManager->AddLight(l);
+    mLightManager->AddLight(l);
 
     InstanceBuffers transforms;
     for (UINT i = 0; i < 10; ++i)
@@ -55,10 +55,10 @@ void PbrTester::InitResources(RenderContext& context)
         for (UINT j = 0; j < 10; ++j)
         {
             UINT index = i * 10 + j;
-            m_instanceMaterials.Materials[index].Albedo = { 1.0f, 0.0f, 0.0f, 1.0f };
-            m_instanceMaterials.Materials[index].Metallic = 0.1f * i;
-            m_instanceMaterials.Materials[index].Roughness = 0.1f * j;
-            m_instanceMaterials.Materials[index].AO = 1.0f;
+            mInstanceMaterials.Materials[index].Albedo = { 1.0f, 0.0f, 0.0f, 1.0f };
+            mInstanceMaterials.Materials[index].Metallic = 0.1f * i;
+            mInstanceMaterials.Materials[index].Roughness = 0.1f * j;
+            mInstanceMaterials.Materials[index].AO = 1.0f;
 
             float x = -6.25f + j * 1.25f;
             float y = -6.25f + i * 1.25f;
@@ -69,35 +69,35 @@ void PbrTester::InitResources(RenderContext& context)
             transforms.ToWorld[index] = toWorld;
         }
     }
-    m_objectCbs->UploadData(0, transforms.ToWorld);
-    m_materials->UploadData(0, m_instanceMaterials.Materials);
+    mObjectCbs->UploadData(0, transforms.ToWorld);
+    mMaterials->UploadData(0, mInstanceMaterials.Materials);
 
     LoadGeometry(context);
     CreateRootSignature(context);
 
-    m_tonemapper = new Tonemapper();
-    m_tonemapper->InitResources(context, m_commonRootSig.Get());
+    mTonemapper = new Tonemapper();
+    mTonemapper->InitResources(context, mCommonRootSig.Get());
 
     CreatePSOs(context);
 }
 
 void PbrTester::Render(RenderContext& context)
 {
-    m_cameraController->Update();
+    mCameraController->Update();
     UpdateLights(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
-    m_cameraData.ViewProj = TransposeMatrix(m_camera->GetViewProjection());
-    XMFLOAT4 camPos = m_camera->GetPosition();
-    m_cameraData.Position = { camPos.x, camPos.y, camPos.z };
-    m_cameraCb->UploadData(frameIndex, m_cameraData);
-    m_materials->UploadData(frameIndex, m_instanceMaterials.Materials);
+    mCameraData.ViewProj = TransposeMatrix(mCamera->GetViewProjection());
+    XMFLOAT4 camPos = mCamera->GetPosition();
+    mCameraData.Position = { camPos.x, camPos.y, camPos.z };
+    mCameraCb->UploadData(frameIndex, mCameraData);
+    mMaterials->UploadData(frameIndex, mInstanceMaterials.Materials);
 
     auto toRt = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
     context.CommandList->ResourceBarrier(1, &toRt);
 
-    auto rtCpuHandle = context.TexManager->GetRtHandle(context, m_tonemapper->GetRtIndex());
+    auto rtCpuHandle = context.TexManager->GetRtHandle(context, mTonemapper->GetRtIndex());
 
     D3D12_RECT scissorRect = { 0, 0, LONG(context.Width), LONG(context.Height) };
     D3D12_VIEWPORT viewport = {};
@@ -112,20 +112,20 @@ void PbrTester::Render(RenderContext& context)
     context.CommandList->RSSetViewports(1, &viewport);
 
     context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &context.SwapChain->GetDSCPUhandle());
-    context.CommandList->ClearRenderTargetView(rtCpuHandle, m_tonemapper->GetClearColor(), 0, nullptr);
+    context.CommandList->ClearRenderTargetView(rtCpuHandle, mTonemapper->GetClearColor(), 0, nullptr);
     context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-    context.CommandList->SetGraphicsRootSignature(m_commonRootSig.Get());
-    context.CommandList->SetPipelineState(context.PsoManager->GetPso(m_psoName));
+    context.CommandList->SetGraphicsRootSignature(mCommonRootSig.Get());
+    context.CommandList->SetPipelineState(context.PsoManager->GetPso(mPsoName));
     ID3D12DescriptorHeap* descHeap[] = { context.TexManager->GetDescriptorHeap() };
     context.CommandList->SetDescriptorHeaps(1, descHeap);
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), m_cameraCb->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), m_objectCbs->GetFrameDataGpuAddress(0));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), m_materials->GetFrameDataGpuAddress(frameIndex));
-    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), m_lightManager->GetLightsBufferGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), mCameraCb->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), mObjectCbs->GetFrameDataGpuAddress(0));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mMaterials->GetFrameDataGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), mLightManager->GetLightsBufferGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
-    for (const auto mesh : m_gltfMesh->GetMeshes())
+    for (const auto mesh : mGltfMesh->GetMeshes())
     {
         context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
         context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
@@ -133,7 +133,7 @@ void PbrTester::Render(RenderContext& context)
         context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), m_instanceCount, 0, 0, 0);
     }
-    m_tonemapper->Render(context);
+    mTonemapper->Render(context);
 
     auto toPresent = CD3DX12_RESOURCE_BARRIER::Transition(context.SwapChain->GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
     context.CommandList->ResourceBarrier(1, &toPresent);
@@ -142,31 +142,31 @@ void PbrTester::Render(RenderContext& context)
 void PbrTester::LoadGeometry(RenderContext& context)
 {
     auto path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
-    m_gltfMesh = new Model(context, path);
+    mGltfMesh = new Model(context, path);
 }
 
 void PbrTester::CreateRootSignature(RenderContext& context)
 {
-    CreateCommonRootSignature(context.Device, IID_PPV_ARGS(&m_commonRootSig));
-    AUTO_NAME_D3D12_OBJECT(m_commonRootSig);
+    CreateCommonRootSignature(context.Device, IID_PPV_ARGS(&mCommonRootSig));
+    AUTO_NAME_D3D12_OBJECT(mCommonRootSig);
 }
 
 void PbrTester::CreatePSOs(RenderContext& context)
 {
     auto& inputLayout = GetInputLayoutUV_N_T();
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = GetDefaultOpaquePsoDescriptor(m_commonRootSig.Get(), 1);
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = GetDefaultOpaquePsoDescriptor(mCommonRootSig.Get(), 1);
     desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
 
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
-    desc.RTVFormats[0] = m_tonemapper->GetHDRTargetFormat();
+    desc.RTVFormats[0] = mTonemapper->GetHDRTargetFormat();
 
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrTestInstanced.hlsl");
-    context.PsoManager->CreatePso(context, m_psoName, shaderPath, desc);
+    context.PsoManager->CreatePso(context, mPsoName, shaderPath, desc);
 }
 
 void PbrTester::UpdateLights(RenderContext& context)
 {
-    Light* lights = m_lightManager->GetLights();
+    Light* lights = mLightManager->GetLights();
     ImGui::Begin("Lights");
     //for (UINT i = 0; i < 4; ++i)
     //{
@@ -178,7 +178,7 @@ void PbrTester::UpdateLights(RenderContext& context)
     //ImGui::SliderFloat("metallness", &m_instanceMaterials.Materials[0].Metallic, 0.0f, 1.0f);
     ImGui::End();
 
-    m_lightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
+    mLightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
 }
 
 }
