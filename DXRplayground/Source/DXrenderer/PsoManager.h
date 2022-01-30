@@ -20,7 +20,7 @@ public:
     PsoManager& operator= (const PsoManager&) = delete;
 
     void BeginFrame(RenderContext& context);
-    void Shutdown();
+    void Shutdown() const;
     void CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc);
     void CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc);
 
@@ -39,8 +39,8 @@ private:
     };
     static constexpr UINT MaxPso = 4096;
 
-    void CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc);
-    void CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc);
+    void CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc);
+    void CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc);
 
     std::vector<PsoDesc> mPsos;
     std::map<std::string, PsoDesc*> mPsoMap;

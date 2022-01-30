@@ -23,8 +23,7 @@ PsoManager::PsoManager()
     bool csSucceeded = Shader::CompileFromFile(shaderPath, L"cs", L"cs_6_6", mCsFallback);
 
     assert(vsSucceeded && psSucceeded && csSucceeded && "Fallback compilation failed");
-
-    std::wstring s = LR"()";
+    
     mShaderWatcher = new FileWatcher(ASSETS_DIR_W + std::wstring(L"Shaders")); // Will be deleted in DirectoryModificationCallback in FileWatcher. In if (errorCode == ERROR_OPERATION_ABORTED)
     std::thread shaderWatcherThread(std::ref(*mShaderWatcher));
     shaderWatcherThread.detach();
@@ -60,7 +59,7 @@ void PsoManager::BeginFrame(RenderContext& context)
     }
 }
 
-void PsoManager::Shutdown()
+void PsoManager::Shutdown() const
 {
     mShaderWatcher->Shutdown();
 }
@@ -108,7 +107,7 @@ ID3D12PipelineState* PsoManager::GetPso(const std::string& name)
     return nullptr;
 }
 
-void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc)
+void PsoManager::CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc)
 {
     Shader vs;
     bool vsSucceeded = Shader::CompileFromFile(shaderPath, L"vs", L"vs_6_6", vs);
@@ -119,7 +118,7 @@ void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, vo
     ThrowIfFailed(context.Device->CreateGraphicsPipelineState(&desc, psoRiid, psoPpv));
 }
 
-void PsoManager::CompilePsoWithShader(RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
+void PsoManager::CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
 {
     Shader cs;
     bool succeeded = Shader::CompileFromFile(shaderPath, L"cs", L"cs_6_6", cs);
