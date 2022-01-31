@@ -23,16 +23,16 @@ private:
     struct
     {
         DirectX::XMFLOAT4 EqMapCubeMapWH{};
-    } mGraphicsData;
+    } mGraphicsData {};
     struct
     {
         float size;
-    } mConvolutionData;
+    } mConvolutionData {};
 
-    void CreateRootSig(RenderContext& ctx);
+    void CreateRootSig(const RenderContext& ctx);
     void CreateDescriptorHeap(RenderContext& ctx);
-    void CreateViews(RenderContext& ctx);
-    void Convolute(RenderContext& ctx);
+    void CreateViews(RenderContext& ctx) const;
+    void Convolute(RenderContext& ctx) const;
     
     TexResourceData mCubemapData;
     TexResourceData mEnvMapData;
