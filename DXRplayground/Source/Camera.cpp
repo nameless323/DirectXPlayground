@@ -23,7 +23,8 @@ void Camera::SetWorldPosition(const XMFLOAT3& pos, bool updateViewAndVP /* = tru
     if (updateViewAndVP)
     {
         XMMATRIX cameraToWorld = XMLoadFloat4x4(&mToWorld);
-        XMMATRIX newView = XMMatrixInverse(&XMMatrixDeterminant(cameraToWorld), cameraToWorld);
+        XMVECTOR det = XMMatrixDeterminant(cameraToWorld);
+        XMMATRIX newView = XMMatrixInverse(&det, cameraToWorld);
         XMFLOAT4X4 newViewStored;
         XMStoreFloat4x4(&newViewStored, newView);
         SetView(newViewStored, mToWorld, true);

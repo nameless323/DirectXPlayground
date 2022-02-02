@@ -16,7 +16,7 @@ namespace DirectxPlayground
 class FileWatcher
 {
 public:
-    FileWatcher(std::wstring path, UINT watchFlags = FILE_NOTIFY_CHANGE_LAST_WRITE);
+    FileWatcher(std::wstring path, UINT watchFlags = FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION | FILE_NOTIFY_CHANGE_FILE_NAME);
 
     void Shutdown();
     void operator()();

@@ -52,7 +52,8 @@ void Tonemapper::Render(RenderContext& ctx)
     ctx.CommandList->RSSetScissorRects(1, &scissorRect);
     ctx.CommandList->RSSetViewports(1, &viewport);
 
-    ctx.CommandList->OMSetRenderTargets(1, &ctx.SwapChain->GetCurrentBackBufferCPUhandle(ctx), false, nullptr);
+    auto lValue = ctx.SwapChain->GetCurrentBackBufferCPUhandle(ctx);
+    ctx.CommandList->OMSetRenderTargets(1, &lValue, false, nullptr);
 
     ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(mPsoName));
     ctx.CommandList->SetGraphicsRootConstantBufferView(0, mHdrRtBuffer->GetFrameDataGpuAddress(frameIndex));
