@@ -84,7 +84,8 @@ void CameraController::Update()
 
 void CameraController::UpdateCameraMatrices(float xRotation, float yRotation, const XMFLOAT3& localOffsets)
 {
-    XMVECTOR camRight = XMLoadFloat4(&mCamera->GetRight());
+    XMFLOAT4 camRightV = mCamera->GetRight();
+    XMVECTOR camRight = XMLoadFloat4(&camRightV);
 
     XMMATRIX pitch = XMMatrixRotationAxis(camRight, yRotation);
     XMMATRIX yaw = XMMatrixRotationY(xRotation);
@@ -103,7 +104,8 @@ void CameraController::UpdateCameraMatrices(float xRotation, float yRotation, co
     storedToWorld(3, 1) = storedOffset.y;
     storedToWorld(3, 2) = storedOffset.z;
     cameraToWorld = XMLoadFloat4x4(&storedToWorld);
-    XMMATRIX newView = XMMatrixInverse(&XMMatrixDeterminant(cameraToWorld), cameraToWorld);
+    XMVECTOR det = XMMatrixDeterminant(cameraToWorld);
+    XMMATRIX newView = XMMatrixInverse(&det, cameraToWorld);
     XMFLOAT4X4 newViewStored;
     XMStoreFloat4x4(&newViewStored, newView);
 

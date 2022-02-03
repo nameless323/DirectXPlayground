@@ -111,7 +111,8 @@ void PbrTester::Render(RenderContext& context)
     context.CommandList->RSSetScissorRects(1, &scissorRect);
     context.CommandList->RSSetViewports(1, &viewport);
 
-    context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &context.SwapChain->GetDSCPUhandle());
+    auto lValue = context.SwapChain->GetDSCPUhandle();
+    context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &lValue);
     context.CommandList->ClearRenderTargetView(rtCpuHandle, mTonemapper->GetClearColor(), 0, nullptr);
     context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 

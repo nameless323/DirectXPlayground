@@ -70,7 +70,8 @@ void MipGenerator::Flush(RenderContext& ctx)
     {
         ctx.CommandList->SetComputeRootConstantBufferView(GetCBRootParamIndex(0), mConstantBuffers->GetFrameDataGpuAddress(i));
         ctx.CommandList->Dispatch(DISPATCH_TG_COUNT_2D(mQueuedMips[i].Width, 32, mQueuedMips[i].Height, 32));
-        ctx.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(currTex));
+        auto uav = CD3DX12_RESOURCE_BARRIER::UAV(currTex);
+        ctx.CommandList->ResourceBarrier(1, &uav);
 
         --dispatchesLeft;
         if (dispatchesLeft == 0 && i < mQueuedMipsToGenerateNumber - 1)

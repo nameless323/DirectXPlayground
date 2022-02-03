@@ -82,7 +82,8 @@ TexResourceData TextureManager::CreateTexture(RenderContext& ctx, const std::str
     texDesc.SampleDesc.Quality = 0;
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    ThrowIfFailed(ctx.Device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    ThrowIfFailed(ctx.Device->CreateCommittedResource(&heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &texDesc,
         resource.GetCurrentState(),
@@ -145,7 +146,8 @@ DirectxPlayground::TexResourceData TextureManager::CreateTexture(RenderContext& 
 {
     ResourceDX resource{ initialState };
 
-    ThrowIfFailed(ctx.Device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    ThrowIfFailed(ctx.Device->CreateCommittedResource(&heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &desc,
         initialState,
@@ -195,7 +197,8 @@ DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& 
     texDesc.SampleDesc.Quality = 0;
     texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 
-    ThrowIfFailed(ctx.Device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    ThrowIfFailed(ctx.Device->CreateCommittedResource(&heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &texDesc,
         D3D12_RESOURCE_STATE_COMMON,
@@ -253,7 +256,8 @@ UINT TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC des
     assert(i == 0);
     i++;
 
-    ThrowIfFailed(ctx.Device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    ThrowIfFailed(ctx.Device->CreateCommittedResource(&heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &desc,
         mRtResource.GetCurrentState(),
@@ -390,7 +394,8 @@ TexResourceData TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC
 {
     ResourceDX resource{ D3D12_RESOURCE_STATE_RENDER_TARGET };
 
-    ThrowIfFailed(ctx.Device->CreateCommittedResource(&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+    CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
+    ThrowIfFailed(ctx.Device->CreateCommittedResource(&heapProperties,
         D3D12_HEAP_FLAG_NONE,
         &desc,
         resource.GetCurrentState(),

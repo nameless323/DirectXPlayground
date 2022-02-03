@@ -298,7 +298,9 @@ void RenderPipeline::InitImGui()
 void RenderPipeline::RenderImGui()
 {
     GPU_SCOPED_EVENT(mContext, "ImGui");
-    mContext.CommandList->OMSetRenderTargets(1, &mSwapChain.GetCurrentBackBufferCPUhandle(mContext), false, &mSwapChain.GetDSCPUhandle());
+    D3D12_CPU_DESCRIPTOR_HANDLE h = mSwapChain.GetDSCPUhandle();
+    auto handle = mSwapChain.GetCurrentBackBufferCPUhandle(mContext);
+    mContext.CommandList->OMSetRenderTargets(1, &handle, false, &h);
 
     ID3D12DescriptorHeap* descHeap[] = { mImguiTextureManager->GetHeap() };
     mContext.CommandList->SetDescriptorHeaps(1, descHeap);

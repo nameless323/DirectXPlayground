@@ -150,7 +150,8 @@ void RtTester::DepthPrepass(RenderContext& context)
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
     auto rtCpuHandle = context.TexManager->GetRtHandle(context, mTonemapper->GetRtIndex());
 
-    context.CommandList->OMSetRenderTargets(0, nullptr, false, &context.SwapChain->GetDSCPUhandle());
+    auto lValue = context.SwapChain->GetDSCPUhandle();
+    context.CommandList->OMSetRenderTargets(0, nullptr, false, &lValue);
     context.CommandList->ClearDepthStencilView(context.SwapChain->GetDSCPUhandle(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     context.CommandList->SetGraphicsRootSignature(mCommonRootSig.Get());
@@ -187,7 +188,8 @@ void RtTester::RenderForwardObjects(RenderContext& context)
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
     auto rtCpuHandle = context.TexManager->GetRtHandle(context, mTonemapper->GetRtIndex());
 
-    context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &context.SwapChain->GetDSCPUhandle());
+    auto lValue = context.SwapChain->GetDSCPUhandle();
+    context.CommandList->OMSetRenderTargets(1, &rtCpuHandle, false, &lValue);
     context.CommandList->ClearRenderTargetView(rtCpuHandle, mTonemapper->GetClearColor(), 0, nullptr);
 
     context.CommandList->SetGraphicsRootSignature(mCommonRootSig.Get());

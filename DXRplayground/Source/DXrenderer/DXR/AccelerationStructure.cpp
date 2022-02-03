@@ -16,8 +16,10 @@ void AccelerationStructure::Build(RenderContext& context, UnorderedAccessBuffer*
     mBuildDesc.DestAccelerationStructureData = mBuffer->GetGpuAddress();
 
     context.CommandList->BuildRaytracingAccelerationStructure(&mBuildDesc, 0, nullptr);
-    if (setUavBarrier)
-        context.CommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::UAV(mBuffer->GetResource()));
+    if (setUavBarrier) {
+      D3D12_RESOURCE_BARRIER b = CD3DX12_RESOURCE_BARRIER::UAV(mBuffer->GetResource());
+      context.CommandList->ResourceBarrier(1, &b);
+    }
     mIsBuilt = true;
 }
 
