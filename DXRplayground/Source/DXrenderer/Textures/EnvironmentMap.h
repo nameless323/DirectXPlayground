@@ -26,7 +26,7 @@ private:
     } mGraphicsData {};
     struct
     {
-        float size;
+        DirectX::XMFLOAT2 size;
     } mConvolutionData {};
 
     void CreateRootSig(const RenderContext& ctx);

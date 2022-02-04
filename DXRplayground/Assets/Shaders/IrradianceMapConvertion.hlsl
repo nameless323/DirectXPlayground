@@ -8,13 +8,13 @@ SamplerState LinearClampSampler : register(s0);
 
 struct Data
 {
-    float size;
+    float2 sizeDstSrc;
 };
 ConstantBuffer<Data> data : register(b0);
 
-float3 RemapToXYZ(uint3 tId)
+float3 RemapToXYZ(uint3 tId, float size)
 {
-    float2 coord = tId.xy / data.size;
+    float2 coord = tId.xy / size;
     uint face = uint(tId.z);
     coord = coord * 2.0f - 1.0f;
 
@@ -31,39 +31,32 @@ float3 RemapToXYZ(uint3 tId)
         res = float3(coord.xy, 1.0f);
     else
         res = float3(-coord.x, coord.y, -1.0f);
+    res.y *= -1.0f;
     return res;
 }
 
 [numthreads(32, 32, 1)]
 void cs(uint3 tId : SV_DispatchThreadID)
 {
-    float3 N = normalize(RemapToXYZ(tId));
-    N.y *= -1.0f;
-    float3 up = float3(0.0f, 1.0f, 0.0f);
-    float ndu = dot(N, up);
-
-    if (ndu == 1.0f || ndu == -1.0f)
-        up = float3(1.0f, 0.0f, 0.0f);
-    float3 right = normalize(cross(up, N));
-    up = cross(N, right);
-
-    float delta = 0.025f;
-    float numSamples = 0.0f;
-
+    float3 N = normalize(RemapToXYZ(tId, data.sizeDstSrc.x));
     float3 irradiance = float3(0.0f, 0.0f, 0.0f);
-    for (float phi = 0.0f; phi < PI * 2.0f; phi += delta)
+    float w = 0;
+    for (uint i = 0; i < data.sizeDstSrc.y; ++i)
     {
-        for (float theta = 0.0f; theta < PI_2; theta += delta)
+        for (uint j = 0; j < data.sizeDstSrc.y; ++j)
         {
-            float3 tangentSample = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-            float3 sampleW = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N; // yeah to matrix
-
-            irradiance += envMap.SampleLevel(LinearClampSampler, sampleW, 0).rgb * cos(theta) * sin(theta);
-            ++numSamples;
+            for (uint f = 0; f < 6; ++f)
+            {
+                float3 dir = normalize(RemapToXYZ(uint3(i, j, f), data.sizeDstSrc.y));
+                float dirDotN = dot(N, dir);
+                if (dirDotN <= 0.0)
+                    continue;
+                irradiance += envMap.SampleLevel(LinearClampSampler, dir, 0).rgb * dirDotN;
+                w += dirDotN;
+            }
         }
     }
-
-    irradiance = PI * irradiance / numSamples;
-    irrMap[tId] = float4(irradiance, 1.0f); //envMap.SampleLevel(LinearClampSampler, N, 0);
+    irradiance /= w;
+    irrMap[tId] = float4(irradiance, 1.0f);// envMap.SampleLevel(LinearClampSampler, N, 0).rgba;// float4(irradiance, 1.0f); //envMap.SampleLevel(LinearClampSampler, N, 0);
     //irrMap[tId] = float4(N, 1);
 }

@@ -37,7 +37,8 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     mGraphicsData.EqMapCubeMapWH.z = static_cast<float>(mCubemapData.Resource->Get()->GetDesc().Width);
     mGraphicsData.EqMapCubeMapWH.w = static_cast<float>(mCubemapData.Resource->Get()->GetDesc().Height);
 
-    mConvolutionData.size = static_cast<float>(irradianceMapSize);
+    mConvolutionData.size.x = static_cast<float>(irradianceMapSize);
+    mConvolutionData.size.y = static_cast<float>(cubemapSize);
 
     CreateViews(ctx);
 
