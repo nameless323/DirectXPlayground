@@ -20,8 +20,8 @@ inline std::wstring GetCurrentCaptureName()
 
 inline void InitGpuProfiler(HWND hwnd)
 {
-    PIXLoadLatestWinPixGpuCapturerLibrary();
-    PIXSetTargetWindow(hwnd);
+    //PIXLoadLatestWinPixGpuCapturerLibrary();
+    //PIXSetTargetWindow(hwnd);
 }
 
 class ScopedGpuEvent
