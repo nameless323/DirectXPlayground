@@ -29,7 +29,7 @@ private:
     static constexpr UINT m_maxTextureMipsInFrame = 1024U;
 
     void CreateUavHeap(RenderContext& ctx);
-    void CreatePso(RenderContext& ctx);
+    void CreatePso(RenderContext& ctx) const;
     UINT CreateMipViews(RenderContext& ctx, ResourceDX* resource);
 
     std::vector<MipGenData> mQueuedMips;

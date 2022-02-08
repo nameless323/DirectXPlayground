@@ -112,7 +112,7 @@ void MipGenerator::CreateUavHeap(RenderContext& ctx)
     }
 }
 
-void MipGenerator::CreatePso(RenderContext& ctx)
+void MipGenerator::CreatePso(RenderContext& ctx) const
 {
     D3D12_COMPUTE_PIPELINE_STATE_DESC desc = GetDefaultComputePsoDescriptor(mCommonRootSig.Get());
 
