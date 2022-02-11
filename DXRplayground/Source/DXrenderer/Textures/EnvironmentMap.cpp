@@ -12,7 +12,9 @@ namespace DirectxPlayground
 
 EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT cubemapSize, UINT irradianceMapSize)
     : mDataBuffer(new UploadBuffer(*ctx.Device, sizeof(mGraphicsData), true, 1))
-    , mConvolutionDataBuffer(new UploadBuffer(*ctx.Device, sizeof(mConvolutionData), true, 1)), mCubemapSize(cubemapSize)
+    , mConvolutionDataBuffer(new UploadBuffer(*ctx.Device, sizeof(mConvolutionData), true, 1))
+    , mDownsampleDataBuffer(new UploadBuffer(*ctx.Device, sizeof(mDownsampleData), true, 1))
+    , mCubemapSize(cubemapSize)
     , mIrradianceMapSize(irradianceMapSize)
 {
     CreateRootSig(ctx);
@@ -25,12 +27,16 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//IrradianceMapConvertion.hlsl");
     ctx.PsoManager->CreatePso(ctx, mConvolutionPsoName, shaderPath, desc);
 
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//DownsampleEnvMap.hlsl");
+    ctx.PsoManager->CreatePso(ctx, mDownsamplePsoName, shaderPath, desc);
+
     mEnvMapData = ctx.TexManager->CreateTexture(ctx, path, true);
     mEnvMapData.Resource->SetName(L"EnvEquirectMap");
     mCubemapData = ctx.TexManager->CreateCubemap(ctx, mCubemapSize, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
     mCubemapData.Resource->SetName(L"EnvCubemap");
     mIrradianceMapData = ctx.TexManager->CreateCubemap(ctx, mIrradianceMapSize, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
     mIrradianceMapData.Resource->SetName(L"IrradianceMap");
+    mDownsampledCubeData = ctx.TexManager->CreateCubemap(ctx, DownsampledCubeSize, DXGI_FORMAT_R32G32B32A32_FLOAT, true);
 
     mGraphicsData.EqMapCubeMapWH.x = static_cast<float>(mEnvMapData.Resource->Get()->GetDesc().Width);
     mGraphicsData.EqMapCubeMapWH.y = static_cast<float>(mEnvMapData.Resource->Get()->GetDesc().Height);
@@ -38,18 +44,22 @@ EnvironmentMap::EnvironmentMap(RenderContext& ctx, const std::string& path, UINT
     mGraphicsData.EqMapCubeMapWH.w = static_cast<float>(mCubemapData.Resource->Get()->GetDesc().Height);
 
     mConvolutionData.size.x = static_cast<float>(irradianceMapSize);
-    mConvolutionData.size.y = static_cast<float>(cubemapSize);
+    mConvolutionData.size.y = static_cast<float>(DownsampledCubeSize);
+
+    mDownsampleData.iterCount = cubemapSize / DownsampledCubeSize;
 
     CreateViews(ctx);
 
     mDataBuffer->UploadData(0, mGraphicsData);
     mConvolutionDataBuffer->UploadData(0, mConvolutionData);
+    mDownsampleDataBuffer->UploadData(0, mDownsampleData);
 }
 
 EnvironmentMap::~EnvironmentMap()
 {
     SafeDelete(mDataBuffer);
     SafeDelete(mConvolutionDataBuffer);
+    SafeDelete(mDownsampleDataBuffer);
 }
 
 void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
@@ -60,10 +70,12 @@ void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
     D3D12_RESOURCE_STATES cubeState = mCubemapData.Resource->GetCurrentState();
     D3D12_RESOURCE_STATES texState = mEnvMapData.Resource->GetCurrentState();
     D3D12_RESOURCE_STATES irrMapState = mIrradianceMapData.Resource->GetCurrentState();
-    std::array<CD3DX12_RESOURCE_BARRIER, 3> barriers;
+    D3D12_RESOURCE_STATES downsampledState = mDownsampledCubeData.Resource->GetCurrentState();
+    std::array<CD3DX12_RESOURCE_BARRIER, 4> barriers;
     barriers[0] = mCubemapData.Resource->GetBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     barriers[1] = mEnvMapData.Resource->GetBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
     barriers[2] = mIrradianceMapData.Resource->GetBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    barriers[3] = mDownsampledCubeData.Resource->GetBarrier(D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
     ctx.CommandList->ResourceBarrier(static_cast<UINT>(barriers.size()), barriers.data());
 
     ctx.CommandList->SetComputeRootSignature(mRootSig.Get());
@@ -83,12 +95,16 @@ void EnvironmentMap::ConvertToCubemap(RenderContext& ctx)
     barriers[1] = mEnvMapData.Resource->GetBarrier(texState);
     ctx.CommandList->ResourceBarrier(2U, barriers.data());
 
+    Downsample(ctx);
+    barriers[0] = mCubemapData.Resource->GetBarrier(cubeState);
+    barriers[1] = mDownsampledCubeData.Resource->GetBarrier(D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+    ctx.CommandList->ResourceBarrier(2U, barriers.data());
+
     Convolute(ctx);
 
-    barriers[0] = mCubemapData.Resource->GetBarrier(cubeState);
+    barriers[0] = mDownsampledCubeData.Resource->GetBarrier(downsampledState);
     barriers[1] = mIrradianceMapData.Resource->GetBarrier(irrMapState);
     ctx.CommandList->ResourceBarrier(2U, barriers.data());
-    ctx.Pipeline->Flush();
 }
 
 bool EnvironmentMap::IsConvertedToCubemap() const
@@ -156,10 +172,13 @@ void EnvironmentMap::CreateDescriptorHeap(RenderContext& ctx)
     // uav envmap target
     // srv envmap src
     // irradiance map target
+    // downsampled map src
+    // downsample map dst
+    // envmap map array
     D3D12_DESCRIPTOR_HEAP_DESC heapDesc{};
     heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heapDesc.NumDescriptors = 4;
+    heapDesc.NumDescriptors = 7;
     ThrowIfFailed(ctx.Device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&mHeap)));
     NAME_D3D12_OBJECT(mHeap, L"EnvMap heap");
     CD3DX12_CPU_DESCRIPTOR_HANDLE handle(mHeap->GetCPUDescriptorHandleForHeapStart());
@@ -188,6 +207,24 @@ void EnvironmentMap::CreateDescriptorHeap(RenderContext& ctx)
     handle.Offset(static_cast<int>(ctx.CbvSrvUavDescriptorSize));
 
     ctx.Device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, handle);
+
+    handle.Offset(static_cast<int>(ctx.CbvSrvUavDescriptorSize));
+
+    ctx.Device->CreateShaderResourceView(nullptr, &src, handle);
+
+    handle.Offset(static_cast<int>(ctx.CbvSrvUavDescriptorSize));
+    ctx.Device->CreateUnorderedAccessView(nullptr, nullptr, &viewDesc, handle);
+
+    handle.Offset(static_cast<int>(ctx.CbvSrvUavDescriptorSize));
+    
+    src.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    src.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    src.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    src.Texture2DArray.MipLevels = 1;
+    src.Texture2DArray.MostDetailedMip = 0;
+    src.Texture2DArray.ResourceMinLODClamp = 0.0f;
+    src.Texture2DArray.ArraySize = 6;
+    ctx.Device->CreateShaderResourceView(nullptr, &src, handle);
 }
 
 void EnvironmentMap::CreateViews(RenderContext& ctx) const
@@ -225,20 +262,57 @@ void EnvironmentMap::CreateViews(RenderContext& ctx) const
     handle.Offset(ctx.CbvSrvUavDescriptorSize);
 
     ctx.Device->CreateUnorderedAccessView(mIrradianceMapData.Resource->Get(), nullptr, &viewDesc, handle);
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
+
+    envCubeRDesc = mDownsampledCubeData.Resource->Get()->GetDesc();
+    envCubeRView.Format = envCubeRDesc.Format;
+    envCubeRView.TextureCube.MipLevels = envCubeRDesc.MipLevels;
+    ctx.Device->CreateShaderResourceView(mDownsampledCubeData.Resource->Get(), &envCubeRView, handle);
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
+
+    ctx.Device->CreateUnorderedAccessView(mDownsampledCubeData.Resource->Get(), nullptr, &viewDesc, handle);
+
+    handle.Offset(ctx.CbvSrvUavDescriptorSize);
+    D3D12_SHADER_RESOURCE_VIEW_DESC cubeArrayView{};
+    cubeArrayView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    cubeArrayView.Format = envCubeRDesc.Format;
+    cubeArrayView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    cubeArrayView.Texture2DArray.MipLevels = 1;
+    cubeArrayView.Texture2DArray.MostDetailedMip = 0;
+    cubeArrayView.Texture2DArray.ResourceMinLODClamp = 0.0f;
+    cubeArrayView.Texture2DArray.ArraySize = 6;
+    ctx.Device->CreateShaderResourceView(mCubemapData.Resource->Get(), &cubeArrayView, handle);
 };
 
 void EnvironmentMap::Convolute(RenderContext& ctx) const
 {
     GPU_SCOPED_EVENT(ctx, "Convolution");
+
     ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(mConvolutionPsoName));
     ctx.CommandList->SetComputeRootConstantBufferView(0, mConvolutionDataBuffer->GetFrameDataGpuAddress(0));
     CD3DX12_GPU_DESCRIPTOR_HANDLE tableHandle(mHeap->GetGPUDescriptorHandleForHeapStart());
-    tableHandle.Offset(ctx.CbvSrvUavDescriptorSize * 2);
+    tableHandle.Offset(ctx.CbvSrvUavDescriptorSize * 4);
     ctx.CommandList->SetComputeRootDescriptorTable(1, tableHandle);
-    tableHandle.Offset(ctx.CbvSrvUavDescriptorSize);
+    tableHandle = mHeap->GetGPUDescriptorHandleForHeapStart();
+    tableHandle.Offset(ctx.CbvSrvUavDescriptorSize * 3);
     ctx.CommandList->SetComputeRootDescriptorTable(2, tableHandle);
 
     ctx.CommandList->Dispatch(static_cast<UINT>(mIrradianceMapData.Resource->Get()->GetDesc().Width / 32), static_cast<UINT>(mIrradianceMapData.Resource->Get()->GetDesc().Height / 32), 6);
 }
 
+void EnvironmentMap::Downsample(RenderContext& ctx) const
+{
+    GPU_SCOPED_EVENT(ctx, "Downsample_Cubemap");
+    ctx.CommandList->SetPipelineState(ctx.PsoManager->GetPso(mDownsamplePsoName));
+    ctx.CommandList->SetComputeRootConstantBufferView(0, mDownsampleDataBuffer->GetFrameDataGpuAddress(0));
+    CD3DX12_GPU_DESCRIPTOR_HANDLE tableHandle(mHeap->GetGPUDescriptorHandleForHeapStart());
+    tableHandle.Offset(ctx.CbvSrvUavDescriptorSize * 6);
+    ctx.CommandList->SetComputeRootDescriptorTable(1, tableHandle);
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE tableHandle2(mHeap->GetGPUDescriptorHandleForHeapStart());
+    tableHandle2.Offset(ctx.CbvSrvUavDescriptorSize * 5);
+    ctx.CommandList->SetComputeRootDescriptorTable(2, tableHandle2);
+
+    ctx.CommandList->Dispatch(static_cast<UINT>(mDownsampledCubeData.Resource->Get()->GetDesc().Width / 32), static_cast<UINT>(mDownsampledCubeData.Resource->Get()->GetDesc().Height / 32), 6);
+}
 }

@@ -48,11 +48,14 @@ void cs(uint3 tId : SV_DispatchThreadID)
             for (uint f = 0; f < 6; ++f)
             {
                 float3 dir = normalize(RemapToXYZ(uint3(i, j, f), data.sizeDstSrc.y));
-                float dirDotN = dot(N, dir);
-                if (dirDotN <= 0.0)
+                float cosAngle = dot(N, dir);
+                if (cosAngle <= 0.0)
                     continue;
-                irradiance += envMap.SampleLevel(LinearClampSampler, dir, 0).rgb * dirDotN;
-                w += dirDotN;
+                // todo: take solid angle into account (sin)
+                float sinAngle = 1;// sqrt(1 - cosAngle * cosAngle);
+                float currWeight = sinAngle * cosAngle;
+                irradiance += clamp(envMap.SampleLevel(LinearClampSampler, dir, 0).rgb, 0.0f, 2.0f) * cosAngle * sinAngle;
+                w += (cosAngle * sinAngle);
             }
         }
     }

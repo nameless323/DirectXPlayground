@@ -44,7 +44,7 @@ void GltfViewer::InitResources(RenderContext& context)
     mLightManager = new LightManager(context);
 
     auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
-    mEnvMap = new EnvironmentMap(context, path, 2048, 256);
+    mEnvMap = new EnvironmentMap(context, path, 2048, 64);
     Light l = { { 300.0f, 300.0f, 300.0f, 1.0f}, { 0.0f, 0.0f, 0.0f } };
     mDirectionalLightInd = mLightManager->AddLight(l);
 
@@ -63,7 +63,6 @@ void GltfViewer::InitResources(RenderContext& context)
 void GltfViewer::Render(RenderContext& context)
 {
     GPU_SCOPED_EVENT(context, "Render frame");
-    mEnvMap->ConvertToCubemap(context);
     mCameraController->Update();
     UpdateLights(context);
 
