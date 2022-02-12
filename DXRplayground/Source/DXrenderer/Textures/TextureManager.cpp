@@ -21,8 +21,8 @@ namespace DirectxPlayground
 {
 namespace
 {
-static constexpr UINT MaxImguiTexturesCount = 128;
-static constexpr UINT MaxResources = 32768;
+constexpr UINT MaxImguiTexturesCount = 128;
+constexpr UINT MaxResources = 32768;
 }
 
 TextureManager::TextureManager(RenderContext& ctx)
@@ -142,7 +142,7 @@ TexResourceData TextureManager::CreateTexture(RenderContext& ctx, const std::str
     return res;
 }
 
-DirectxPlayground::TexResourceData TextureManager::CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState)
+TexResourceData TextureManager::CreateTexture(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_RESOURCE_STATES initialState)
 {
     ResourceDX resource{ initialState };
 
@@ -180,7 +180,7 @@ DirectxPlayground::TexResourceData TextureManager::CreateTexture(RenderContext& 
     return res;
 }
 
-DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& ctx, UINT size, DXGI_FORMAT format, bool allowUAV /*= false*/, const byte* data /*= nullptr*/)
+TexResourceData TextureManager::CreateCubemap(RenderContext& ctx, UINT size, DXGI_FORMAT format, bool allowUAV /*= false*/, const byte* data /*= nullptr*/)
 {
     ResourceDX resource{ D3D12_RESOURCE_STATE_COMMON };
 
@@ -224,7 +224,7 @@ DirectxPlayground::TexResourceData TextureManager::CreateCubemap(RenderContext& 
     ctx.Device->CreateShaderResourceView(resource.Get(), &viewDesc, handle);
 
     TexResourceData res{};
-    res.SRVOffset = RenderContext::CubemapsRangeStarts + mCurrentCubemapCount;
+    res.SRVOffset = mCurrentCubemapCount;
     res.ResourceIdx = static_cast<UINT>(mResources.size()) - 1;
     ++mCurrentCubemapCount;
 

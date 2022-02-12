@@ -38,6 +38,7 @@ private:
     Microsoft::WRL::ComPtr<ID3D12RootSignature> mCommonRootSig; // Move to ctx. It's common after all
     UploadBuffer* mCameraCb = nullptr;
     UploadBuffer* mObjectCb = nullptr;
+    UploadBuffer* mEnvCb = nullptr;
     const std::string mPsoName = "Opaque_PBR";
     const std::string mSkyboxPsoName = "Skybox";
 

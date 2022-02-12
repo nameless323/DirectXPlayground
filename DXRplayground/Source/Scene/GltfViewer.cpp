@@ -31,6 +31,7 @@ GltfViewer::~GltfViewer()
     SafeDelete(mTonemapper);
     SafeDelete(mLightManager);
     SafeDelete(mEnvMap);
+    SafeDelete(mEnvCb);
 }
 
 void GltfViewer::InitResources(RenderContext& context)
@@ -40,6 +41,7 @@ void GltfViewer::InitResources(RenderContext& context)
     mCamera = new Camera(1.0472f, 1.77864583f, 0.001f, 1000.0f);
     mCameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
     mObjectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4), true, context.FramesCount);
+    mEnvCb = new UploadBuffer(*context.Device, sizeof(EnvironmentData), true, 1);
     mCameraController = new CameraController(mCamera);
     mLightManager = new LightManager(context);
 
@@ -58,13 +60,16 @@ void GltfViewer::InitResources(RenderContext& context)
 
     context.TexManager->FlushMipsQueue(context);
     mEnvMap->ConvertToCubemap(context);
+
+    EnvironmentData envData{ mEnvMap->GetCubemapIndex(), mEnvMap->GetIrradianceMapIndex() };
+    mEnvCb->UploadData(0, envData);
 }
 
 void GltfViewer::Render(RenderContext& context)
 {
     GPU_SCOPED_EVENT(context, "Render frame");
     mCameraController->Update();
-    UpdateLights(context);
+    UpdateLights(context); 
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
@@ -108,6 +113,8 @@ void GltfViewer::Render(RenderContext& context)
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), mCameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), mObjectCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), mLightManager->GetLightsBufferGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(5), mEnvCb->GetFrameDataGpuAddress(0));
+
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
     CD3DX12_GPU_DESCRIPTOR_HANDLE cubeHeapBegin(context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());

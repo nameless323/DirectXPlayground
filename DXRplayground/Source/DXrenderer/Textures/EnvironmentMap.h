@@ -10,6 +10,14 @@ namespace DirectxPlayground
 class UnorderedAccessBuffer;
 class UploadBuffer;
 
+struct EnvironmentData
+{
+    UINT CubemapIndex;
+    UINT IrradianceMapIndex;
+    UINT Pad0;
+    UINT Pad1;
+};
+
 class EnvironmentMap
 {
 public:
@@ -18,6 +26,9 @@ public:
 
     void ConvertToCubemap(RenderContext& ctx);
     bool IsConvertedToCubemap() const;
+
+    UINT GetCubemapIndex() const;
+    UINT GetIrradianceMapIndex() const;
 
 private:
     static constexpr UINT DownsampledCubeSize = 64;
@@ -57,5 +68,15 @@ private:
     UINT mCubemapSize = 0;
     UINT mIrradianceMapSize = 0;
 };
+
+inline UINT EnvironmentMap::GetIrradianceMapIndex() const
+{
+    return mIrradianceMapData.SRVOffset;
+}
+
+inline UINT EnvironmentMap::GetCubemapIndex() const
+{
+    return mCubemapData.SRVOffset;
+}
 
 }

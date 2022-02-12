@@ -9,6 +9,15 @@ struct CbCamera
     float Padding;
 };
 ConstantBuffer<CbCamera> cbCamera : register(b0);
+
+struct CbCubemaps
+{
+    uint CubemapIndex;
+    uint IrradianceMapIndex;
+    uint pad0;
+    uint pad1;
+};
+ConstantBuffer<CbCubemaps> cbCubemaps : register(b5);
 TextureCube<float4> Cubemaps[100] : register(t10000);
 SamplerState LinearClampSampler : register(s0);
 
@@ -37,7 +46,7 @@ vOut vs(vIn vin)
 
 float4 ps(vOut pin) : SV_Target
 {
-    float4 col = Cubemaps[0].Sample(LinearClampSampler, normalize(pin.lPos));
+    float4 col = Cubemaps[cbCubemaps.CubemapIndex].Sample(LinearClampSampler, normalize(pin.lPos));
 
     return col;
 }
