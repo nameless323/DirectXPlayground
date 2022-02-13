@@ -33,13 +33,22 @@ struct CbLight
     Light Lights[128];
     uint UsedLights;
 };
+struct CbCubemaps
+{
+    uint CubemapIndex;
+    uint IrradianceMapIndex;
+    uint pad0;
+    uint pad1;
+};
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
 ConstantBuffer<CbObject> cbObject : register(b1);
 ConstantBuffer<CbMaterial> cbMaterial : register(b2);
 ConstantBuffer<CbLight> cbLight : register(b3);
+ConstantBuffer<CbCubemaps> cbCubemaps : register(b5);
 
 Texture2D<float4> Textures[10000] : register(t0);
+TextureCube<float4> Cubemaps[100] : register(t10000);
 
 SamplerState LinearClampSampler : register(s0);
 SamplerState LinearWrapSampler : register(s1);
@@ -93,6 +102,7 @@ float4 ps(vOut pIn) : SV_Target
     float3 V = normalize(cbCamera.Position - wpos);
 
     float3 Lo = float3(0.0f, 0.0f, 0.0f);
+    float3 f0 = NormalIncidenceFresnel(albedo.xyz, metalnessRoughness.x);
     for (uint i = 0; i < cbLight.UsedLights; ++i)
     {
         float3 lightPos = cbLight.Lights[i].Position;
@@ -103,7 +113,6 @@ float4 ps(vOut pIn) : SV_Target
         float atten = 1.0f / (d * d);
         float3 radiance = cbLight.Lights[i].Color.xyz * atten;
 
-        float3 f0 = NormalIncidenceFresnel(albedo.xyz, metalnessRoughness.x);
         // float cosTheta = max(dot(H, V), 0.0f);
         float3 F = FresnelSchlick(H, V, f0);
 
@@ -122,7 +131,10 @@ float4 ps(vOut pIn) : SV_Target
         Lo += (kd * albedo.xyz / PI + spec) * radiance * NdotL;
 
     }
-    float3 ambient = float3(0.03f, 0.03f, 0.03f) * albedo.xyz * AO;
+    float3 ks = FresnelSchlick(max(dot(N, V), 0.0), f0);
+    float3 kd = 1.0f - ks;
+    float3 irr = Cubemaps[cbCubemaps.IrradianceMapIndex].Sample(LinearClampSampler, N).xyz;
+    float3 ambient = irr * albedo.xyz * kd * AO;
     float3 color = ambient + Lo;
 
     return float4(color, 1.0f);
