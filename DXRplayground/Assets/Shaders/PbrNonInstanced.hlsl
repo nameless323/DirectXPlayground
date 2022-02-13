@@ -131,7 +131,7 @@ float4 ps(vOut pIn) : SV_Target
         Lo += (kd * albedo.xyz / PI + spec) * radiance * NdotL;
 
     }
-    float3 ks = FresnelSchlick(max(dot(N, V), 0.0), f0);
+    float3 ks = FresnelSchlickRoughness(max(dot(N, V), 0.0), f0, metalnessRoughness.y);
     float3 kd = 1.0f - ks;
     float3 irr = Cubemaps[cbCubemaps.IrradianceMapIndex].Sample(LinearClampSampler, N).xyz;
     float3 ambient = irr * albedo.xyz * kd * AO;
