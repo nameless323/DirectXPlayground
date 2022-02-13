@@ -70,6 +70,13 @@ float3 FresnelSchlick(float HdotV, float3 f0)
     return f0 + (float3(1.0f, 1.0f, 1.0f) - f0) * pow(max(1.0f - HdotV, 0.0f), 5.0f);
 }
 
+// https://seblagarde.wordpress.com/2011/08/17/hello-world/
+float3 FresnelSchlickRoughness(float cosTheta, float3 f0, float roughness)
+{
+    float oneMinusRoughness = 1.0f - roughness;
+    return f0 + (max(oneMinusRoughness.xxx, f0) - f0) * pow(1.0f - cosTheta, 5.0f);
+}
+
 float3 FresnelSchlick(float3 h, float3 v, float3 f0)
 {
     float HdotV = dot(h, v);
