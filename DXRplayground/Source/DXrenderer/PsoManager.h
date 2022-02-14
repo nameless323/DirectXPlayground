@@ -19,10 +19,10 @@ public:
     ~PsoManager() = default;
     PsoManager& operator= (const PsoManager&) = delete;
 
-    void BeginFrame(RenderContext& context);
+    void BeginFrame(const RenderContext& context);
     void Shutdown() const;
-    void CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc);
-    void CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc);
+    void CreatePso(const RenderContext& context, const std::string& name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc);
+    void CreatePso(const RenderContext& context, const std::string& name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc);
 
     ID3D12PipelineState* GetPso(const std::string& name);
 

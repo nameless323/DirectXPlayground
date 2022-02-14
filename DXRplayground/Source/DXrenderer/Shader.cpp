@@ -36,18 +36,18 @@ void Shader::InitCompiler()
     utils->CreateDefaultIncludeHandler(&IncludeHandler);
 }
 
-bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader)
+bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader, std::vector<DxcDefine>* defines)
 {
 #ifdef _DEBUG
     static std::vector<LPCWSTR> flags = { L"-Zi", L"-Qembed_debug", L"-Od" };
 #else
     static std::vector<LPCWSTR> flags = {};
 #endif
-    HRESULT hr = CompileFromFile(outShader, path.c_str(), entry.c_str(), shaderModel.c_str(), flags);
+    HRESULT hr = CompileFromFile(outShader, path.c_str(), entry.c_str(), shaderModel.c_str(), flags, defines);
     return SUCCEEDED(hr);
 }
 
-HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags)
+HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags, std::vector<DxcDefine>* defines)
 {
     shader.mCompiled = false;
 
@@ -73,7 +73,15 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry,
         return hr;
 
     Microsoft::WRL::ComPtr<IDxcOperationResult> result;
-    hr = DxcCompiler->Compile(sourceBlob.Get(), fileName, entry, target, flags.data(), static_cast<UINT32>(flags.size()), nullptr, 0, IncludeHandler.Get(), &result);
+    UINT definesCount = 0;
+    DxcDefine* definesData = nullptr;
+    if (defines != nullptr)
+    {
+        definesCount = static_cast<UINT>(defines->size());
+        definesData = defines->data();
+    }
+
+    hr = DxcCompiler->Compile(sourceBlob.Get(), fileName, entry, target, flags.data(), static_cast<UINT32>(flags.size()), definesData, definesCount, IncludeHandler.Get(), &result);
     if (!FAILED(hr))
         result->GetStatus(&hr);
 

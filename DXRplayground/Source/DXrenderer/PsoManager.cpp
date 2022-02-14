@@ -18,9 +18,9 @@ PsoManager::PsoManager()
     mPsos.reserve(MaxPso);
     mComputePsos.reserve(MaxPso);
     std::wstring shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Fallback.hlsl");
-    bool vsSucceeded = Shader::CompileFromFile(shaderPath, L"vs", L"vs_6_6", mVsFallback);
-    bool psSucceeded = Shader::CompileFromFile(shaderPath, L"ps", L"ps_6_6", mPsFallback);
-    bool csSucceeded = Shader::CompileFromFile(shaderPath, L"cs", L"cs_6_6", mCsFallback);
+    bool vsSucceeded = Shader::CompileFromFile(shaderPath, L"vs", L"vs_6_6", mVsFallback, nullptr);
+    bool psSucceeded = Shader::CompileFromFile(shaderPath, L"ps", L"ps_6_6", mPsFallback, nullptr);
+    bool csSucceeded = Shader::CompileFromFile(shaderPath, L"cs", L"cs_6_6", mCsFallback, nullptr);
 
     assert(vsSucceeded && psSucceeded && csSucceeded && "Fallback compilation failed");
     
@@ -29,7 +29,7 @@ PsoManager::PsoManager()
     shaderWatcherThread.detach();
 }
 
-void PsoManager::BeginFrame(RenderContext& context)
+void PsoManager::BeginFrame(const RenderContext& context)
 {
     std::set<std::filesystem::path> processedFiles;
     while (auto changedFile = mShaderWatcher->GetModifiedFilesQueue().Pop())
@@ -64,7 +64,7 @@ void PsoManager::Shutdown() const
     mShaderWatcher->Shutdown();
 }
 
-void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc)
+void PsoManager::CreatePso(const RenderContext& context, const std::string& name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc)
 {
     assert(mPsoMap.find(name) == mPsoMap.end() && "PSO with the same name has already been created");
     assert(mComputePsoMap.find(name) == mComputePsoMap.end() && "PSO with the same name has already been created");
@@ -80,7 +80,7 @@ void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstrin
     mShadersPsos[std::move(shaderPath)].push_back(currPsoDesc);
 }
 
-void PsoManager::CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc)
+void PsoManager::CreatePso(const RenderContext& context, const std::string& name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc)
 {
     assert(mPsoMap.find(name) == mPsoMap.end() && "PSO with the same name has already been created");
     assert(mComputePsoMap.find(name) == mComputePsoMap.end() && "PSO with the same name has already been created");
@@ -110,9 +110,9 @@ ID3D12PipelineState* PsoManager::GetPso(const std::string& name)
 void PsoManager::CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc)
 {
     Shader vs;
-    bool vsSucceeded = Shader::CompileFromFile(shaderPath, L"vs", L"vs_6_6", vs);
+    bool vsSucceeded = Shader::CompileFromFile(shaderPath, L"vs", L"vs_6_6", vs, nullptr);
     Shader ps;
-    bool psSucceeded = Shader::CompileFromFile(shaderPath, L"ps", L"ps_6_6", ps);
+    bool psSucceeded = Shader::CompileFromFile(shaderPath, L"ps", L"ps_6_6", ps, nullptr);
     desc.VS = vsSucceeded ? vs.GetBytecode() : mVsFallback.GetBytecode();
     desc.PS = psSucceeded ? ps.GetBytecode() : mPsFallback.GetBytecode();
     ThrowIfFailed(context.Device->CreateGraphicsPipelineState(&desc, psoRiid, psoPpv));
@@ -121,7 +121,7 @@ void PsoManager::CompilePsoWithShader(const RenderContext& context, REFIID psoRi
 void PsoManager::CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc)
 {
     Shader cs;
-    bool succeeded = Shader::CompileFromFile(shaderPath, L"cs", L"cs_6_6", cs);
+    bool succeeded = Shader::CompileFromFile(shaderPath, L"cs", L"cs_6_6", cs, nullptr);
     desc.CS = succeeded ? cs.GetBytecode() : mCsFallback.GetBytecode();
     ThrowIfFailed(context.Device->CreateComputePipelineState(&desc, psoRiid, psoPpv));
 }
