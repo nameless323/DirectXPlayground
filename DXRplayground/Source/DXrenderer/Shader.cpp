@@ -47,7 +47,7 @@ bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry
     return SUCCEEDED(hr);
 }
 
-HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHADER_MACRO* defines, ID3DInclude* includes, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags)
+HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags)
 {
     shader.mCompiled = false;
 
@@ -73,7 +73,7 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
         return hr;
 
     Microsoft::WRL::ComPtr<IDxcOperationResult> result;
-    hr = DxcCompiler->Compile(sourceBlob.Get(), fileName, entry, target, flags.data(), static_cast<UINT32>(flags.size()), NULL, 0, IncludeHandler.Get(), &result);
+    hr = DxcCompiler->Compile(sourceBlob.Get(), fileName, entry, target, flags.data(), static_cast<UINT32>(flags.size()), nullptr, 0, IncludeHandler.Get(), &result);
     if (!FAILED(hr))
         result->GetStatus(&hr);
 
@@ -97,11 +97,6 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHAD
     shader.mBytecode.pShaderBytecode = shader.mShaderBlob->GetBufferPointer();
 
     return hr;
-}
-
-HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags)
-{
-    return CompileFromFile(shader, fileName, nullptr, nullptr, entry, target, flags);
 }
 
 }

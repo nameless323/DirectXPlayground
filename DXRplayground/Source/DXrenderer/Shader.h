@@ -20,7 +20,6 @@ public:
     bool GetIsCompiled() const;
 
 private:
-    static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, const D3D_SHADER_MACRO* defines, ID3DInclude* includes, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags);
     static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags);
 
     CD3DX12_SHADER_BYTECODE mBytecode;
