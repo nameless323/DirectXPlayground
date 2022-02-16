@@ -13,14 +13,14 @@ class Shader
 {
 public:
     static void InitCompiler();
-    static bool CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader, std::vector<DxcDefine>* defines);
+    static bool CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader, const std::vector<DxcDefine>* defines);
 
     const CD3DX12_SHADER_BYTECODE& GetBytecode() const;
     CD3DX12_SHADER_BYTECODE& GetBytecode();
     bool GetIsCompiled() const;
 
 private:
-    static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags, std::vector<DxcDefine>* defines);
+    static HRESULT CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags, const std::vector<DxcDefine>* defines);
 
     CD3DX12_SHADER_BYTECODE mBytecode;
     Microsoft::WRL::ComPtr<IDxcBlob> mShaderBlob;

@@ -36,7 +36,7 @@ void Shader::InitCompiler()
     utils->CreateDefaultIncludeHandler(&IncludeHandler);
 }
 
-bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader, std::vector<DxcDefine>* defines)
+bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry, const std::wstring& shaderModel, Shader& outShader, const std::vector<DxcDefine>* defines)
 {
 #ifdef _DEBUG
     static std::vector<LPCWSTR> flags = { L"-Zi", L"-Qembed_debug", L"-Od" };
@@ -47,7 +47,7 @@ bool Shader::CompileFromFile(const std::wstring& path, const std::wstring& entry
     return SUCCEEDED(hr);
 }
 
-HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags, std::vector<DxcDefine>* defines)
+HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry, LPCWSTR target, std::vector<LPCWSTR>& flags, const std::vector<DxcDefine>* defines)
 {
     shader.mCompiled = false;
 
@@ -74,7 +74,7 @@ HRESULT Shader::CompileFromFile(Shader& shader, LPCWSTR fileName, LPCWSTR entry,
 
     Microsoft::WRL::ComPtr<IDxcOperationResult> result;
     UINT definesCount = 0;
-    DxcDefine* definesData = nullptr;
+    const DxcDefine* definesData = nullptr;
     if (defines != nullptr)
     {
         definesCount = static_cast<UINT>(defines->size());
