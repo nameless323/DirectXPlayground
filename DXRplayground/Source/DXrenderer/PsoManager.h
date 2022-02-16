@@ -19,28 +19,56 @@ public:
     ~PsoManager() = default;
     PsoManager& operator= (const PsoManager&) = delete;
 
-    void BeginFrame(RenderContext& context);
+    void BeginFrame(const RenderContext& context);
     void Shutdown() const;
-    void CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc);
-    void CreatePso(RenderContext& context, std::string name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc);
+    void CreatePso(const RenderContext& context, const std::string& name, std::wstring shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC desc, const std::vector<DxcDefine>* defines = nullptr);
+    void CreatePso(const RenderContext& context, const std::string& name, std::wstring shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC desc, const std::vector<DxcDefine>* defines = nullptr);
 
     ID3D12PipelineState* GetPso(const std::string& name);
 
 private:
-    struct PsoDesc
+    struct PsoDesc // todo: template + sfinae. but think about vectors
     {
         D3D12_GRAPHICS_PIPELINE_STATE_DESC Desc{};
+        std::vector<DxcDefine> Defines;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> CompiledPso;
+
+        void SetDefines(const std::vector<DxcDefine>* defines)
+        {
+            if (defines == nullptr)
+                return;
+            Defines = *defines;
+        }
+        std::vector<DxcDefine>* GetDefines()
+        {
+            if (Defines.empty())
+                return nullptr;
+            return &Defines;
+        }
     };
     struct ComputePsoDesc
     {
         D3D12_COMPUTE_PIPELINE_STATE_DESC Desc{};
+        std::vector<DxcDefine> Defines;
         Microsoft::WRL::ComPtr<ID3D12PipelineState> CompiledPso;
+
+        void SetDefines(const std::vector<DxcDefine>* defines)
+        {
+            if (defines == nullptr)
+                return;
+            Defines = *defines;
+        }
+        std::vector<DxcDefine>* GetDefines()
+        {
+            if (Defines.empty())
+                return nullptr;
+            return &Defines;
+        }
     };
     static constexpr UINT MaxPso = 4096;
 
-    void CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc);
-    void CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc);
+    void CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_GRAPHICS_PIPELINE_STATE_DESC& desc, const std::vector<DxcDefine>* defines);
+    void CompilePsoWithShader(const RenderContext& context, REFIID psoRiid, void** psoPpv, const std::wstring& shaderPath, D3D12_COMPUTE_PIPELINE_STATE_DESC& desc, const std::vector<DxcDefine>* defines);
 
     std::vector<PsoDesc> mPsos;
     std::map<std::string, PsoDesc*> mPsoMap;

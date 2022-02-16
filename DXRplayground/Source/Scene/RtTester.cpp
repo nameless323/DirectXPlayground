@@ -402,7 +402,7 @@ void RtTester::CreateRtPSO(RenderContext& context)
 
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Raytracing.hlsl");
 
-    bool success = Shader::CompileFromFile(shaderPath, L"", L"lib_6_3", mRayGenShader);
+    bool success = Shader::CompileFromFile(shaderPath, L"", L"lib_6_3", mRayGenShader, nullptr);
     assert(success);
 
     lib->SetDXILLibrary(&mRayGenShader.GetBytecode());
