@@ -1,4 +1,5 @@
 #include "Lighting.hlsl"
+#include "Instancing.hlsl"
 
 struct CbCamera
 {
@@ -7,10 +8,6 @@ struct CbCamera
     float4x4 Proj;
     float3 Position;
     float Padding;
-};
-struct CbObject
-{
-    float4x4 ToWorld;
 };
 
 struct CbMaterial
@@ -42,7 +39,6 @@ struct CbCubemaps
 };
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
-ConstantBuffer<CbObject> cbObject : register(b1);
 ConstantBuffer<CbMaterial> cbMaterial : register(b2);
 ConstantBuffer<CbLight> cbLight : register(b3);
 ConstantBuffer<CbCubemaps> cbCubemaps : register(b5);
@@ -70,10 +66,11 @@ struct vOut
     float4 tangent : TANGENT0;
 };
 
-vOut vs(vIn i, uint ind : SV_InstanceID)
+vOut vs(vIn i, SV_INSTANCE)
 {
     vOut o;
-    float4 wPos = mul(float4(i.pos.xyz, 1.0f), cbObject.ToWorld);
+    float4x4 toWorld = GET_TO_WORLD;
+    float4 wPos = mul(float4(i.pos.xyz, 1.0f), toWorld);
     o.wpos = wPos.xyz;
     o.pos = mul(wPos, cbCamera.ViewProjection);
     o.norm = i.norm;

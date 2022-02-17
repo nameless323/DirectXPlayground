@@ -10,7 +10,6 @@ struct CbInstance
     float4x4 ToWorld[INSTANCE_COUNT];
 };
 
-#define SV_INSTANCE , uint instanceId : SV_InstanceID
 
 #else // INSTANCING
 
@@ -19,10 +18,9 @@ struct CbInstance
     float4x4 ToWorld;
 };
 
-#define SV_INSTANCE 
-
 #endif // # else INSTANCING
 
+#define SV_INSTANCE uint instanceId : SV_InstanceID
 ConstantBuffer<CbInstance> cbInstance : register(b1);
 
 #ifdef INSTANCING
