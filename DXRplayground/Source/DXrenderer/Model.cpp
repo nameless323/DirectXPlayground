@@ -26,6 +26,21 @@ T GetElementFromBuffer(const byte* bufferStart, UINT byteStride, size_t elemInde
 
 Model::Model(RenderContext& ctx, const std::string& path)
 {
+    std::filesystem::path assetPath{ path };
+
+    std::filesystem::path filename = assetPath.filename();
+    //auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    std::filesystem::path pth{ ASSETS_DIR + std::string("tmp//Models//Avocado//glTF//Avocado.gltf") }; // <---- extension
+    if (!std::filesystem::exists(pth))
+    {
+        std::filesystem::path parentDir = pth.parent_path();
+        if (!std::filesystem::exists(parentDir))
+        {
+            std::filesystem::create_directories(parentDir);
+            //std::filesystem::create_directory(parentDir);
+        }
+    }
+
     tinygltf::Model model;
     LoadModel(path, model);
 
