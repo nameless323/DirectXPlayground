@@ -26,18 +26,64 @@ T GetElementFromBuffer(const byte* bufferStart, UINT byteStride, size_t elemInde
 
 Model::Model(RenderContext& ctx, const std::string& path)
 {
-    std::filesystem::path assetPath{ path };
+    std::filesystem::path currentAssetPath{ path };
 
-    std::filesystem::path filename = assetPath.filename();
+    std::filesystem::path filename = currentAssetPath.stem();
+    std::filesystem::path relative = std::filesystem::relative(path, { ASSETS_DIR });
+    std::filesystem::path assetsPath{ ASSETS_DIR };
+    std::filesystem::path parentPath = assetsPath.parent_path().parent_path(); // <-- due to // in assets path
     //auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
-    std::filesystem::path pth{ ASSETS_DIR + std::string("tmp//Models//Avocado//glTF//Avocado.gltf") }; // <---- extension
-    if (!std::filesystem::exists(pth))
+    std::filesystem::path binAssetPath{ parentPath.string() + std::string("//tmp//") + relative.string() }; // <---- extension
+    if (!std::filesystem::exists(binAssetPath))
     {
-        std::filesystem::path parentDir = pth.parent_path();
+        std::filesystem::path parentDir = binAssetPath.parent_path();
         if (!std::filesystem::exists(parentDir))
         {
             std::filesystem::create_directories(parentDir);
-            //std::filesystem::create_directory(parentDir);
+
+            std::vector<int> src{ -5, 12, 82, 144, -57 };
+            size_t binSize = src.size() * sizeof(int);
+
+            std::string ololosha = "trololosha";
+            size_t stringSize = ololosha.size();
+
+            size_t fullSize = binSize + sizeof(size_t) + sizeof(size_t) + sizeof(size_t) + stringSize;
+            byte* stream = new byte[fullSize];
+            byte* ptr = stream;
+            memcpy(ptr, &fullSize, sizeof(size_t));
+            ptr += sizeof(size_t);
+            memcpy(ptr, &binSize, sizeof(size_t));
+            ptr += sizeof(size_t);
+            memcpy(ptr, src.data(), binSize);
+            ptr += binSize;
+            memcpy(ptr, &stringSize, sizeof(size_t));
+            ptr += sizeof(size_t);
+            memcpy(ptr, ololosha.data(), stringSize);
+
+            std::ofstream outFile(binAssetPath.string(), std::ios::out | std::ios::binary);
+            outFile.write((const char*)stream, fullSize);
+            outFile.close();
+
+            delete[] stream;
+
+            std::ifstream inFile(binAssetPath.string(), std::ios::in | std::ios::binary);
+            size_t ofullSize = 0;
+            inFile.read((char*)&ofullSize, sizeof(std::size_t));
+            size_t byteSize = 0;
+            inFile.read((char*)&byteSize, sizeof(std::size_t));
+
+            std::vector<int> resStream;
+            resStream.resize(byteSize / sizeof(int));
+            inFile.read((char*)resStream.data(), byteSize);
+
+            size_t oStringSize = 0;
+            inFile.read((char*)&oStringSize, sizeof(std::size_t));
+            std::string resString;
+            resString.resize(oStringSize);
+
+            inFile.read((char*)resString.data(), oStringSize);
+
+            inFile.close();
         }
     }
 
