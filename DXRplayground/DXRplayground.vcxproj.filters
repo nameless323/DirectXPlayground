@@ -251,6 +251,9 @@
     <ClInclude Include="Source\DXrenderer\ResourceDX.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Utils\BinaryContainer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
