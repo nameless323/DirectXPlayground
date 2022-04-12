@@ -181,6 +181,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
+    <ClInclude Include="Source\Utils\Asset.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\HeapBuffer.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\UploadBuffer.h" />
     <ClInclude Include="Source\DXrenderer\DirectXRaytracingHelper.h" />
@@ -222,6 +223,7 @@
     <ClInclude Include="Source\Scene\PbrTester.h" />
     <ClInclude Include="Source\Scene\RtTester.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
+    <ClInclude Include="Source\Utils\AssetSystem.h" />
     <ClInclude Include="Source\Utils\BinaryContainer.h" />
     <ClInclude Include="Source\Utils\FileWatcher.h" />
     <ClInclude Include="Source\Utils\Helpers.h" />
