@@ -69,6 +69,26 @@ void Load(const std::string& assetPath, Asset& asset)
     {
         filesystem::file_time_type lastModificationTime = filesystem::last_write_time(binAssetPath);
         size_t lmtSinceEpoch = static_cast<size_t>(lastModificationTime.time_since_epoch().count());
+        std::ifstream inFile(binAssetPath.string(), std::ios::in | std::ios::binary);
+        size_t byteSize = 0;
+        inFile.read((char*)&byteSize, sizeof(std::size_t));
+        char* buf = new char[byteSize];
+        inFile.read(buf, byteSize);
+        inFile.close();
+        BinaryContainer inContainer{ buf, byteSize };
+        size_t lastBinModificationTime = 0;
+        inContainer >> lastBinModificationTime;
+        if (lmtSinceEpoch <= lastBinModificationTime)
+        {
+            asset.Deserialize(inContainer);
+        }
+        else
+        {
+            BinaryContainer out;
+            out << lmtSinceEpoch;
+            asset.Parse(assetPath);
+            asset.Serialize(out);
+        }
 
     }
 }
