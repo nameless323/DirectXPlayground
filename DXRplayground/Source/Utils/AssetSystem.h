@@ -9,10 +9,28 @@
 
 namespace DirectxPlayground::AssetSystem
 {
-void Load(const std::string& assetPath, Asset& asset)
+inline void ParseAsset(const std::string& assetPath, Asset& asset, std::filesystem::path binAssetPath)
+{
+    BinaryContainer container{};
+    container << size_t(0); // Reserved for timestamp
+
+    asset.Parse(assetPath);
+    asset.Serialize(container);
+
+    std::chrono::high_resolution_clock::time_point timeNow = std::chrono::high_resolution_clock::now();
+    size_t timeNowSeconds = static_cast<size_t>(std::chrono::duration_cast<std::chrono::seconds>(timeNow.time_since_epoch()).count());
+    container.Write(sizeof(size_t), reinterpret_cast<char*>(&timeNowSeconds), sizeof(timeNowSeconds)); // First size_t bytes are reserved for the filesize, hence the offset.
+
+    std::ofstream outFile(binAssetPath.string(), std::ios::out | std::ios::binary);
+    outFile.write(container.GetData(), container.GetLastPointerOffset());
+    outFile.close();
+}
+
+inline void Load(const std::string& assetPath, Asset& asset)
 {
     // <assetPath> == \Repos\DXRplayground\DXRplayground\Assets\Models\FlightHelmet\glTF\FlightHelmet.gltf
     using namespace std;
+    using namespace std::chrono;
 
     filesystem::path currentAssetPath{ assetPath };
 
@@ -24,70 +42,35 @@ void Load(const std::string& assetPath, Asset& asset)
     std::filesystem::path binAssetPath{ parentPath.string() + std::string("//tmp//") + relative.string() }; // <---- extension Binary path
     if (!std::filesystem::exists(binAssetPath))
     {
-        BinaryContainer out{};
         std::filesystem::path parentDir = binAssetPath.parent_path();
         if (!std::filesystem::exists(parentDir))
         {
             std::filesystem::create_directories(parentDir);
         }
-
-        std::vector<int> src{ -5, 12, 82, 144, -57 };
-        out << src;
-
-        std::string ololosha = "trololosha";
-        out << ololosha;
-
-        Structololosha stro{ 12, 24 };
-        out << stro;
-
-        out.Close();
-
-        std::ofstream outFile(binAssetPath.string(), std::ios::out | std::ios::binary);
-        outFile.write(out.GetData(), out.GetLastPointerOffset());
-        outFile.close();
-
-        //////
-        std::ifstream inFile(binAssetPath.string(), std::ios::in | std::ios::binary);
-        size_t byteSize = 0;
-        inFile.read((char*)&byteSize, sizeof(std::size_t));
-        char* buf = new char[byteSize];
-        inFile.read(buf, byteSize);
-        inFile.close();
-
-        BinaryContainer in{ buf, byteSize };
-        std::vector<int> resStream;
-        in >> resStream;
-
-        std::string resString;
-        in >> resString;
-
-        Structololosha oStro;
-        in >> oStro;
-        in.Close();
+        ParseAsset(assetPath, asset, binAssetPath);
     }
     else
     {
         filesystem::file_time_type lastModificationTime = filesystem::last_write_time(binAssetPath);
-        size_t lmtSinceEpoch = static_cast<size_t>(lastModificationTime.time_since_epoch().count());
+        seconds lmtSinceEpoch = std::chrono::duration_cast<seconds>(lastModificationTime.time_since_epoch());
+
         std::ifstream inFile(binAssetPath.string(), std::ios::in | std::ios::binary);
         size_t byteSize = 0;
         inFile.read((char*)&byteSize, sizeof(std::size_t));
         char* buf = new char[byteSize];
         inFile.read(buf, byteSize);
         inFile.close();
+
         BinaryContainer inContainer{ buf, byteSize };
         size_t lastBinModificationTime = 0;
         inContainer >> lastBinModificationTime;
-        if (lmtSinceEpoch <= lastBinModificationTime)
+        if (static_cast<size_t>(lmtSinceEpoch.count()) <= lastBinModificationTime)
         {
             asset.Deserialize(inContainer);
         }
         else
         {
-            BinaryContainer out;
-            out << lmtSinceEpoch;
-            asset.Parse(assetPath);
-            asset.Serialize(out);
+            ParseAsset(assetPath, asset, binAssetPath);
         }
 
     }
