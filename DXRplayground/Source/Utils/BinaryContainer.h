@@ -55,6 +55,11 @@ public:
         return reinterpret_cast<const char*>(mData);
     }
 
+    void Write(size_t offset, char* data, size_t size) const
+    {
+        memcpy(mData + offset, data, size);
+    }
+
 private:
     size_t mCapacity;
     size_t mCurrentPtrLocation;

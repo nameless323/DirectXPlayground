@@ -6,7 +6,7 @@ namespace DirectxPlayground
 {
 BinaryContainer::BinaryContainer(size_t initialCapacity, std::function<size_t(size_t)> resizePolicy)
     : mCapacity(initialCapacity)
-    , mCurrentPtrLocation(sizeof(size_t))
+    , mCurrentPtrLocation(sizeof(size_t)) // During .Close() in the first size_t bytes total byte size will be written.
     , mResizePolicy(std::move(resizePolicy))
     , mData(new unsigned char[initialCapacity])
     , mMode(Mode::WRITE)
