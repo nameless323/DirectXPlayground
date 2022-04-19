@@ -8,6 +8,7 @@
 #include "Buffers/HeapBuffer.h"
 #include "Buffers/UploadBuffer.h"
 #include "Utils/Helpers.h"
+#include "Utils/Asset.h"
 
 namespace tinygltf
 {
@@ -47,7 +48,7 @@ struct Material
     float BaseColorFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 };
 
-class Model
+class Model : public Asset
 {
 public:
     class Mesh
@@ -137,6 +138,10 @@ public:
 
     const std::vector<Mesh*>& GetMeshes() const;
     void UpdateMeshes(UINT frame);
+
+    void Parse(const std::string& filename) override;
+    void Serialize(BinaryContainer& container) override;
+    void Deserialize(BinaryContainer& container) override;
 
 private:
     void LoadModel(const std::string& path, tinygltf::Model& model);
