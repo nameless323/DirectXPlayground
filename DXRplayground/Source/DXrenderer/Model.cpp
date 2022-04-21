@@ -27,67 +27,9 @@ T GetElementFromBuffer(const byte* bufferStart, UINT byteStride, size_t elemInde
 
 Model::Model(RenderContext& ctx, const std::string& path)
 {
-    tinygltf::Model model;
-    LoadModel(path, model);
+    Parse(path);
 
-    for (UINT i = 0; i < model.accessors.size(); ++i)
-    {
-        const auto& accessor = model.accessors[i];
-        if (accessor.sparse.isSparse)
-        {
-            assert("Sparse accessors aren't supported at the moment" && false);
-        }
-    }
-
-    std::filesystem::path pathToModel{ path };
-    std::string dir = pathToModel.parent_path().string() + '\\';
-    for (const auto& texture : model.textures)
-    {
-        mTextures.push_back(texture.source);
-    }
-    for (const auto& mat : model.materials)
-    {
-        Material m;
-        m.BaseColorTexture = mat.pbrMetallicRoughness.baseColorTexture.index;
-        m.MetallicRoughnessTexture = mat.pbrMetallicRoughness.metallicRoughnessTexture.index;
-        m.NormalTexture = mat.normalTexture.index;
-        m.OcclusionTexture = mat.occlusionTexture.index;
-        mMaterials.push_back(m);
-    }
-
-    const tinygltf::Scene& scene = model.scenes[model.defaultScene];
-    for (int node : scene.nodes)
-        ParseModelNodes(model, model.nodes[node]);
-
-    for (const auto& image : model.images)
-    {
-        mImages.push_back({ ~0U, image.uri });
-    }
-
-
-    for (auto& image : mImages)
-    {
-        UINT index = ctx.TexManager->CreateTexture(ctx, dir + image.Name).SRVOffset;
-        image.IndexInHeap = index;
-    }
-
-    for (auto& mesh : mMeshes)
-    {
-        const Material& modelMat = mesh->mMaterial;
-        if (modelMat.BaseColorTexture != -1)
-            mesh->mRuntimeMaterial.BaseColorTexture = mImages[mTextures[modelMat.BaseColorTexture]].IndexInHeap;
-        if (modelMat.MetallicRoughnessTexture != -1)
-            mesh->mRuntimeMaterial.MetallicRoughnessTexture = mImages[mTextures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
-        if (modelMat.NormalTexture != -1)
-            mesh->mRuntimeMaterial.NormalTexture = mImages[mTextures[modelMat.NormalTexture]].IndexInHeap;
-        if (modelMat.OcclusionTexture != -1)
-            mesh->mRuntimeMaterial.OcclusionTexture = mImages[mTextures[modelMat.OcclusionTexture]].IndexInHeap;
-        memcpy(mesh->mRuntimeMaterial.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
-
-        mesh->mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh->mVertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh->mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
-        mesh->mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh->mIndices.data()), static_cast<UINT>(sizeof(UINT) * mesh->mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
-        mesh->mMaterialBuffer = new UploadBuffer(*ctx.Device, sizeof(Material), true, RenderContext::FramesCount);
-    }
+    InitializeRuntimeData(ctx, path);
 }
 
 Model::Model(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices)
@@ -120,6 +62,42 @@ void Model::UpdateMeshes(UINT frame)
 
 void Model::Parse(const std::string& filename)
 {
+    tinygltf::Model model;
+    LoadModel(filename, model);
+
+    for (UINT i = 0; i < model.accessors.size(); ++i)
+    {
+        const auto& accessor = model.accessors[i];
+        if (accessor.sparse.isSparse)
+        {
+            assert("Sparse accessors aren't supported at the moment" && false);
+        }
+    }
+
+    std::filesystem::path pathToModel{ filename };
+    std::string dir = pathToModel.parent_path().string() + '\\';
+    for (const auto& texture : model.textures)
+    {
+        mTextures.push_back(texture.source);
+    }
+    for (const auto& mat : model.materials)
+    {
+        Material m;
+        m.BaseColorTexture = mat.pbrMetallicRoughness.baseColorTexture.index;
+        m.MetallicRoughnessTexture = mat.pbrMetallicRoughness.metallicRoughnessTexture.index;
+        m.NormalTexture = mat.normalTexture.index;
+        m.OcclusionTexture = mat.occlusionTexture.index;
+        mMaterials.push_back(m);
+    }
+
+    const tinygltf::Scene& scene = model.scenes[model.defaultScene];
+    for (int node : scene.nodes)
+        ParseModelNodes(model, model.nodes[node]);
+
+    for (const auto& image : model.images)
+    {
+        mImages.push_back({ ~0U, image.uri });
+    }
 }
 
 void Model::Serialize(BinaryContainer& container)
@@ -128,6 +106,35 @@ void Model::Serialize(BinaryContainer& container)
 
 void Model::Deserialize(BinaryContainer& container)
 {
+}
+
+void Model::InitializeRuntimeData(RenderContext& ctx, const std::string& path)
+{
+    std::filesystem::path pathToModel{ path };
+    std::string dir = pathToModel.parent_path().string() + '\\';
+    for (auto& image : mImages)
+    {
+        UINT index = ctx.TexManager->CreateTexture(ctx, dir + image.Name).SRVOffset;
+        image.IndexInHeap = index;
+    }
+
+    for (auto& mesh : mMeshes)
+    {
+        const Material& modelMat = mesh->mMaterial;
+        if (modelMat.BaseColorTexture != -1)
+            mesh->mRuntimeMaterial.BaseColorTexture = mImages[mTextures[modelMat.BaseColorTexture]].IndexInHeap;
+        if (modelMat.MetallicRoughnessTexture != -1)
+            mesh->mRuntimeMaterial.MetallicRoughnessTexture = mImages[mTextures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
+        if (modelMat.NormalTexture != -1)
+            mesh->mRuntimeMaterial.NormalTexture = mImages[mTextures[modelMat.NormalTexture]].IndexInHeap;
+        if (modelMat.OcclusionTexture != -1)
+            mesh->mRuntimeMaterial.OcclusionTexture = mImages[mTextures[modelMat.OcclusionTexture]].IndexInHeap;
+        memcpy(mesh->mRuntimeMaterial.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
+
+        mesh->mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh->mVertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh->mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
+        mesh->mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh->mIndices.data()), static_cast<UINT>(sizeof(UINT) * mesh->mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+        mesh->mMaterialBuffer = new UploadBuffer(*ctx.Device, sizeof(Material), true, RenderContext::FramesCount);
+    }
 }
 
 void Model::LoadModel(const std::string& path, tinygltf::Model& model)
@@ -292,6 +299,4 @@ void Model::ParseIndices(Mesh* mesh, const tinygltf::Model& model, const tinyglt
     else
         assert(false);
 }
-
-
 }

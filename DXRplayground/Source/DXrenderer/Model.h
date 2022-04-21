@@ -145,6 +145,7 @@ public:
     void Deserialize(BinaryContainer& container) override;
 
 private:
+    void InitializeRuntimeData(RenderContext& ctx, const std::string& path);
     void LoadModel(const std::string& path, tinygltf::Model& model);
     void ParseModelNodes(const tinygltf::Model& model, const tinygltf::Node& node);
     void ParseGLTFMesh(const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh);
