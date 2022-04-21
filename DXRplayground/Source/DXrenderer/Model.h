@@ -108,7 +108,7 @@ public:
 
         void UpdateMaterialBuffer(UINT frame)
         {
-            mMaterialBuffer->UploadData(frame, mMaterial);
+            mMaterialBuffer->UploadData(frame, mRuntimeMaterial);
         }
 
     private:
@@ -116,6 +116,7 @@ public:
 
         UINT mIndexCount = 0;
         Material mMaterial{};
+        Material mRuntimeMaterial{};
 
         std::vector<Vertex> mVertices;
         std::vector<UINT> mIndices;
@@ -145,8 +146,8 @@ public:
 
 private:
     void LoadModel(const std::string& path, tinygltf::Model& model);
-    void ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node);
-    void ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh);
+    void ParseModelNodes(const tinygltf::Model& model, const tinygltf::Node& node);
+    void ParseGLTFMesh(const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh);
     void ParseVertices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Primitive& primitive);
     void ParseIndices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
 

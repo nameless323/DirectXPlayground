@@ -41,11 +41,6 @@ Model::Model(RenderContext& ctx, const std::string& path)
 
     std::filesystem::path pathToModel{ path };
     std::string dir = pathToModel.parent_path().string() + '\\';
-    for (const auto& image : model.images)
-    {
-        UINT index = ctx.TexManager->CreateTexture(ctx, dir + image.uri).SRVOffset;
-        mImages.push_back({ index, image.uri });
-    }
     for (const auto& texture : model.textures)
     {
         mTextures.push_back(texture.source);
@@ -62,7 +57,37 @@ Model::Model(RenderContext& ctx, const std::string& path)
 
     const tinygltf::Scene& scene = model.scenes[model.defaultScene];
     for (int node : scene.nodes)
-        ParseModelNodes(ctx, model, model.nodes[node]);
+        ParseModelNodes(model, model.nodes[node]);
+
+    for (const auto& image : model.images)
+    {
+        mImages.push_back({ ~0U, image.uri });
+    }
+
+
+    for (auto& image : mImages)
+    {
+        UINT index = ctx.TexManager->CreateTexture(ctx, dir + image.Name).SRVOffset;
+        image.IndexInHeap = index;
+    }
+
+    for (auto& mesh : mMeshes)
+    {
+        const Material& modelMat = mesh->mMaterial;
+        if (modelMat.BaseColorTexture != -1)
+            mesh->mRuntimeMaterial.BaseColorTexture = mImages[mTextures[modelMat.BaseColorTexture]].IndexInHeap;
+        if (modelMat.MetallicRoughnessTexture != -1)
+            mesh->mRuntimeMaterial.MetallicRoughnessTexture = mImages[mTextures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
+        if (modelMat.NormalTexture != -1)
+            mesh->mRuntimeMaterial.NormalTexture = mImages[mTextures[modelMat.NormalTexture]].IndexInHeap;
+        if (modelMat.OcclusionTexture != -1)
+            mesh->mRuntimeMaterial.OcclusionTexture = mImages[mTextures[modelMat.OcclusionTexture]].IndexInHeap;
+        memcpy(mesh->mRuntimeMaterial.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
+
+        mesh->mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh->mVertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh->mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
+        mesh->mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh->mIndices.data()), static_cast<UINT>(sizeof(UINT) * mesh->mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+        mesh->mMaterialBuffer = new UploadBuffer(*ctx.Device, sizeof(Material), true, RenderContext::FramesCount);
+    }
 }
 
 Model::Model(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices)
@@ -133,17 +158,17 @@ void Model::LoadModel(const std::string& path, tinygltf::Model& model)
     }
 }
 
-void Model::ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node)
+void Model::ParseModelNodes(const tinygltf::Model& model, const tinygltf::Node& node)
 {
     if (node.mesh != -1) // Camera usually
-        ParseGLTFMesh(ctx, model, node, model.meshes[node.mesh]);
+        ParseGLTFMesh(model, node, model.meshes[node.mesh]);
     for (int i : node.children)
     {
-        ParseModelNodes(ctx, model, model.nodes[i]);
+        ParseModelNodes(model, model.nodes[i]);
     }
 }
 
-void Model::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& gltfMesh)
+void Model::ParseGLTFMesh(const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& gltfMesh)
 {
     for (size_t i = 0; i < gltfMesh.primitives.size(); ++i)
     {
@@ -157,20 +182,8 @@ void Model::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, cons
 
         mesh->mIndexCount = static_cast<UINT>(mesh->mIndices.size());
 
-        Material& modelMat = mMaterials[primitive.material];
-        if (modelMat.BaseColorTexture != -1)
-            mesh->mMaterial.BaseColorTexture = mImages[mTextures[modelMat.BaseColorTexture]].IndexInHeap;
-        if (modelMat.MetallicRoughnessTexture != -1)
-            mesh->mMaterial.MetallicRoughnessTexture = mImages[mTextures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
-        if (modelMat.NormalTexture != -1)
-            mesh->mMaterial.NormalTexture = mImages[mTextures[modelMat.NormalTexture]].IndexInHeap;
-        if (modelMat.OcclusionTexture != -1)
-            mesh->mMaterial.OcclusionTexture = mImages[mTextures[modelMat.OcclusionTexture]].IndexInHeap;
-        memcpy(mesh->mMaterial.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
-
-        mesh->mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh->mVertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh->mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
-        mesh->mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh->mIndices.data()), static_cast<UINT>(sizeof(UINT) * mesh->mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
-        mesh->mMaterialBuffer = new UploadBuffer(*ctx.Device, sizeof(Material), true, RenderContext::FramesCount);
+        mesh->mMaterial = mMaterials[primitive.material];
+        memcpy(mesh->mMaterial.BaseColorFactor, mMaterials[primitive.material].BaseColorFactor, sizeof(float) * 4);
     }
 }
 
