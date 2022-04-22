@@ -13,6 +13,8 @@
 
 #include "External/stb/stb_image.h"
 
+#include "Utils/BinaryContainer.h"
+
 namespace DirectxPlayground
 {
     namespace TextureUtils
@@ -132,11 +134,14 @@ namespace DirectxPlayground
 
     void Texture::Serialize(BinaryContainer& container)
     {
-        
+        UINT format = static_cast<UINT>(mFormat);
+        container << format << mWidth << mHeight << mData;
     }
 
     void Texture::Deserialize(BinaryContainer& container)
     {
-        
+        UINT format = 0;
+        container >> format >> mWidth >> mHeight >> mData;
+        mFormat = static_cast<DXGI_FORMAT>(format);
     }
 }

@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <functional>
+#include <wrl.h>
 
 namespace DirectxPlayground
 {
@@ -72,14 +73,18 @@ private:
 
 public:
     BinaryContainer& operator<< (int val);
+    BinaryContainer& operator<< (UINT val);
     BinaryContainer& operator<< (size_t val);
     BinaryContainer& operator<< (const std::vector<int>& val);
+    BinaryContainer& operator<< (const std::vector<byte>& val);
     BinaryContainer& operator<< (const std::string& val);
     BinaryContainer& operator<< (const std::pair<unsigned char*, size_t>& val);
 
     BinaryContainer& operator>> (int& val);
+    BinaryContainer& operator>> (UINT& val);
     BinaryContainer& operator>> (size_t& val);
     BinaryContainer& operator>> (std::vector<int>& val);
+    BinaryContainer& operator>> (std::vector<byte>& val);
     BinaryContainer& operator>> (std::string& val);
     BinaryContainer& operator>> (std::pair<unsigned char*, size_t>& val);
 };

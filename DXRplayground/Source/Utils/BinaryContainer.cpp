@@ -52,6 +52,17 @@ BinaryContainer& BinaryContainer::operator<<(int val)
     return *this;
 }
 
+BinaryContainer& BinaryContainer::operator<<(UINT val)
+{
+    assert(mMode == Mode::WRITE);
+    if (sizeof(val) + mCurrentPtrLocation > mCapacity)
+        Resize();
+    unsigned char* p = mData + mCurrentPtrLocation;
+    mCurrentPtrLocation += sizeof(val);
+    memcpy(p, &val, sizeof(val));
+    return *this;
+}
+
 BinaryContainer& BinaryContainer::operator<<(size_t val)
 {
     assert(mMode == Mode::WRITE);
@@ -76,6 +87,20 @@ BinaryContainer& BinaryContainer::operator<<(const std::vector<int>& val)
     unsigned char* p = mData + mCurrentPtrLocation;
     mCurrentPtrLocation += sizeof(int) * val.size();
     memcpy(p, val.data(), sizeof(int) * val.size());
+    return *this;
+}
+
+BinaryContainer& BinaryContainer::operator<<(const std::vector<byte>& val)
+{
+    assert(mMode == Mode::WRITE);
+    while (sizeof(int) * val.size() + sizeof(size_t) + mCurrentPtrLocation > mCapacity)
+    {
+        Resize();
+    }
+    this->operator<<(val.size());
+    unsigned char* p = mData + mCurrentPtrLocation;
+    mCurrentPtrLocation += sizeof(byte) * val.size();
+    memcpy(p, val.data(), sizeof(byte) * val.size());
     return *this;
 }
 
@@ -116,6 +141,15 @@ BinaryContainer& BinaryContainer::operator>>(int& val)
     return *this;
 }
 
+BinaryContainer& BinaryContainer::operator>>(UINT& val)
+{
+    assert(mMode == Mode::READ);
+    unsigned char* p = mData + mCurrentPtrLocation;
+    mCurrentPtrLocation += sizeof(val);
+    memcpy(&val, p, sizeof(val));
+    return *this;
+}
+
 BinaryContainer& BinaryContainer::operator>>(size_t& val)
 {
     assert(mMode == Mode::READ);
@@ -135,6 +169,19 @@ BinaryContainer& BinaryContainer::operator>>(std::vector<int>& val)
     unsigned char* p = mData + mCurrentPtrLocation;
     mCurrentPtrLocation += sz * sizeof(int);
     memcpy(val.data(), p, sz * sizeof(int));
+    return *this;
+}
+
+BinaryContainer& BinaryContainer::operator>>(std::vector<byte>& val)
+{
+    assert(mMode == Mode::READ);
+    assert(val.empty());
+    size_t sz = 0;
+    this->operator>>(sz);
+    val.resize(sz);
+    unsigned char* p = mData + mCurrentPtrLocation;
+    mCurrentPtrLocation += sz * sizeof(byte);
+    memcpy(val.data(), p, sz * sizeof(byte));
     return *this;
 }
 
