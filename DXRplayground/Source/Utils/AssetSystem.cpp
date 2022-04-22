@@ -11,7 +11,14 @@ namespace DirectxPlayground::AssetSystem
 {
 namespace
 {
-void ParseAsset(const std::string& assetPath, Asset& asset, std::filesystem::path binAssetPath)
+size_t GetLastModificationTime(const std::string& assetPath)
+{
+    std::filesystem::file_time_type lastModificationTime = std::filesystem::last_write_time(assetPath);
+    std::chrono::seconds lmtSinceEpoch = std::chrono::duration_cast<std::chrono::seconds>(lastModificationTime.time_since_epoch());
+    return static_cast<size_t>(lmtSinceEpoch.count());
+}
+
+void ParseAsset(const std::string& assetPath, Asset& asset, const std::filesystem::path& binAssetPath, size_t lastAssetModificationTime)
 {
     BinaryContainer container{};
     container << size_t(0); // Reserved for timestamp
@@ -27,6 +34,12 @@ void ParseAsset(const std::string& assetPath, Asset& asset, std::filesystem::pat
     outFile.write(container.GetData(), container.GetLastPointerOffset());
     outFile.close();
 }
+
+void ParseAsset(const std::string& assetPath, Asset& asset, const std::filesystem::path& binAssetPath)
+{
+    size_t lastModificationTime = GetLastModificationTime(assetPath);
+    ParseAsset(assetPath, asset, binAssetPath, lastModificationTime);
+}
 }
 
 void Load(const std::string& assetPath, Asset& asset)
@@ -37,12 +50,12 @@ void Load(const std::string& assetPath, Asset& asset)
 
     filesystem::path currentAssetPath{ assetPath };
 
-    filesystem::path filename = currentAssetPath.stem(); // FlightHelmet
+    //filesystem::path filename = currentAssetPath.stem(); // FlightHelmet
     filesystem::path projectAssetsPath{ ASSETS_DIR }; // \Repos\DXRplayground\DXRplayground\Assets
     filesystem::path relative = std::filesystem::relative(assetPath, projectAssetsPath); // Models\FlightHelmet\glTF\FlightHelmet.gltf
     filesystem::path parentPath = projectAssetsPath.parent_path().parent_path(); // <-- due to // in assets assetPath. \Repos\DXRplayground\DXRplayground (to create tmp there)
     //auto assetPath = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
-    filesystem::path binAssetPath{ parentPath.string() + std::string("//tmp//") + relative.string() }; // <---- extension Binary path
+    filesystem::path binAssetPath{ parentPath.string() + std::string("//tmp//") + relative.string() + std::string(".bast") }; // bast - binary asset extension
     if (!filesystem::exists(binAssetPath))
     {
         filesystem::path parentDir = binAssetPath.parent_path();
@@ -54,8 +67,7 @@ void Load(const std::string& assetPath, Asset& asset)
     }
     else
     {
-        filesystem::file_time_type lastModificationTime = filesystem::last_write_time(binAssetPath);
-        seconds lmtSinceEpoch = std::chrono::duration_cast<seconds>(lastModificationTime.time_since_epoch());
+        size_t lastModificationTimeCount = GetLastModificationTime(assetPath);
 
         std::ifstream inFile(binAssetPath.string(), std::ios::in | std::ios::binary);
         size_t byteSize = 0;
@@ -65,15 +77,15 @@ void Load(const std::string& assetPath, Asset& asset)
         inFile.close();
 
         BinaryContainer inContainer{ buf, byteSize };
-        size_t lastBinModificationTime = 0;
-        inContainer >> lastBinModificationTime;
-        if (static_cast<size_t>(lmtSinceEpoch.count()) <= lastBinModificationTime)
+        size_t lastSavedModificationTime = 0;
+        inContainer >> lastSavedModificationTime;
+        if (lastModificationTimeCount <= lastSavedModificationTime)
         {
             asset.Deserialize(inContainer);
         }
         else
         {
-            ParseAsset(assetPath, asset, binAssetPath);
+            ParseAsset(assetPath, asset, binAssetPath, lastModificationTimeCount);
         }
     }
 }
