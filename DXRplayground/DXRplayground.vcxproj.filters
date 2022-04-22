@@ -108,6 +108,9 @@
     <ClCompile Include="Source\Utils\AssetSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\DXrenderer\Textures\Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\WindowsApp.h">
@@ -264,6 +267,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\Utils\AssetSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\DXrenderer\Textures\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -69,10 +69,6 @@ private:
     void CreateRTVHeap(RenderContext& ctx);
     void CreateUAVHeap(RenderContext& ctx);
 
-    bool ParsePNG(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
-    bool ParseEXR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
-    bool ParseHDR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat);
-
     std::vector<ResourceDX> mResources;
     std::vector<ResourceDX> mUploadResources;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> mSrvHeap = nullptr;

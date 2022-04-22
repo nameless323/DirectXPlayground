@@ -157,6 +157,7 @@
     <ClCompile Include="Source\DXrenderer\PsoManager.cpp" />
     <ClCompile Include="Source\DXrenderer\RenderPipeline.cpp" />
     <ClCompile Include="Source\DXrenderer\Textures\MipGenerator.cpp" />
+    <ClCompile Include="Source\DXrenderer\Textures\Texture.cpp" />
     <ClCompile Include="Source\DXRplayground.cpp" />
     <ClCompile Include="Source\DXrenderer\Shader.cpp" />
     <ClCompile Include="Source\DXrenderer\Swapchain.cpp" />
@@ -182,6 +183,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
+    <ClInclude Include="Source\DXrenderer\Textures\Texture.h" />
     <ClInclude Include="Source\Utils\Asset.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\HeapBuffer.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\UploadBuffer.h" />

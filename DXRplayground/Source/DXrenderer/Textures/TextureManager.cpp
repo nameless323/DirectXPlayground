@@ -5,17 +5,9 @@
 #include <sstream>
 
 #include "External/Dx12Helpers/d3dx12.h"
-#include "External/lodepng/lodepng.h"
-
-#define TINYEXR_IMPLEMENTATION
-#include "External/TinyEXR/tinyexr.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "External/stb/stb_image.h"
-
-#include "Utils/Logger.h"
 
 #include "DXrenderer/DXhelpers.h"
+#include "DXrenderer/Textures/Texture.h"
 
 namespace DirectxPlayground
 {
@@ -41,41 +33,20 @@ TextureManager::~TextureManager()
 
 TexResourceData TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips /*= true*/, bool allowUAV /*= false*/)
 {
-    std::vector<byte> buffer;
-
-    std::wstring extension{ std::filesystem::path(filename.c_str()).extension().c_str() };
-
-    UINT w = 0, h = 0;
-    DXGI_FORMAT textureFormat{};
-
-    if (extension == L".png" || extension == L".PNG") // let's hope there won't be "pNg" or "PnG" etc
-    {
-        bool success = ParsePNG(filename, buffer, w, h, textureFormat);
-    }
-    else if (extension == L".exr" || extension == L".EXR")
-    {
-        bool success = ParseEXR(filename, buffer, w, h, textureFormat);
-    }
-    else if (extension == L".hdr" || extension == L".HDR")
-    {
-        bool success = ParseHDR(filename, buffer, w, h, textureFormat);
-    }
-    else
-    {
-        assert("Unknown image format for parsing" && false);
-    }
+    Texture tex;
+    tex.Parse(filename);
 
     ResourceDX resource{ D3D12_RESOURCE_STATE_COPY_DEST };
     ResourceDX uploadResource{ D3D12_RESOURCE_STATE_GENERIC_READ };
 
-    UINT16 mipLevels = generateMips ? Log2(std::min(w, h)) + 1 : 1;
+    UINT16 mipLevels = generateMips ? Log2(std::min(tex.GetWidth(), tex.GetHeight())) + 1 : 1;
     D3D12_RESOURCE_FLAGS flags = generateMips ? D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS : D3D12_RESOURCE_FLAG_NONE;
 
     D3D12_RESOURCE_DESC texDesc = {};
     texDesc.MipLevels = mipLevels;
-    texDesc.Format = textureFormat;
-    texDesc.Width = w; // TODO: to the next pot (h too)
-    texDesc.Height = h;
+    texDesc.Format = tex.GetFormat();
+    texDesc.Width = tex.GetWidth(); // TODO: to the next pot (h too)
+    texDesc.Height = tex.GetHeight();
     texDesc.Flags = flags;
     texDesc.DepthOrArraySize = 1;
     texDesc.SampleDesc.Count = 1;
@@ -97,7 +68,7 @@ TexResourceData TextureManager::CreateTexture(RenderContext& ctx, const std::str
 
     const UINT64 uploadBufferSize = GetRequiredIntermediateSize(resource.Get(), 0, 1);
 
-    size_t texSize = buffer.size() * sizeof(byte);
+    size_t texSize = tex.GetData().size() * sizeof(byte);
     CD3DX12_HEAP_PROPERTIES uploadHeapProps(D3D12_HEAP_TYPE_UPLOAD);
     CD3DX12_RESOURCE_DESC bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize);
     ThrowIfFailed(ctx.Device->CreateCommittedResource(
@@ -109,9 +80,9 @@ TexResourceData TextureManager::CreateTexture(RenderContext& ctx, const std::str
         IID_PPV_ARGS(uploadResource.GetAddressOf())));
 
     D3D12_SUBRESOURCE_DATA texData = {};
-    texData.pData = buffer.data();
-    texData.RowPitch = size_t(w) * GetPixelSize(textureFormat);
-    texData.SlicePitch = texData.RowPitch * h;
+    texData.pData = tex.GetData().data();
+    texData.RowPitch = size_t(tex.GetWidth()) * GetPixelSize(tex.GetFormat());
+    texData.SlicePitch = texData.RowPitch * tex.GetHeight();
 
     UpdateSubresources(ctx.CommandList, resource.Get(), uploadResource.Get(), 0, 0, 1, &texData);
     resource.Transition(ctx.CommandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
@@ -298,96 +269,6 @@ UINT TextureManager::CreateDxrOutput(RenderContext& ctx, D3D12_RESOURCE_DESC des
 void TextureManager::FlushMipsQueue(RenderContext& ctx)
 {
     mMipGenerator->Flush(ctx);
-}
-
-bool TextureManager::ParsePNG(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
-{
-    std::vector<byte> bufferInMemory;
-    lodepng::load_file(bufferInMemory, filename);
-    UINT error = lodepng::decode(buffer, w, h, bufferInMemory);
-    if (error)
-    {
-        LOG("PNG decoding error ", error, " : ", lodepng_error_text(error), "\n");
-        return false;
-    }
-    textureFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
-    return true;
-}
-
-bool TextureManager::ParseEXR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
-{
-    int width = 0, height = 0;
-    float* out = nullptr;
-    const char* err = nullptr;
-    int ret = LoadEXR(&out, &width, &height, filename.c_str(), &err);
-    if (ret != TINYEXR_SUCCESS)
-    {
-        if (err != nullptr)
-        {
-            LOG("EXR decoding error ", err);
-            FreeEXRErrorMessage(err);
-        }
-        return false;
-    }
-    else
-    {
-        w = static_cast<UINT>(width);
-        h = static_cast<UINT>(height);
-
-        size_t imageSize = size_t(w) * size_t(h) * sizeof(float) * 4U;
-        buffer.resize(imageSize);
-        memcpy(buffer.data(), out, imageSize);
-
-        textureFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-
-        free(out);
-    }
-    return true;
-}
-
-bool TextureManager::ParseHDR(const std::string& filename, std::vector<byte>& buffer, UINT& w, UINT& h, DXGI_FORMAT& textureFormat)
-{
-    int width = 0;
-    int height = 0;
-    int nComponents = 0;
-    float* data = stbi_loadf(filename.c_str(), &width, &height, &nComponents, 0);
-    if (data == nullptr)
-    {
-        LOG("HDR decoding error");
-        return false;
-    }
-    if (nComponents != 3 && nComponents != 4)
-    {
-        LOG("HDR decoding error. Invalid number of color channels in the file");
-        return false;
-    }
-    w = static_cast<UINT>(width);
-    h = static_cast<UINT>(height);
-
-    size_t imageSize = size_t(w) * size_t(h) * sizeof(float) * 4U;
-    buffer.resize(imageSize);
-    // [a_vorontcov] Well extension to 4 components because we want to use the texture as uav, and currently R32G32B32 format isn't supported.
-    if (nComponents == 4)
-    {
-        memcpy(buffer.data(), data, imageSize);
-    }
-    else
-    {
-        float* bufferAsFloat = reinterpret_cast<float*>(buffer.data());
-        for (size_t i = 0; i < size_t(w) * size_t(h); ++i)
-        {
-            bufferAsFloat[i * 4 + 0] = data[i * 3 + 0];
-            bufferAsFloat[i * 4 + 1] = data[i * 3 + 1];
-            bufferAsFloat[i * 4 + 2] = data[i * 3 + 2];
-            bufferAsFloat[i * 4 + 3] = 1.0f;
-        }
-    }
-
-    textureFormat = DXGI_FORMAT_R32G32B32A32_FLOAT;
-
-    stbi_image_free(data);
-
-    return true;
 }
 
 TexResourceData TextureManager::CreateRT(RenderContext& ctx, D3D12_RESOURCE_DESC desc, const std::wstring& name, D3D12_CLEAR_VALUE* clearValue /*= nullptr*/, bool createSRV /*= true*/, bool allowUAV /*= false*/)
