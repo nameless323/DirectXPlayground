@@ -9,6 +9,8 @@
 #include "DXrenderer/DXhelpers.h"
 #include "DXrenderer/Textures/Texture.h"
 
+#include "Utils/AssetSystem.h"
+
 namespace DirectxPlayground
 {
 namespace
@@ -33,8 +35,8 @@ TextureManager::~TextureManager()
 
 TexResourceData TextureManager::CreateTexture(RenderContext& ctx, const std::string& filename, bool generateMips /*= true*/, bool allowUAV /*= false*/)
 {
-    Texture tex;
-    tex.Parse(filename);
+    Texture tex{};
+    AssetSystem::Load(filename, tex);
 
     ResourceDX resource{ D3D12_RESOURCE_STATE_COPY_DEST };
     ResourceDX uploadResource{ D3D12_RESOURCE_STATE_GENERIC_READ };

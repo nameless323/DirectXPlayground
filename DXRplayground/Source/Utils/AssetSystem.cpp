@@ -21,14 +21,11 @@ size_t GetLastModificationTime(const std::string& assetPath)
 void ParseAsset(const std::string& assetPath, Asset& asset, const std::filesystem::path& binAssetPath, size_t lastAssetModificationTime)
 {
     BinaryContainer container{};
-    container << size_t(0); // Reserved for timestamp
+    container << lastAssetModificationTime; // Reserved for timestamp
 
     asset.Parse(assetPath);
     asset.Serialize(container);
-
-    std::chrono::high_resolution_clock::time_point timeNow = std::chrono::high_resolution_clock::now();
-    size_t timeNowSeconds = static_cast<size_t>(std::chrono::duration_cast<std::chrono::seconds>(timeNow.time_since_epoch()).count());
-    container.Write(sizeof(size_t), reinterpret_cast<char*>(&timeNowSeconds), sizeof(timeNowSeconds)); // First size_t bytes are reserved for the filesize, hence the offset.
+    container.Close();
 
     std::ofstream outFile(binAssetPath.string(), std::ios::out | std::ios::binary);
     outFile.write(container.GetData(), container.GetLastPointerOffset());
@@ -42,8 +39,14 @@ void ParseAsset(const std::string& assetPath, Asset& asset, const std::filesyste
 }
 }
 
+//#define FORCE_PARSE_ASSET
 void Load(const std::string& assetPath, Asset& asset)
 {
+#ifdef FORCE_PARSE_ASSET
+    asset.Parse(assetPath);
+    return;
+#endif
+
     // <assetPath> == \Repos\DXRplayground\DXRplayground\Assets\Models\FlightHelmet\glTF\FlightHelmet.gltf
     using namespace std;
     using namespace std::chrono;
