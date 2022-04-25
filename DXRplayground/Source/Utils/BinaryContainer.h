@@ -3,9 +3,29 @@
 #include <cassert>
 #include <functional>
 #include <wrl.h>
+#include <DirectXMath.h>
 
 namespace DirectxPlayground
 {
+/*
+ * Example of stream operators
+ * struct MyStruct
+* {
+* public:
+*     int a = 0, b = 0;
+*     friend BinaryContainer& operator<<(BinaryContainer& op, const MyStruct& s)
+*     {
+*         op << s.a << s.b;
+*         return op;
+*     }
+*     friend BinaryContainer& operator>>(BinaryContainer& op, MyStruct& s)
+*     {
+*         op >> s.a >> s.b;
+*         return op;
+*     }
+* };
+ */
+
 class BinaryContainer
 {
 public:
@@ -73,36 +93,29 @@ private:
 
 public:
     BinaryContainer& operator<< (int val);
+    BinaryContainer& operator<< (float val);
     BinaryContainer& operator<< (UINT val);
     BinaryContainer& operator<< (size_t val);
     BinaryContainer& operator<< (const std::vector<int>& val);
     BinaryContainer& operator<< (const std::vector<byte>& val);
     BinaryContainer& operator<< (const std::string& val);
-    BinaryContainer& operator<< (const std::pair<unsigned char*, size_t>& val);
+    BinaryContainer& operator<< (const std::pair<const unsigned char*, size_t>& val);
+
+    BinaryContainer& operator<< (const DirectX::XMFLOAT2& val);
+    BinaryContainer& operator<< (const DirectX::XMFLOAT3& val);
+    BinaryContainer& operator<< (const DirectX::XMFLOAT4& val);
 
     BinaryContainer& operator>> (int& val);
+    BinaryContainer& operator>> (float& val);
     BinaryContainer& operator>> (UINT& val);
     BinaryContainer& operator>> (size_t& val);
     BinaryContainer& operator>> (std::vector<int>& val);
     BinaryContainer& operator>> (std::vector<byte>& val);
     BinaryContainer& operator>> (std::string& val);
     BinaryContainer& operator>> (std::pair<unsigned char*, size_t>& val);
-};
 
-struct Structololosha
-{
-public:
-    int a = 0, b = 0;
-    friend BinaryContainer& operator<<(BinaryContainer& op, const Structololosha& s)
-    {
-        op << s.a << s.b;
-        return op;
-    }
-    friend BinaryContainer& operator>>(BinaryContainer& op, Structololosha& s)
-    {
-        op >> s.a >> s.b;
-        return op;
-    }
+    BinaryContainer& operator>> (DirectX::XMFLOAT2& val);
+    BinaryContainer& operator>> (DirectX::XMFLOAT3& val);
+    BinaryContainer& operator>> (DirectX::XMFLOAT4& val);
 };
-
 }

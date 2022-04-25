@@ -52,6 +52,17 @@ BinaryContainer& BinaryContainer::operator<<(int val)
     return *this;
 }
 
+BinaryContainer& BinaryContainer::operator<<(float val)
+{
+    assert(mMode == Mode::WRITE);
+    if (sizeof(val) + mCurrentPtrLocation > mCapacity)
+        Resize();
+    unsigned char* p = mData + mCurrentPtrLocation;
+    mCurrentPtrLocation += sizeof(val);
+    memcpy(p, &val, sizeof(val));
+    return *this;
+}
+
 BinaryContainer& BinaryContainer::operator<<(UINT val)
 {
     assert(mMode == Mode::WRITE);
@@ -118,7 +129,7 @@ BinaryContainer& BinaryContainer::operator<<(const std::string& val)
     return *this;
 }
 
-BinaryContainer& BinaryContainer::operator<<(const std::pair<unsigned char*, size_t>& val)
+BinaryContainer& BinaryContainer::operator<<(const std::pair<const unsigned char*, size_t>& val)
 {
     assert(mMode == Mode::WRITE);
     while (val.second + sizeof(size_t) + mCurrentPtrLocation > mCapacity)
@@ -132,12 +143,45 @@ BinaryContainer& BinaryContainer::operator<<(const std::pair<unsigned char*, siz
     return *this;
 }
 
+BinaryContainer& BinaryContainer::operator<<(const DirectX::XMFLOAT2& val)
+{
+    this->operator<<(val.x);
+    this->operator<<(val.y);
+    return *this;
+}
+
+BinaryContainer& BinaryContainer::operator<<(const DirectX::XMFLOAT3& val)
+{
+    this->operator<<(val.x);
+    this->operator<<(val.y);
+    this->operator<<(val.z);
+    return *this;
+}
+
+BinaryContainer& BinaryContainer::operator<<(const DirectX::XMFLOAT4& val)
+{
+    this->operator<<(val.x);
+    this->operator<<(val.y);
+    this->operator<<(val.z);
+    this->operator<<(val.w);
+    return *this;
+}
+
 BinaryContainer& BinaryContainer::operator>>(int& val)
 {
     assert(mMode == Mode::READ);
     unsigned char* p = mData + mCurrentPtrLocation;
     mCurrentPtrLocation += sizeof(int);
     memcpy(&val, p, sizeof(int));
+    return *this;
+}
+
+BinaryContainer& BinaryContainer::operator>>(float& val)
+{
+    assert(mMode == Mode::READ);
+    unsigned char* p = mData + mCurrentPtrLocation;
+    mCurrentPtrLocation += sizeof(float);
+    memcpy(&val, p, sizeof(float));
     return *this;
 }
 
@@ -207,6 +251,30 @@ BinaryContainer& BinaryContainer::operator>>(std::pair<unsigned char*, size_t>& 
     mCurrentPtrLocation += val.second;
     val.first = new unsigned char[val.second];
     memcpy(val.first, p, val.second);
+    return *this;
+}
+
+BinaryContainer& BinaryContainer::operator>>(DirectX::XMFLOAT2& val)
+{
+    this->operator>>(val.x);
+    this->operator>>(val.y);
+    return *this;
+}
+
+BinaryContainer& BinaryContainer::operator>>(DirectX::XMFLOAT3& val)
+{
+    this->operator>>(val.x);
+    this->operator>>(val.y);
+    this->operator>>(val.z);
+    return *this;
+}
+
+BinaryContainer& BinaryContainer::operator>>(DirectX::XMFLOAT4& val)
+{
+    this->operator>>(val.x);
+    this->operator>>(val.y);
+    this->operator>>(val.z);
+    this->operator>>(val.w);
     return *this;
 }
 }
