@@ -146,6 +146,17 @@ public:
             mMaterialBuffer->UploadData(frame, mRuntimeMaterial);
         }
 
+        friend BinaryContainer& operator<<(BinaryContainer& op, const Mesh& m)
+        {
+            op << m.mIndexCount << m.mMaterial << m.mVertices << m.mIndices;
+            return op;
+        }
+        friend BinaryContainer& operator>>(BinaryContainer& op, Mesh& m)
+        {
+            op >> m.mIndexCount >> m.mMaterial >> m.mVertices >> m.mIndices;
+            return op;
+        }
+
     private:
         friend class Model;
 
@@ -172,7 +183,7 @@ public:
     const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const;
     const Mesh* GetMesh() const;
 
-    const std::vector<Mesh*>& GetMeshes() const;
+    const std::vector<Mesh>& GetMeshes() const;
     void UpdateMeshes(UINT frame);
 
     void Parse(const std::string& filename) override;
@@ -187,7 +198,7 @@ private:
     void ParseVertices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Primitive& primitive);
     void ParseIndices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
 
-    std::vector<Mesh*> mMeshes;
+    std::vector<Mesh> mMeshes;
     std::vector<Image> mImages;
     std::vector<int> mTextures;
     std::vector<Material> mMaterials;
@@ -195,25 +206,25 @@ private:
 
 inline UINT Model::GetIndexCount() const
 {
-    return mMeshes[0]->GetIndexCount();
+    return mMeshes[0].GetIndexCount();
 }
 
 inline const D3D12_VERTEX_BUFFER_VIEW& Model::GetVertexBufferView() const
 {
-    return mMeshes[0]->GetVertexBufferView();
+    return mMeshes[0].GetVertexBufferView();
 }
 
 inline const D3D12_INDEX_BUFFER_VIEW& Model::GetIndexBufferView() const
 {
-    return mMeshes[0]->GetIndexBufferView();
+    return mMeshes[0].GetIndexBufferView();
 }
 
 inline const Model::Mesh* Model::GetMesh() const
 {
-    return mMeshes.at(0);
+    return &mMeshes.at(0);
 }
 
-inline const std::vector<Model::Mesh*>& Model::GetMeshes() const
+inline const std::vector<Model::Mesh>& Model::GetMeshes() const
 {
     return mMeshes;
 }

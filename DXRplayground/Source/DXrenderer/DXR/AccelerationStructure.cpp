@@ -112,18 +112,18 @@ void BottomLevelAccelerationStructure::Prebuild(RenderContext& context, const D3
     }
     for (const auto model : m_models)
     {
-        for (const auto mesh : model->GetMeshes())
+        for (const auto& mesh : model->GetMeshes())
         {
-            m_toNonPixelTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
-            m_toNonPixelTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+            m_toNonPixelTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh.GetIndexBufferResource(), D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
+            m_toNonPixelTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh.GetVertexBufferResource(), D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE));
 
-            m_toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetIndexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_INDEX_BUFFER));
-            m_toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh->GetVertexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+            m_toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh.GetIndexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_INDEX_BUFFER));
+            m_toIndexVertexTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(mesh.GetVertexBufferResource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 
-            desc.Triangles.IndexBuffer = mesh->GetIndexBufferGpuAddress();
-            desc.Triangles.IndexCount = mesh->GetIndexCount();
-            desc.Triangles.VertexCount = mesh->GetVertexCount();
-            desc.Triangles.VertexBuffer.StartAddress = mesh->GetVertexBufferGpuAddress();
+            desc.Triangles.IndexBuffer = mesh.GetIndexBufferGpuAddress();
+            desc.Triangles.IndexCount = mesh.GetIndexCount();
+            desc.Triangles.VertexCount = mesh.GetVertexCount();
+            desc.Triangles.VertexBuffer.StartAddress = mesh.GetVertexBufferGpuAddress();
             m_desc.push_back(desc);
         }
     }

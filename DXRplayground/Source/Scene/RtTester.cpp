@@ -163,13 +163,13 @@ void RtTester::DepthPrepass(RenderContext& context)
 
     if (mDrawSuzanne)
     {
-        for (const auto mesh : mSuzanne->GetMeshes())
+        for (const auto& mesh : mSuzanne->GetMeshes())
         {
-            context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
-            context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
+            context.CommandList->IASetVertexBuffers(0, 1, &mesh.GetVertexBufferView());
+            context.CommandList->IASetIndexBuffer(&mesh.GetIndexBufferView());
 
             context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 2, 0, 0, 0);
+            context.CommandList->DrawIndexedInstanced(mesh.GetIndexCount(), 2, 0, 0, 0);
         }
     }
 
@@ -203,15 +203,15 @@ void RtTester::RenderForwardObjects(RenderContext& context)
 
     if (mDrawSuzanne)
     {
-        for (const auto mesh : mSuzanne->GetMeshes())
+        for (const auto& mesh : mSuzanne->GetMeshes())
         {
-            context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
+            context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh.GetMaterialBufferGpuAddress(frameIndex));
 
-            context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
-            context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
+            context.CommandList->IASetVertexBuffers(0, 1, &mesh.GetVertexBufferView());
+            context.CommandList->IASetIndexBuffer(&mesh.GetIndexBufferView());
 
             context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 2, 0, 0, 0);
+            context.CommandList->DrawIndexedInstanced(mesh.GetIndexCount(), 2, 0, 0, 0);
         }
     }
 

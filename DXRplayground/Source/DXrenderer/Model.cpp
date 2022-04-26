@@ -34,8 +34,8 @@ Model::Model(RenderContext& ctx, const std::string& path)
 
 Model::Model(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices)
 {
-    mMeshes.emplace_back(new Mesh{});
-    Mesh* sMesh = mMeshes.back();
+    mMeshes.push_back({});
+    Mesh* sMesh = &mMeshes.back();
 
     sMesh->mVertices.swap(vertices);
     sMesh->mIndices.swap(indices);
@@ -47,17 +47,12 @@ Model::Model(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT>
 
 Model::~Model()
 {
-    for (auto submesh : mMeshes)
-    {
-        delete submesh;
-    }
-    mMeshes.clear();
 }
 
 void Model::UpdateMeshes(UINT frame)
 {
-    for (auto mesh : mMeshes)
-        mesh->UpdateMaterialBuffer(frame);
+    for (auto& mesh : mMeshes)
+        mesh.UpdateMaterialBuffer(frame);
 }
 
 void Model::Parse(const std::string& filename)
@@ -102,6 +97,18 @@ void Model::Parse(const std::string& filename)
 
 void Model::Serialize(BinaryContainer& container)
 {
+    /*
+     * std::vector<Mesh*> mMeshes;
+    std::vector<Image> mImages;
+    std::vector<int> mTextures;
+    std::vector<Material> mMaterials;
+     */
+    container << mMeshes.size();
+    for (int i = 0; i < mMeshes.size(); ++i)
+    {
+        container << mMeshes[i];
+    }
+    //container << mImages
 }
 
 void Model::Deserialize(BinaryContainer& container)
@@ -120,20 +127,20 @@ void Model::InitializeRuntimeData(RenderContext& ctx, const std::string& path)
 
     for (auto& mesh : mMeshes)
     {
-        const Material& modelMat = mesh->mMaterial;
+        const Material& modelMat = mesh.mMaterial;
         if (modelMat.BaseColorTexture != -1)
-            mesh->mRuntimeMaterial.BaseColorTexture = mImages[mTextures[modelMat.BaseColorTexture]].IndexInHeap;
+            mesh.mRuntimeMaterial.BaseColorTexture = mImages[mTextures[modelMat.BaseColorTexture]].IndexInHeap;
         if (modelMat.MetallicRoughnessTexture != -1)
-            mesh->mRuntimeMaterial.MetallicRoughnessTexture = mImages[mTextures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
+            mesh.mRuntimeMaterial.MetallicRoughnessTexture = mImages[mTextures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
         if (modelMat.NormalTexture != -1)
-            mesh->mRuntimeMaterial.NormalTexture = mImages[mTextures[modelMat.NormalTexture]].IndexInHeap;
+            mesh.mRuntimeMaterial.NormalTexture = mImages[mTextures[modelMat.NormalTexture]].IndexInHeap;
         if (modelMat.OcclusionTexture != -1)
-            mesh->mRuntimeMaterial.OcclusionTexture = mImages[mTextures[modelMat.OcclusionTexture]].IndexInHeap;
-        memcpy(mesh->mRuntimeMaterial.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
+            mesh.mRuntimeMaterial.OcclusionTexture = mImages[mTextures[modelMat.OcclusionTexture]].IndexInHeap;
+        memcpy(mesh.mRuntimeMaterial.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
 
-        mesh->mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh->mVertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh->mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
-        mesh->mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh->mIndices.data()), static_cast<UINT>(sizeof(UINT) * mesh->mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
-        mesh->mMaterialBuffer = new UploadBuffer(*ctx.Device, sizeof(Material), true, RenderContext::FramesCount);
+        mesh.mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh.mVertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh.mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
+        mesh.mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh.mIndices.data()), static_cast<UINT>(sizeof(UINT) * mesh.mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+        mesh.mMaterialBuffer = new UploadBuffer(*ctx.Device, sizeof(Material), true, RenderContext::FramesCount);
     }
 }
 
@@ -179,8 +186,8 @@ void Model::ParseGLTFMesh(const tinygltf::Model& model, const tinygltf::Node& no
 {
     for (size_t i = 0; i < gltfMesh.primitives.size(); ++i)
     {
-        mMeshes.push_back(new Mesh{});
-        Mesh* mesh = mMeshes.back();
+        mMeshes.push_back({});
+        Mesh* mesh = &mMeshes.back();
 
         tinygltf::Primitive primitive = gltfMesh.primitives[i];
 
