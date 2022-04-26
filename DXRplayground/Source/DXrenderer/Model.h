@@ -10,6 +10,8 @@
 #include "Utils/Helpers.h"
 #include "Utils/Asset.h"
 
+#include "Utils/BinaryContainer.h"
+
 namespace tinygltf
 {
 class Model;
@@ -31,12 +33,34 @@ struct Vertex
     XMFLOAT2 Uv;
     XMFLOAT3 Norm;
     XMFLOAT4 Tangent;
+
+    friend BinaryContainer& operator<<(BinaryContainer& op, const Vertex& v)
+    {
+        op << v.Pos << v.Uv << v.Norm << v.Tangent;
+        return op;
+    }
+    friend BinaryContainer& operator>>(BinaryContainer& op, Vertex& v)
+    {
+        op >> v.Pos >> v.Uv >> v.Norm >> v.Tangent;
+        return op;
+    }
 };
 
 struct Image
 {
     UINT IndexInHeap = 0;
     std::string Name;
+
+    friend BinaryContainer& operator<<(BinaryContainer& op, const Image& i)
+    {
+        op << i.Name;
+        return op;
+    }
+    friend BinaryContainer& operator>>(BinaryContainer& op, Image& i)
+    {
+        op >> i.Name;
+        return op;
+    }
 };
 
 struct Material
@@ -46,6 +70,17 @@ struct Material
     int NormalTexture = 0;
     int OcclusionTexture = 0;
     float BaseColorFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    friend BinaryContainer& operator<<(BinaryContainer& op, const Material& m)
+    {
+        op << m.BaseColorTexture << m.MetallicRoughnessTexture << m.NormalTexture << m.OcclusionTexture << std::make_pair(reinterpret_cast<const byte*>(&m.BaseColorFactor), 4 * sizeof(m.BaseColorFactor[0]));
+        return op;
+    }
+    friend BinaryContainer& operator>>(BinaryContainer& op, Material& m)
+    {
+        op >> m.BaseColorTexture >> m.MetallicRoughnessTexture >> m.NormalTexture << m.OcclusionTexture >> std::make_pair(reinterpret_cast<byte*>(&m.BaseColorFactor), 4 * sizeof(m.BaseColorFactor[0]));
+        return op;
+    }
 };
 
 class Model : public Asset
