@@ -100,7 +100,7 @@ public:
     BinaryContainer& operator<< (const std::vector<byte>& val);
     BinaryContainer& operator<< (const std::string& val);
     BinaryContainer& operator<< (const std::pair<const unsigned char*, size_t>& val);
-    template<typename T, typename A, typename = std::enable_if_t<std::is_pod_v<T>>>
+    template<typename T, typename A, typename = std::enable_if_t<std::is_standard_layout_v<T>>>
     BinaryContainer& operator<< (const std::vector<T, A>& val);
 
     BinaryContainer& operator<< (const DirectX::XMFLOAT2& val);
@@ -115,7 +115,7 @@ public:
     BinaryContainer& operator>> (std::vector<byte>& val);
     BinaryContainer& operator>> (std::string& val);
     BinaryContainer& operator>> (std::pair<unsigned char*, size_t>& val);
-    template<typename T, typename A, typename = std::enable_if_t<std::is_pod_v<T>>>
+    template<typename T, typename A, typename = std::enable_if_t<std::is_standard_layout_v<T>>>
     BinaryContainer& operator>> (std::vector<T, A>& val);
 
     BinaryContainer& operator>> (DirectX::XMFLOAT2& val);
@@ -138,7 +138,7 @@ BinaryContainer& BinaryContainer::operator<< (const std::vector<T, A>& val)
     return *this;
 }
 
-template<typename T, typename A, typename>
+template<typename T, typename A, typename >
 BinaryContainer& BinaryContainer::operator>> (std::vector<T, A>& val)
 {
     assert(mMode == Mode::READ);
