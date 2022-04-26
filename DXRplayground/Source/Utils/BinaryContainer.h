@@ -100,6 +100,8 @@ public:
     BinaryContainer& operator<< (const std::vector<byte>& val);
     BinaryContainer& operator<< (const std::string& val);
     BinaryContainer& operator<< (const std::pair<const unsigned char*, size_t>& val);
+    template<typename T, typename A, typename = std::enable_if_t<std::is_pod_v<T>>>
+    BinaryContainer& operator<< (const std::vector<T, A>& val);
 
     BinaryContainer& operator<< (const DirectX::XMFLOAT2& val);
     BinaryContainer& operator<< (const DirectX::XMFLOAT3& val);
@@ -113,9 +115,40 @@ public:
     BinaryContainer& operator>> (std::vector<byte>& val);
     BinaryContainer& operator>> (std::string& val);
     BinaryContainer& operator>> (std::pair<unsigned char*, size_t>& val);
+    template<typename T, typename A, typename = std::enable_if_t<std::is_pod_v<T>>>
+    BinaryContainer& operator>> (std::vector<T, A>& val);
 
     BinaryContainer& operator>> (DirectX::XMFLOAT2& val);
     BinaryContainer& operator>> (DirectX::XMFLOAT3& val);
     BinaryContainer& operator>> (DirectX::XMFLOAT4& val);
 };
+
+template<typename T, typename A, typename>
+BinaryContainer& BinaryContainer::operator<< (const std::vector<T, A>& val)
+{
+    assert(mMode == Mode::WRITE);
+    while (sizeof(T) * val.size() + sizeof(size_t) + mCurrentPtrLocation > mCapacity)
+    {
+        Resize();
+    }
+    this->operator<<(val.size());
+    unsigned char* p = mData + mCurrentPtrLocation;
+    mCurrentPtrLocation += sizeof(T) * val.size();
+    memcpy(p, val.data(), sizeof(T) * val.size());
+    return *this;
+}
+
+template<typename T, typename A, typename>
+BinaryContainer& BinaryContainer::operator>> (std::vector<T, A>& val)
+{
+    assert(mMode == Mode::READ);
+    assert(val.empty());
+    size_t sz = 0;
+    this->operator>>(sz);
+    val.resize(sz);
+    unsigned char* p = mData + mCurrentPtrLocation;
+    mCurrentPtrLocation += sz * sizeof(T);
+    memcpy(val.data(), p, sz * sizeof(T));
+    return *this;
+}
 }
