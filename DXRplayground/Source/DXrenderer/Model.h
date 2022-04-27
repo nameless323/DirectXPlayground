@@ -189,8 +189,11 @@ public:
     void Parse(const std::string& filename) override;
     void Serialize(BinaryContainer& container) override;
     void Deserialize(BinaryContainer& container) override;
+    size_t GetVersion() const override;
 
 private:
+    inline static constexpr size_t AssetSerializationVersion = 0;
+
     void InitializeRuntimeData(RenderContext& ctx, const std::string& path);
     void LoadModel(const std::string& path, tinygltf::Model& model);
     void ParseModelNodes(const tinygltf::Model& model, const tinygltf::Node& node);
@@ -228,4 +231,10 @@ inline const std::vector<Model::Mesh>& Model::GetMeshes() const
 {
     return mMeshes;
 }
+
+inline size_t Model::GetVersion() const
+{
+    return AssetSerializationVersion;
+}
+
 }

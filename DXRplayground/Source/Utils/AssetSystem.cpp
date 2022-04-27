@@ -21,7 +21,8 @@ size_t GetLastModificationTime(const std::string& assetPath)
 void ParseAsset(const std::string& assetPath, Asset& asset, const std::filesystem::path& binAssetPath, size_t lastAssetModificationTime)
 {
     BinaryContainer container{};
-    container << lastAssetModificationTime; // Reserved for timestamp
+    container << lastAssetModificationTime;
+    container << asset.GetVersion();
 
     asset.Parse(assetPath);
     asset.Serialize(container);
@@ -82,7 +83,10 @@ void Load(const std::string& assetPath, Asset& asset)
         BinaryContainer inContainer{ buf, byteSize };
         size_t lastSavedModificationTime = 0;
         inContainer >> lastSavedModificationTime;
-        if (lastModificationTimeCount <= lastSavedModificationTime)
+        size_t version = 0;
+        inContainer >> version;
+        assert(version <= asset.GetVersion());
+        if (lastModificationTimeCount <= lastSavedModificationTime && asset.GetVersion() == version)
         {
             asset.Deserialize(inContainer);
         }

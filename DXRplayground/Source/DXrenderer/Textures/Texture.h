@@ -24,6 +24,10 @@ public:
     void Parse(const std::string& filename) override;
     void Serialize(BinaryContainer& container) override;
     void Deserialize(BinaryContainer& container) override;
+    size_t GetVersion() const override
+    {
+        return AssetSerializationVersion;
+    }
 
     const std::vector<byte>& GetData() const
     {
@@ -44,8 +48,9 @@ public:
     {
         return mFormat;
     }
-
 private:
+    inline static constexpr size_t AssetSerializationVersion = 0;
+
     std::vector<byte> mData;
     UINT mWidth;
     UINT mHeight;
