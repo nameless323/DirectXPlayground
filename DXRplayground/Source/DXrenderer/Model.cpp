@@ -5,6 +5,7 @@
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "Utils/Logger.h"
 #include "Utils/BinaryContainer.h"
+#include "Utils/AssetSystem.h"
 
 #include <filesystem>
 
@@ -27,7 +28,7 @@ T GetElementFromBuffer(const byte* bufferStart, UINT byteStride, size_t elemInde
 
 Model::Model(RenderContext& ctx, const std::string& path)
 {
-    Parse(path);
+    AssetSystem::Load(path, *this);
 
     InitializeRuntimeData(ctx, path);
 }
@@ -97,22 +98,37 @@ void Model::Parse(const std::string& filename)
 
 void Model::Serialize(BinaryContainer& container)
 {
-    /*
-     * std::vector<Mesh*> mMeshes;
-    std::vector<Image> mImages;
-    std::vector<int> mTextures;
-    std::vector<Material> mMaterials;
-     */
     container << mMeshes.size();
     for (int i = 0; i < mMeshes.size(); ++i)
     {
         container << mMeshes[i];
     }
-    //container << mImages
+    container << mImages.size();
+    for (int i = 0; i < mImages.size(); ++i)
+    {
+        container << mImages[i];
+    }
+    container << mTextures;
+    container << mMaterials;
 }
 
 void Model::Deserialize(BinaryContainer& container)
 {
+    size_t sz = 0;
+    container >> sz;
+    mMeshes.resize(sz);
+    for (int i = 0; i < mMeshes.size(); ++i)
+    {
+        container >> mMeshes[i];
+    }
+    container >> sz;
+    mImages.resize(sz);
+    for (int i = 0; i < mImages.size(); ++i)
+    {
+        container >> mImages[i];
+    }
+    container >> mTextures;
+    container >> mMaterials;
 }
 
 void Model::InitializeRuntimeData(RenderContext& ctx, const std::string& path)

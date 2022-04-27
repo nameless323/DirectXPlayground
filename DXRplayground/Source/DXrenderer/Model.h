@@ -73,12 +73,12 @@ struct Material
 
     friend BinaryContainer& operator<<(BinaryContainer& op, const Material& m)
     {
-        op << m.BaseColorTexture << m.MetallicRoughnessTexture << m.NormalTexture << m.OcclusionTexture << std::make_pair(reinterpret_cast<const byte*>(&m.BaseColorFactor), 4 * sizeof(m.BaseColorFactor[0]));
+        op << m.BaseColorTexture << m.MetallicRoughnessTexture << m.NormalTexture << m.OcclusionTexture << m.BaseColorFactor[0] << m.BaseColorFactor[1] << m.BaseColorFactor[2] << m.BaseColorFactor[3];
         return op;
     }
     friend BinaryContainer& operator>>(BinaryContainer& op, Material& m)
     {
-        op >> m.BaseColorTexture >> m.MetallicRoughnessTexture >> m.NormalTexture << m.OcclusionTexture >> std::make_pair(reinterpret_cast<byte*>(&m.BaseColorFactor), 4 * sizeof(m.BaseColorFactor[0]));
+        op >> m.BaseColorTexture >> m.MetallicRoughnessTexture >> m.NormalTexture >> m.OcclusionTexture >> m.BaseColorFactor[0] >> m.BaseColorFactor[1] >> m.BaseColorFactor[2] >> m.BaseColorFactor[3];
         return op;
     }
 };
