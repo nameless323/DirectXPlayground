@@ -102,6 +102,15 @@
     <ClCompile Include="Source\DXrenderer\Textures\MipGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Utils\BinaryContainer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Utils\AssetSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\DXrenderer\Textures\Texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\WindowsApp.h">
@@ -249,6 +258,18 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Source\DXrenderer\ResourceDX.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utils\BinaryContainer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utils\Asset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Utils\AssetSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\DXrenderer\Textures\Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

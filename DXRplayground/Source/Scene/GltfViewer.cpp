@@ -121,15 +121,15 @@ void GltfViewer::Render(RenderContext& context)
     cubeHeapBegin.Offset(context.CbvSrvUavDescriptorSize * RenderContext::MaxTextures);
     context.CommandList->SetGraphicsRootDescriptorTable(CubemapTableIndex, cubeHeapBegin);
 
-    for (const auto mesh : mGltfMesh->GetMeshes())
+    for (const auto& mesh : mGltfMesh->GetMeshes())
     {
-        context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh->GetMaterialBufferGpuAddress(frameIndex));
+        context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(2), mesh.GetMaterialBufferGpuAddress(frameIndex));
 
-        context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
-        context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
+        context.CommandList->IASetVertexBuffers(0, 1, &mesh.GetVertexBufferView());
+        context.CommandList->IASetIndexBuffer(&mesh.GetIndexBufferView());
 
         context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), 1, 0, 0, 0);
+        context.CommandList->DrawIndexedInstanced(mesh.GetIndexCount(), 1, 0, 0, 0);
     }
 
     DrawSkybox(context);
@@ -142,8 +142,8 @@ void GltfViewer::Render(RenderContext& context)
 
 void GltfViewer::LoadGeometry(RenderContext& context)
 {
-    auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
-    //auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    //auto path = ASSETS_DIR + std::string("Models//Avocado//glTF//Avocado.gltf");
+    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
     mGltfMesh = new Model(context, path);
     path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
     mSkybox = new Model(context, path);
@@ -164,7 +164,7 @@ void GltfViewer::CreatePSOs(RenderContext& context)
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
     desc.RTVFormats[0] = mTonemapper->GetHDRTargetFormat();
 
-    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstanced.hlsl");
+    auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrForward.hlsl");
     context.PsoManager->CreatePso(context, mPsoName, shaderPath, desc);
 
     desc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;

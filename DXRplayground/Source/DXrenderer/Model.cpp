@@ -4,6 +4,8 @@
 #include "DXrenderer/Textures/TextureManager.h"
 #include "DXrenderer/Buffers/UploadBuffer.h"
 #include "Utils/Logger.h"
+#include "Utils/BinaryContainer.h"
+#include "Utils/AssetSystem.h"
 
 #include <filesystem>
 
@@ -26,8 +28,38 @@ T GetElementFromBuffer(const byte* bufferStart, UINT byteStride, size_t elemInde
 
 Model::Model(RenderContext& ctx, const std::string& path)
 {
+    AssetSystem::Load(path, *this);
+
+    InitializeRuntimeData(ctx, path);
+}
+
+Model::Model(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices)
+{
+    mMeshes.push_back({});
+    Mesh* sMesh = &mMeshes.back();
+
+    sMesh->mVertices.swap(vertices);
+    sMesh->mIndices.swap(indices);
+    sMesh->mIndexCount = static_cast<UINT>(sMesh->mIndices.size());
+
+    sMesh->mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(sMesh->mVertices.data()), static_cast<UINT>(sizeof(Vertex) * sMesh->mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
+    sMesh->mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(sMesh->mIndices.data()), static_cast<UINT>(sizeof(UINT) * sMesh->mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+}
+
+Model::~Model()
+{
+}
+
+void Model::UpdateMeshes(UINT frame)
+{
+    for (auto& mesh : mMeshes)
+        mesh.UpdateMaterialBuffer(frame);
+}
+
+void Model::Parse(const std::string& filename)
+{
     tinygltf::Model model;
-    LoadModel(path, model);
+    LoadModel(filename, model);
 
     for (UINT i = 0; i < model.accessors.size(); ++i)
     {
@@ -38,13 +70,8 @@ Model::Model(RenderContext& ctx, const std::string& path)
         }
     }
 
-    std::filesystem::path pathToModel{ path };
+    std::filesystem::path pathToModel{ filename };
     std::string dir = pathToModel.parent_path().string() + '\\';
-    for (const auto& image : model.images)
-    {
-        UINT index = ctx.TexManager->CreateTexture(ctx, dir + image.uri).SRVOffset;
-        mImages.push_back({ index, image.uri });
-    }
     for (const auto& texture : model.textures)
     {
         mTextures.push_back(texture.source);
@@ -61,35 +88,76 @@ Model::Model(RenderContext& ctx, const std::string& path)
 
     const tinygltf::Scene& scene = model.scenes[model.defaultScene];
     for (int node : scene.nodes)
-        ParseModelNodes(ctx, model, model.nodes[node]);
-}
+        ParseModelNodes(model, model.nodes[node]);
 
-Model::Model(RenderContext& ctx, std::vector<Vertex> vertices, std::vector<UINT> indices)
-{
-    mMeshes.emplace_back(new Mesh{});
-    Mesh* sMesh = mMeshes.back();
-
-    sMesh->mVertices.swap(vertices);
-    sMesh->mIndices.swap(indices);
-    sMesh->mIndexCount = static_cast<UINT>(sMesh->mIndices.size());
-
-    sMesh->mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(sMesh->mVertices.data()), static_cast<UINT>(sizeof(Vertex) * sMesh->mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
-    sMesh->mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(sMesh->mIndices.data()), static_cast<UINT>(sizeof(UINT) * sMesh->mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
-}
-
-Model::~Model()
-{
-    for (auto submesh : mMeshes)
+    for (const auto& image : model.images)
     {
-        delete submesh;
+        mImages.push_back({ ~0U, image.uri });
     }
-    mMeshes.clear();
 }
 
-void Model::UpdateMeshes(UINT frame)
+void Model::Serialize(BinaryContainer& container)
 {
-    for (auto mesh : mMeshes)
-        mesh->UpdateMaterialBuffer(frame);
+    container << mMeshes.size();
+    for (int i = 0; i < mMeshes.size(); ++i)
+    {
+        container << mMeshes[i];
+    }
+    container << mImages.size();
+    for (int i = 0; i < mImages.size(); ++i)
+    {
+        container << mImages[i];
+    }
+    container << mTextures;
+    container << mMaterials;
+}
+
+void Model::Deserialize(BinaryContainer& container)
+{
+    size_t sz = 0;
+    container >> sz;
+    mMeshes.resize(sz);
+    for (int i = 0; i < mMeshes.size(); ++i)
+    {
+        container >> mMeshes[i];
+    }
+    container >> sz;
+    mImages.resize(sz);
+    for (int i = 0; i < mImages.size(); ++i)
+    {
+        container >> mImages[i];
+    }
+    container >> mTextures;
+    container >> mMaterials;
+}
+
+void Model::InitializeRuntimeData(RenderContext& ctx, const std::string& path)
+{
+    std::filesystem::path pathToModel{ path };
+    std::string dir = pathToModel.parent_path().string() + '\\';
+    for (auto& image : mImages)
+    {
+        UINT index = ctx.TexManager->CreateTexture(ctx, dir + image.Name).SRVOffset;
+        image.IndexInHeap = index;
+    }
+
+    for (auto& mesh : mMeshes)
+    {
+        const Material& modelMat = mesh.mMaterial;
+        if (modelMat.BaseColorTexture != -1)
+            mesh.mRuntimeMaterial.BaseColorTexture = mImages[mTextures[modelMat.BaseColorTexture]].IndexInHeap;
+        if (modelMat.MetallicRoughnessTexture != -1)
+            mesh.mRuntimeMaterial.MetallicRoughnessTexture = mImages[mTextures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
+        if (modelMat.NormalTexture != -1)
+            mesh.mRuntimeMaterial.NormalTexture = mImages[mTextures[modelMat.NormalTexture]].IndexInHeap;
+        if (modelMat.OcclusionTexture != -1)
+            mesh.mRuntimeMaterial.OcclusionTexture = mImages[mTextures[modelMat.OcclusionTexture]].IndexInHeap;
+        memcpy(mesh.mRuntimeMaterial.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
+
+        mesh.mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh.mVertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh.mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
+        mesh.mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh.mIndices.data()), static_cast<UINT>(sizeof(UINT) * mesh.mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
+        mesh.mMaterialBuffer = new UploadBuffer(*ctx.Device, sizeof(Material), true, RenderContext::FramesCount);
+    }
 }
 
 void Model::LoadModel(const std::string& path, tinygltf::Model& model)
@@ -120,22 +188,22 @@ void Model::LoadModel(const std::string& path, tinygltf::Model& model)
     }
 }
 
-void Model::ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node)
+void Model::ParseModelNodes(const tinygltf::Model& model, const tinygltf::Node& node)
 {
     if (node.mesh != -1) // Camera usually
-        ParseGLTFMesh(ctx, model, node, model.meshes[node.mesh]);
+        ParseGLTFMesh(model, node, model.meshes[node.mesh]);
     for (int i : node.children)
     {
-        ParseModelNodes(ctx, model, model.nodes[i]);
+        ParseModelNodes(model, model.nodes[i]);
     }
 }
 
-void Model::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& gltfMesh)
+void Model::ParseGLTFMesh(const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& gltfMesh)
 {
     for (size_t i = 0; i < gltfMesh.primitives.size(); ++i)
     {
-        mMeshes.push_back(new Mesh{});
-        Mesh* mesh = mMeshes.back();
+        mMeshes.push_back({});
+        Mesh* mesh = &mMeshes.back();
 
         tinygltf::Primitive primitive = gltfMesh.primitives[i];
 
@@ -144,20 +212,8 @@ void Model::ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, cons
 
         mesh->mIndexCount = static_cast<UINT>(mesh->mIndices.size());
 
-        Material& modelMat = mMaterials[primitive.material];
-        if (modelMat.BaseColorTexture != -1)
-            mesh->mMaterial.BaseColorTexture = mImages[mTextures[modelMat.BaseColorTexture]].IndexInHeap;
-        if (modelMat.MetallicRoughnessTexture != -1)
-            mesh->mMaterial.MetallicRoughnessTexture = mImages[mTextures[modelMat.MetallicRoughnessTexture]].IndexInHeap;
-        if (modelMat.NormalTexture != -1)
-            mesh->mMaterial.NormalTexture = mImages[mTextures[modelMat.NormalTexture]].IndexInHeap;
-        if (modelMat.OcclusionTexture != -1)
-            mesh->mMaterial.OcclusionTexture = mImages[mTextures[modelMat.OcclusionTexture]].IndexInHeap;
-        memcpy(mesh->mMaterial.BaseColorFactor, modelMat.BaseColorFactor, sizeof(float) * 4);
-
-        mesh->mVertexBuffer = new VertexBuffer(reinterpret_cast<byte*>(mesh->mVertices.data()), static_cast<UINT>(sizeof(Vertex) * mesh->mVertices.size()), sizeof(Vertex), ctx.CommandList, ctx.Device);
-        mesh->mIndexBuffer = new IndexBuffer(reinterpret_cast<byte*>(mesh->mIndices.data()), static_cast<UINT>(sizeof(UINT) * mesh->mIndices.size()), ctx.CommandList, ctx.Device, DXGI_FORMAT_R32_UINT);
-        mesh->mMaterialBuffer = new UploadBuffer(*ctx.Device, sizeof(Material), true, RenderContext::FramesCount);
+        mesh->mMaterial = mMaterials[primitive.material];
+        memcpy(mesh->mMaterial.BaseColorFactor, mMaterials[primitive.material].BaseColorFactor, sizeof(float) * 4);
     }
 }
 
@@ -266,6 +322,4 @@ void Model::ParseIndices(Mesh* mesh, const tinygltf::Model& model, const tinyglt
     else
         assert(false);
 }
-
-
 }

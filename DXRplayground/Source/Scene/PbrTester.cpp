@@ -126,13 +126,13 @@ void PbrTester::Render(RenderContext& context)
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), mLightManager->GetLightsBufferGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
 
-    for (const auto mesh : mGltfMesh->GetMeshes())
+    for (const auto& mesh : mGltfMesh->GetMeshes())
     {
-        context.CommandList->IASetVertexBuffers(0, 1, &mesh->GetVertexBufferView());
-        context.CommandList->IASetIndexBuffer(&mesh->GetIndexBufferView());
+        context.CommandList->IASetVertexBuffers(0, 1, &mesh.GetVertexBufferView());
+        context.CommandList->IASetIndexBuffer(&mesh.GetIndexBufferView());
 
         context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        context.CommandList->DrawIndexedInstanced(mesh->GetIndexCount(), m_instanceCount, 0, 0, 0);
+        context.CommandList->DrawIndexedInstanced(mesh.GetIndexCount(), m_instanceCount, 0, 0, 0);
     }
     mTonemapper->Render(context);
 

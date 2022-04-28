@@ -157,6 +157,7 @@
     <ClCompile Include="Source\DXrenderer\PsoManager.cpp" />
     <ClCompile Include="Source\DXrenderer\RenderPipeline.cpp" />
     <ClCompile Include="Source\DXrenderer\Textures\MipGenerator.cpp" />
+    <ClCompile Include="Source\DXrenderer\Textures\Texture.cpp" />
     <ClCompile Include="Source\DXRplayground.cpp" />
     <ClCompile Include="Source\DXrenderer\Shader.cpp" />
     <ClCompile Include="Source\DXrenderer\Swapchain.cpp" />
@@ -173,6 +174,8 @@
     <ClCompile Include="Source\Scene\GltfViewer.cpp" />
     <ClCompile Include="Source\Scene\PbrTester.cpp" />
     <ClCompile Include="Source\Scene\RtTester.cpp" />
+    <ClCompile Include="Source\Utils\AssetSystem.cpp" />
+    <ClCompile Include="Source\Utils\BinaryContainer.cpp" />
     <ClCompile Include="Source\Utils\FileWatcher.cpp" />
     <ClCompile Include="Source\Utils\Logger.cpp" />
     <ClCompile Include="Source\WindowsApp.cpp" />
@@ -180,6 +183,8 @@
   <ItemGroup>
     <ClInclude Include="Source\Camera.h" />
     <ClInclude Include="Source\CameraController.h" />
+    <ClInclude Include="Source\DXrenderer\Textures\Texture.h" />
+    <ClInclude Include="Source\Utils\Asset.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\HeapBuffer.h" />
     <ClInclude Include="Source\DXrenderer\Buffers\UploadBuffer.h" />
     <ClInclude Include="Source\DXrenderer\DirectXRaytracingHelper.h" />
@@ -221,6 +226,8 @@
     <ClInclude Include="Source\Scene\PbrTester.h" />
     <ClInclude Include="Source\Scene\RtTester.h" />
     <ClInclude Include="Source\Scene\Scene.h" />
+    <ClInclude Include="Source\Utils\AssetSystem.h" />
+    <ClInclude Include="Source\Utils\BinaryContainer.h" />
     <ClInclude Include="Source\Utils\FileWatcher.h" />
     <ClInclude Include="Source\Utils\Helpers.h" />
     <ClInclude Include="Source\Utils\Logger.h" />

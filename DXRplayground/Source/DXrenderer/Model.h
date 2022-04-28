@@ -8,6 +8,9 @@
 #include "Buffers/HeapBuffer.h"
 #include "Buffers/UploadBuffer.h"
 #include "Utils/Helpers.h"
+#include "Utils/Asset.h"
+
+#include "Utils/BinaryContainer.h"
 
 namespace tinygltf
 {
@@ -30,12 +33,34 @@ struct Vertex
     XMFLOAT2 Uv;
     XMFLOAT3 Norm;
     XMFLOAT4 Tangent;
+
+    friend BinaryContainer& operator<<(BinaryContainer& op, const Vertex& v)
+    {
+        op << v.Pos << v.Uv << v.Norm << v.Tangent;
+        return op;
+    }
+    friend BinaryContainer& operator>>(BinaryContainer& op, Vertex& v)
+    {
+        op >> v.Pos >> v.Uv >> v.Norm >> v.Tangent;
+        return op;
+    }
 };
 
 struct Image
 {
     UINT IndexInHeap = 0;
     std::string Name;
+
+    friend BinaryContainer& operator<<(BinaryContainer& op, const Image& i)
+    {
+        op << i.Name;
+        return op;
+    }
+    friend BinaryContainer& operator>>(BinaryContainer& op, Image& i)
+    {
+        op >> i.Name;
+        return op;
+    }
 };
 
 struct Material
@@ -45,9 +70,20 @@ struct Material
     int NormalTexture = 0;
     int OcclusionTexture = 0;
     float BaseColorFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+    friend BinaryContainer& operator<<(BinaryContainer& op, const Material& m)
+    {
+        op << m.BaseColorTexture << m.MetallicRoughnessTexture << m.NormalTexture << m.OcclusionTexture << m.BaseColorFactor[0] << m.BaseColorFactor[1] << m.BaseColorFactor[2] << m.BaseColorFactor[3];
+        return op;
+    }
+    friend BinaryContainer& operator>>(BinaryContainer& op, Material& m)
+    {
+        op >> m.BaseColorTexture >> m.MetallicRoughnessTexture >> m.NormalTexture >> m.OcclusionTexture >> m.BaseColorFactor[0] >> m.BaseColorFactor[1] >> m.BaseColorFactor[2] >> m.BaseColorFactor[3];
+        return op;
+    }
 };
 
-class Model
+class Model : public Asset
 {
 public:
     class Mesh
@@ -107,7 +143,18 @@ public:
 
         void UpdateMaterialBuffer(UINT frame)
         {
-            mMaterialBuffer->UploadData(frame, mMaterial);
+            mMaterialBuffer->UploadData(frame, mRuntimeMaterial);
+        }
+
+        friend BinaryContainer& operator<<(BinaryContainer& op, const Mesh& m)
+        {
+            op << m.mIndexCount << m.mMaterial << m.mVertices << m.mIndices;
+            return op;
+        }
+        friend BinaryContainer& operator>>(BinaryContainer& op, Mesh& m)
+        {
+            op >> m.mIndexCount >> m.mMaterial >> m.mVertices >> m.mIndices;
+            return op;
         }
 
     private:
@@ -115,6 +162,7 @@ public:
 
         UINT mIndexCount = 0;
         Material mMaterial{};
+        Material mRuntimeMaterial{};
 
         std::vector<Vertex> mVertices;
         std::vector<UINT> mIndices;
@@ -135,17 +183,25 @@ public:
     const D3D12_INDEX_BUFFER_VIEW& GetIndexBufferView() const;
     const Mesh* GetMesh() const;
 
-    const std::vector<Mesh*>& GetMeshes() const;
+    const std::vector<Mesh>& GetMeshes() const;
     void UpdateMeshes(UINT frame);
 
+    void Parse(const std::string& filename) override;
+    void Serialize(BinaryContainer& container) override;
+    void Deserialize(BinaryContainer& container) override;
+    size_t GetVersion() const override;
+
 private:
+    inline static constexpr size_t AssetSerializationVersion = 0;
+
+    void InitializeRuntimeData(RenderContext& ctx, const std::string& path);
     void LoadModel(const std::string& path, tinygltf::Model& model);
-    void ParseModelNodes(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node);
-    void ParseGLTFMesh(RenderContext& ctx, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh);
+    void ParseModelNodes(const tinygltf::Model& model, const tinygltf::Node& node);
+    void ParseGLTFMesh(const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Mesh& mesh);
     void ParseVertices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Node& node, const tinygltf::Primitive& primitive);
     void ParseIndices(Mesh* mesh, const tinygltf::Model& model, const tinygltf::Primitive& primitive);
 
-    std::vector<Mesh*> mMeshes;
+    std::vector<Mesh> mMeshes;
     std::vector<Image> mImages;
     std::vector<int> mTextures;
     std::vector<Material> mMaterials;
@@ -153,26 +209,32 @@ private:
 
 inline UINT Model::GetIndexCount() const
 {
-    return mMeshes[0]->GetIndexCount();
+    return mMeshes[0].GetIndexCount();
 }
 
 inline const D3D12_VERTEX_BUFFER_VIEW& Model::GetVertexBufferView() const
 {
-    return mMeshes[0]->GetVertexBufferView();
+    return mMeshes[0].GetVertexBufferView();
 }
 
 inline const D3D12_INDEX_BUFFER_VIEW& Model::GetIndexBufferView() const
 {
-    return mMeshes[0]->GetIndexBufferView();
+    return mMeshes[0].GetIndexBufferView();
 }
 
 inline const Model::Mesh* Model::GetMesh() const
 {
-    return mMeshes.at(0);
+    return &mMeshes.at(0);
 }
 
-inline const std::vector<Model::Mesh*>& Model::GetMeshes() const
+inline const std::vector<Model::Mesh>& Model::GetMeshes() const
 {
     return mMeshes;
 }
+
+inline size_t Model::GetVersion() const
+{
+    return AssetSerializationVersion;
+}
+
 }
