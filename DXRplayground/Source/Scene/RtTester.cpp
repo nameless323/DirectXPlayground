@@ -17,6 +17,7 @@
 #include "DXrenderer/DXR/AccelerationStructure.h"
 
 #include "External/IMGUI/imgui.h"
+#include "Utils/PixProfiler.h"
 
 namespace DirectxPlayground
 {
@@ -37,11 +38,14 @@ RtTester::~RtTester()
     SafeDelete(mCameraController);
     SafeDelete(mObjectCb);
     SafeDelete(mSuzanne);
+    SafeDelete(mSkybox);
     SafeDelete(mTonemapper);
     SafeDelete(mLightManager);
     SafeDelete(mFloor);
     SafeDelete(mFloorMaterialCb);
     SafeDelete(mFloorTransformCb);
+    SafeDelete(mEnvMap);
+    SafeDelete(mEnvCb);
 
     // dxr
     SafeDelete(mTlas);
@@ -66,6 +70,10 @@ void RtTester::InitResources(RenderContext& context)
     mCamera->SetWorldPosition({ 0.0f, 2.0f, -2.0f });
     mCameraCb = new UploadBuffer(*context.Device, sizeof(CameraShaderData), true, context.FramesCount);
     mObjectCb = new UploadBuffer(*context.Device, sizeof(XMFLOAT4X4) * 2, true, 1);
+    mEnvCb = new UploadBuffer(*context.Device, sizeof(EnvironmentData), true, 1);
+
+    auto path = ASSETS_DIR + std::string("Textures//colorful_studio_4k.hdr");
+    mEnvMap = new EnvironmentMap(context, path, 2048, 64);
 
     XMFLOAT4X4 toWorld[2];
     XMStoreFloat4x4(&toWorld[0], XMMatrixTranspose(XMMatrixTranslation(0.0f, 2.0f, 3.0f)));
@@ -100,12 +108,19 @@ void RtTester::InitResources(RenderContext& context)
     CreatePSOs(context);
 
     InitRaytracingPipeline(context);
+
+    context.TexManager->FlushMipsQueue(context);
+    mEnvMap->ConvertToCubemap(context);
+
+    EnvironmentData envData{ mEnvMap->GetCubemapIndex(), mEnvMap->GetIrradianceMapIndex() };
+    mEnvCb->UploadData(0, envData);
 }
 
 void RtTester::Render(RenderContext& context)
 {
+    GPU_SCOPED_EVENT(context, "Render");
     mCameraController->Update();
-    UpdateGui(context);
+    UpdateLights(context);
 
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
 
@@ -133,7 +148,7 @@ void RtTester::Render(RenderContext& context)
     DepthPrepass(context);
     RaytraceShadows(context);
     RenderForwardObjects(context);
-
+    DrawSkybox(context);
 
     ImGui::Begin("TexTest");
     ImGui::Image(context.ImguiTexManager->GetTextureId(context.TexManager->GetDXRResource()), { 256, 256 });
@@ -147,6 +162,8 @@ void RtTester::Render(RenderContext& context)
 
 void RtTester::DepthPrepass(RenderContext& context)
 {
+    GPU_SCOPED_EVENT(context, "DepthPrepass");
+
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
     auto rtCpuHandle = context.TexManager->GetRtHandle(context, mTonemapper->GetRtIndex());
 
@@ -185,6 +202,7 @@ void RtTester::DepthPrepass(RenderContext& context)
 
 void RtTester::RenderForwardObjects(RenderContext& context)
 {
+    GPU_SCOPED_EVENT(context, "RenderForwardObjects");
     UINT frameIndex = context.SwapChain->GetCurrentBackBufferIndex();
     auto rtCpuHandle = context.TexManager->GetRtHandle(context, mTonemapper->GetRtIndex());
 
@@ -230,6 +248,8 @@ void RtTester::LoadGeometry(RenderContext& context)
 {
     auto path = ASSETS_DIR + std::string("Models//Suzanne//glTF//Suzanne.gltf");
     mSuzanne = new Model(context, path);
+    path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
+    mSkybox = new Model(context, path);
 
     std::vector<Vertex> verts;
     verts.resize(4);
@@ -257,24 +277,36 @@ void RtTester::CreatePSOs(RenderContext& context)
     D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = GetDefaultOpaquePsoDescriptor(mCommonRootSig.Get(), 0);
     desc.InputLayout = { inputLayout.data(), static_cast<UINT>(inputLayout.size()) };
 
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC skyboxDesc = desc;
+
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
+
+    std::vector<DxcDefine> instancingDefines = { { L"INSTANCING", L"" } };
+
     auto shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//DepthPrepass.hlsl");
-    context.PsoManager->CreatePso(context, mDepthPrepassPsoName, shaderPath, desc);
+    context.PsoManager->CreatePso(context, mDepthPrepassPsoName, shaderPath, desc, &instancingDefines);
 
     desc.NumRenderTargets = 1;
     desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
     desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     desc.RTVFormats[0] = mTonemapper->GetHDRTargetFormat();
 
-    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrInstanced.hlsl");
-    context.PsoManager->CreatePso(context, mPsoName, shaderPath, desc);
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrForward.hlsl");
+    context.PsoManager->CreatePso(context, mPsoName, shaderPath, desc, &instancingDefines);
 
     shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//PbrNonInstancedDxrShadowed.hlsl");
     context.PsoManager->CreatePso(context, mFloorPsoName, shaderPath, desc);
 
+    desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
+    desc.RTVFormats[0] = mTonemapper->GetHDRTargetFormat();
+
+    desc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
+
+    shaderPath = ASSETS_DIR_W + std::wstring(L"Shaders//Skybox.hlsl");
+    context.PsoManager->CreatePso(context, mSkyboxPsoName, shaderPath, desc);
 }
 
-void RtTester::UpdateGui(RenderContext& context)
+void RtTester::UpdateLights(RenderContext& context)
 {
     Light& dirLight = mLightManager->GetLightRef(mDirectionalLightInd);
     ImGui::Begin("SceneControls");
@@ -289,6 +321,18 @@ void RtTester::UpdateGui(RenderContext& context)
     ImGui::End();
 
     mLightManager->UpdateLights(context.SwapChain->GetCurrentBackBufferIndex());
+}
+
+void RtTester::DrawSkybox(RenderContext& context)
+{
+    GPU_SCOPED_EVENT(context, "Skybox");
+    context.CommandList->SetPipelineState(context.PsoManager->GetPso(mSkyboxPsoName));
+    const Model::Mesh* skybox = mSkybox->GetMesh();
+    context.CommandList->IASetVertexBuffers(0, 1, &skybox->GetVertexBufferView());
+    context.CommandList->IASetIndexBuffer(&skybox->GetIndexBufferView());
+
+    context.CommandList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    context.CommandList->DrawIndexedInstanced(skybox->GetIndexCount(), 1, 0, 0, 0);
 }
 
 void RtTester::InitRaytracingPipeline(RenderContext& context)
@@ -517,6 +561,7 @@ void RtTester::BuildShaderTables(RenderContext& context)
 
 void RtTester::RaytraceShadows(RenderContext& context)
 {
+    GPU_SCOPED_EVENT(context, "RaytraceShadows");
     XMMATRIX viewProj = XMLoadFloat4x4(&mCamera->GetViewProjection());
     XMVECTOR det = XMMatrixDeterminant(viewProj);
     XMMATRIX invViewProjSimd = XMMatrixInverse(&det, viewProj);
