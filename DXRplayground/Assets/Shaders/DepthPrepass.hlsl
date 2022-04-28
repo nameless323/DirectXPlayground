@@ -10,7 +10,6 @@ struct CbCamera
 };
 
 ConstantBuffer<CbCamera> cbCamera : register(b0);
-ConstantBuffer<CbObject> cbObject : register(b1);
 
 struct vIn
 {
