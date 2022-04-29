@@ -134,6 +134,13 @@ void RenderPipeline::Flush()
     }
 }
 
+void RenderPipeline::ExecuteAndFlushCmdList(ID3D12GraphicsCommandList* commandList)
+{
+    ExecuteCommandList(commandList);
+    ResetCommandList(commandList);
+    Flush();
+}
+
 void RenderPipeline::ExecuteCommandList(ID3D12GraphicsCommandList* commandList)
 {
     commandList->Close();
