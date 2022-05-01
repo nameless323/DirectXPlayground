@@ -107,7 +107,21 @@ void RtTester::InitResources(RenderContext& context)
 
     CreatePSOs(context);
 
-    InitRaytracingPipeline(context);
+    //InitRaytracingPipeline(context);
+    mShadowMapCb = new UploadBuffer(*context.Device, sizeof(UINT), true, 1);
+    D3D12_RESOURCE_DESC resDesc = {};
+    resDesc.MipLevels = 1;
+    resDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    resDesc.Width = context.Width;
+    resDesc.Height = context.Height;
+    resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    resDesc.DepthOrArraySize = 1;
+    resDesc.SampleDesc.Count = 1;
+    resDesc.SampleDesc.Quality = 0;
+    resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+
+    mShadowMapIndex = context.TexManager->CreateDxrOutput(context, resDesc);
+    mShadowMapCb->UploadData(0, mShadowMapIndex);
 
     context.TexManager->FlushMipsQueue(context);
     mEnvMap->ConvertToCubemap(context);
@@ -146,13 +160,13 @@ void RtTester::Render(RenderContext& context)
     context.CommandList->RSSetViewports(1, &viewport);
 
     DepthPrepass(context);
-    RaytraceShadows(context);
+    //RaytraceShadows(context);
     RenderForwardObjects(context);
     DrawSkybox(context);
 
-    ImGui::Begin("TexTest");
-    ImGui::Image(context.ImguiTexManager->GetTextureId(context.TexManager->GetDXRResource()), { 256, 256 });
-    ImGui::End();
+    //ImGui::Begin("TexTest");
+    //ImGui::Image(context.ImguiTexManager->GetTextureId(context.TexManager->GetDXRResource()), { 256, 256 });
+    //ImGui::End();
 
     mTonemapper->Render(context);
 
@@ -217,7 +231,12 @@ void RtTester::RenderForwardObjects(RenderContext& context)
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(0), mCameraCb->GetFrameDataGpuAddress(frameIndex));
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(1), mObjectCb->GetFrameDataGpuAddress(0));
     context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(3), mLightManager->GetLightsBufferGpuAddress(frameIndex));
+    context.CommandList->SetGraphicsRootConstantBufferView(GetCBRootParamIndex(5), mEnvCb->GetFrameDataGpuAddress(0));
     context.CommandList->SetGraphicsRootDescriptorTable(TextureTableIndex, context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE cubeHeapBegin(context.TexManager->GetDescriptorHeap()->GetGPUDescriptorHandleForHeapStart());
+    cubeHeapBegin.Offset(context.CbvSrvUavDescriptorSize * RenderContext::MaxTextures);
+    context.CommandList->SetGraphicsRootDescriptorTable(CubemapTableIndex, cubeHeapBegin);
 
     if (mDrawSuzanne)
     {
@@ -246,7 +265,9 @@ void RtTester::RenderForwardObjects(RenderContext& context)
 
 void RtTester::LoadGeometry(RenderContext& context)
 {
-    auto path = ASSETS_DIR + std::string("Models//Suzanne//glTF//Suzanne.gltf");
+    //auto path = ASSETS_DIR + std::string("Models//Suzanne//glTF//Suzanne.gltf");
+    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+
     mSuzanne = new Model(context, path);
     path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
     mSkybox = new Model(context, path);
@@ -299,6 +320,8 @@ void RtTester::CreatePSOs(RenderContext& context)
 
     desc.DSVFormat = context.SwapChain->GetDepthStencilFormat();
     desc.RTVFormats[0] = mTonemapper->GetHDRTargetFormat();
+    desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
+    desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
     desc.RasterizerState.CullMode = D3D12_CULL_MODE_FRONT;
 
