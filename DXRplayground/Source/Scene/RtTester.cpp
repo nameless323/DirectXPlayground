@@ -107,21 +107,7 @@ void RtTester::InitResources(RenderContext& context)
 
     CreatePSOs(context);
 
-    //InitRaytracingPipeline(context);
-    mShadowMapCb = new UploadBuffer(*context.Device, sizeof(UINT), true, 1);
-    D3D12_RESOURCE_DESC resDesc = {};
-    resDesc.MipLevels = 1;
-    resDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-    resDesc.Width = context.Width;
-    resDesc.Height = context.Height;
-    resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    resDesc.DepthOrArraySize = 1;
-    resDesc.SampleDesc.Count = 1;
-    resDesc.SampleDesc.Quality = 0;
-    resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-
-    mShadowMapIndex = context.TexManager->CreateDxrOutput(context, resDesc);
-    mShadowMapCb->UploadData(0, mShadowMapIndex);
+    InitRaytracingPipeline(context);
 
     context.TexManager->FlushMipsQueue(context);
     mEnvMap->ConvertToCubemap(context);
@@ -160,13 +146,13 @@ void RtTester::Render(RenderContext& context)
     context.CommandList->RSSetViewports(1, &viewport);
 
     DepthPrepass(context);
-    //RaytraceShadows(context);
+    RaytraceShadows(context);
     RenderForwardObjects(context);
     DrawSkybox(context);
 
-    //ImGui::Begin("TexTest");
-    //ImGui::Image(context.ImguiTexManager->GetTextureId(context.TexManager->GetDXRResource()), { 256, 256 });
-    //ImGui::End();
+    ImGui::Begin("TexTest");
+    ImGui::Image(context.ImguiTexManager->GetTextureId(context.TexManager->GetDXRResource()), { 256, 256 });
+    ImGui::End();
 
     mTonemapper->Render(context);
 
@@ -265,8 +251,8 @@ void RtTester::RenderForwardObjects(RenderContext& context)
 
 void RtTester::LoadGeometry(RenderContext& context)
 {
-    //auto path = ASSETS_DIR + std::string("Models//Suzanne//glTF//Suzanne.gltf");
-    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    auto path = ASSETS_DIR + std::string("Models//Suzanne//glTF//Suzanne.gltf");
+    //auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
 
     mSuzanne = new Model(context, path);
     path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
