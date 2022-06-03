@@ -22,7 +22,7 @@ public:
     ID3D12Resource* GetResource() const;
     void UploadData(UINT frameIndex, const byte* data);
     template <typename T>
-    void UploadData(UINT frameIndex, const T& data);
+    void UploadData(UINT frameIndex, T& data);
 
     D3D12_GPU_VIRTUAL_ADDRESS GetFrameDataGpuAddress(UINT frame) const;
     void SetName(const std::wstring& name);
@@ -49,10 +49,10 @@ private:
 };
 
 template <typename T>
-void UploadBuffer::UploadData(UINT frameIndex, const T& data)
+void UploadBuffer::UploadData(UINT frameIndex, T& data)
 {
     assert(frameIndex < mFramesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
-    UploadData(frameIndex, reinterpret_cast<const byte*>(&data));
+    UploadData(frameIndex, reinterpret_cast<byte*>(&data));
 }
 
 inline void UploadBuffer::SetName(const std::wstring& name)
