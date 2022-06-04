@@ -48,7 +48,7 @@ ID3D12Resource* UploadBuffer::GetResource() const
     return mResource.Get();
 }
 
-void UploadBuffer::UploadData(UINT frameIndex, const byte* data)
+void UploadBuffer::UploadDataBytes(UINT frameIndex, const byte* data)
 {
     assert(frameIndex < mFramesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
     memcpy(mData + frameIndex * mFrameDataSize, data, mRawDataSize);

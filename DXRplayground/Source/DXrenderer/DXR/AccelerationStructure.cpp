@@ -45,7 +45,7 @@ BottomLevelAccelerationStructure::BottomLevelAccelerationStructure(RenderContext
     if (m_aabbsCount > 0)
     {
         m_aabbUploadBuffer = new UploadBuffer(*context.Device, sizeof(D3D12_RAYTRACING_AABB) * UINT(aabbs.size()), false, 1);
-        m_aabbUploadBuffer->UploadData(0, reinterpret_cast<const byte*>(aabbs.data()));
+        m_aabbUploadBuffer->UploadDataBytes(0, reinterpret_cast<const byte*>(aabbs.data()));
 
         CD3DX12_HEAP_PROPERTIES hProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
         CD3DX12_RESOURCE_DESC rDesc = CD3DX12_RESOURCE_DESC::Buffer(sizeof(D3D12_RAYTRACING_AABB));
@@ -217,7 +217,7 @@ void TopLevelAccelerationStructure::Prebuild(RenderContext& context, D3D12_RAYTR
     assert(mPrebuildInfo.ResultDataMaxSizeInBytes > 0);
     mBuffer = new UnorderedAccessBuffer(context.CommandList, *context.Device, UINT(mPrebuildInfo.ResultDataMaxSizeInBytes), nullptr, false, true);
     m_instanceDescsBuffer = new UploadBuffer(*context.Device, sizeof(D3D12_RAYTRACING_INSTANCE_DESC) * UINT(m_instanceDescs.size()), false, 1);
-    m_instanceDescsBuffer->UploadData(0, reinterpret_cast<const byte*>(m_instanceDescs.data()));
+    m_instanceDescsBuffer->UploadDataBytes(0, reinterpret_cast<const byte*>(m_instanceDescs.data()));
 
     mIsPrebuilt = true;
 }
