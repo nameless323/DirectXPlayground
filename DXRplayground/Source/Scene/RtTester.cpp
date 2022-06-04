@@ -532,7 +532,7 @@ void RtTester::BuildShaderTables(RenderContext& context)
     UINT shaderRecordSize = Align(shaderIdentifierSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
 
     mRayGenShaderTable = new UploadBuffer(*context.Device, shaderRecordSize, false, 1, true);
-    mRayGenShaderTable->UploadData(0, reinterpret_cast<byte*>(rayGenShaderIdentifier));
+    mRayGenShaderTable->UploadData(0, reinterpret_cast<const byte*>(rayGenShaderIdentifier));
     mRayGenShaderTable->SetName(L"RayGenShaderTable");
 
     UINT hitGroupShaderRecordSize = Align(shaderIdentifierSize + sizeof(D3D12_GPU_VIRTUAL_ADDRESS), D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
