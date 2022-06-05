@@ -20,7 +20,7 @@ public:
     ~UploadBuffer();
 
     ID3D12Resource* GetResource() const;
-    void UploadData(UINT frameIndex, const byte* data);
+    void UploadDataBytes(UINT frameIndex, const byte* data);
     template <typename T>
     void UploadData(UINT frameIndex, const T& data);
 
@@ -52,7 +52,7 @@ template <typename T>
 void UploadBuffer::UploadData(UINT frameIndex, const T& data)
 {
     assert(frameIndex < mFramesCount && "Asked frame index for the buffer is bigger than maxFrames for this buffer");
-    UploadData(frameIndex, reinterpret_cast<const byte*>(&data));
+    UploadDataBytes(frameIndex, reinterpret_cast<const byte*>(&data));
 }
 
 inline void UploadBuffer::SetName(const std::wstring& name)

@@ -25,6 +25,8 @@ public:
     virtual ~IRenderPipeline() = default;
 
     virtual void Flush() = 0;
+    virtual void ExecuteAndFlushCmdList(ID3D12GraphicsCommandList* commandList) = 0;
+    virtual void ExecuteAndFlushCmdList(RenderContext* ctx) = 0;
     virtual void ExecuteCommandList(ID3D12GraphicsCommandList* commandList) = 0;
     virtual void ResetCommandList(ID3D12GraphicsCommandList* commandList) = 0;
 };
@@ -36,6 +38,8 @@ public:
 
     void Init(HWND hwnd, int width, int height, Scene* scene);
     void Flush() override;
+    void ExecuteAndFlushCmdList(ID3D12GraphicsCommandList* commandList) override;
+    void ExecuteAndFlushCmdList(RenderContext* ctx) override;
     void ExecuteCommandList(ID3D12GraphicsCommandList* commandList) override;
     void ResetCommandList(ID3D12GraphicsCommandList* commandList) override; // TODO: Nice way to mess things up, rethink
     void Resize(int width, int height);

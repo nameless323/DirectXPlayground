@@ -51,7 +51,9 @@ private:
     void LoadGeometry(RenderContext& context);
     void CreateRootSignature(RenderContext& context);
     void CreatePSOs(RenderContext& context);
-    void UpdateGui(RenderContext& context);
+    void UpdateLights(RenderContext& context);
+
+    void DrawSkybox(RenderContext& context);
 
     // rt
 
@@ -65,19 +67,23 @@ private:
 
     Model* mSuzanne = nullptr;
     Model* mFloor = nullptr;
+    Model* mSkybox = nullptr;
     Microsoft::WRL::ComPtr<ID3D12RootSignature> mCommonRootSig; // Move to ctx. It's common after all
     UploadBuffer* mCameraCb = nullptr;
     UploadBuffer* mObjectCb = nullptr;
     UploadBuffer* mFloorTransformCb = nullptr;
     UploadBuffer* mFloorMaterialCb = nullptr;
+    UploadBuffer* mEnvCb = nullptr;
     const std::string mPsoName = "Opaque_PBR";
     const std::string mFloorPsoName = "Opaque_Non_Textured_PBR";
     const std::string mDepthPrepassPsoName = "Depth_Prepass";
+    const std::string mSkyboxPsoName = "Skybox";
 
     Camera* mCamera = nullptr;
     CameraController* mCameraController = nullptr;
     Tonemapper* mTonemapper = nullptr;
     LightManager* mLightManager = nullptr;
+    EnvironmentMap* mEnvMap = nullptr;
     UINT mDirectionalLightInd = 0;
     CameraShaderData mCameraData{};
 
