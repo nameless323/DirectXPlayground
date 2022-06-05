@@ -127,6 +127,8 @@ void RtTester::Render(RenderContext& context)
     mCameraData.ViewProj = TransposeMatrix(mCamera->GetViewProjection());
     XMFLOAT4 camPos = mCamera->GetPosition();
     mCameraData.Position = { camPos.x, camPos.y, camPos.z };
+    mCameraData.View = TransposeMatrix(mCamera->GetView());
+    mCameraData.Proj = TransposeMatrix(mCamera->GetProjection());
     mCameraCb->UploadData(frameIndex, mCameraData);
     mSuzanne->UpdateMeshes(frameIndex);
 
