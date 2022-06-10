@@ -58,7 +58,7 @@ void Raygen()
     TraceRay(Scene, // What bvh
              RAY_FLAG_NONE, // optimization params https://docs.microsoft.com/en-us/windows/win32/direct3d12/ray_flag
              2, // Instance mask. 0xFF to test against everything. See D3D12_RAYTRACING_INSTANCE_DESC when creating blas
-             0, 3, 0, // Shaders: HitGrop, NumHitGroups, MissShader. Hit group includes hit shader and geom. So for shadows one, for reflections another, primary rays another one
+             0, 0, 0, // Shaders: HitGrop, NumHitGroups, MissShader. Hit group includes hit shader and geom. So for shadows one, for reflections another, primary rays another one
              ray,
              payload);
 
@@ -79,7 +79,7 @@ void ClosestHit(inout RayPayload payload, in Attributes attr)
     TraceRay(Scene,
              RAY_FLAG_NONE,
              0xFF,
-             1, 3, 1,
+             1, 0, 1,
              ray,
              payload);
 }
