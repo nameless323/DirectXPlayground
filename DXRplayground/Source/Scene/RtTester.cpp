@@ -253,8 +253,8 @@ void RtTester::RenderForwardObjects(RenderContext& context)
 
 void RtTester::LoadGeometry(RenderContext& context)
 {
-    auto path = ASSETS_DIR + std::string("Models//Suzanne//glTF//Suzanne.gltf");
-    //auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
+    //auto path = ASSETS_DIR + std::string("Models//Suzanne//glTF//Suzanne.gltf");
+    auto path = ASSETS_DIR + std::string("Models//FlightHelmet//glTF//FlightHelmet.gltf");
 
     mSuzanne = new Model(context, path);
     path = ASSETS_DIR + std::string("Models//sphere//sphere.gltf");
